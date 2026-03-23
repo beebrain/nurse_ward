@@ -67,14 +67,14 @@
 | DEPT-01 | Phase 1 | Pending |
 | DEPT-02 | Phase 1 | Pending |
 | DEPT-03 | Phase 1 | Pending |
-| DATA-01 | Phase 2 | Pending |
-| DATA-02 | Phase 2 | Pending |
-| DATA-03 | Phase 2 | Pending |
-| DATA-04 | Phase 2 | Pending |
-| DATA-05 | Phase 2 | Pending |
+| DATA-01 | Phase 1 | Pending |
+| DATA-02 | Phase 1 | Pending |
+| DATA-03 | Phase 1 | Pending |
+| DATA-04 | Phase 1 | Pending |
+| DATA-05 | Phase 1 | Pending |
 | REPT-01 | Phase 2 | Pending |
-| REPT-02 | Phase 3 | Pending |
-| REPT-03 | Phase 3 | Pending |
+| REPT-02 | Phase 2 | Pending |
+| REPT-03 | Phase 2 | Pending |
 | DASH-01 | Phase 3 | Pending |
 | DASH-02 | Phase 3 | Pending |
 | DASH-03 | Phase 3 | Pending |
@@ -85,4 +85,4 @@
 **Coverage:**
 - v1 requirements: 20 total
 - Mapped to phases: 20
-- Unmapped: 0 เนโ€
+- Unmapped: 0
