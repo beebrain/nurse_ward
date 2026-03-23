@@ -18,7 +18,12 @@
   3. Super Admin can dynamically manage ward/department lists.
   4. Nurse can submit daily patient census via an AJAX-powered form on both PC and mobile.
   5. Input validation prevents submission of invalid data (e.g., negative counts).
-**Plans**: TBD
+**Plans**: 5 plans
+- [ ] 01-01-PLAN.md — Initialize CI4 and setup Shield Authentication.
+- [ ] 01-03-PLAN.md — Implement Ward management CRUD.
+- [ ] 01-02-PLAN.md — Implement user registration approval workflow and admin dashboard.
+- [ ] 01-04-PLAN.md — Create shift-based census recording transactional foundation and UI.
+- [ ] 01-05-PLAN.md — Implement AJAX auto-save and input validation for census data.
 
 ### Phase 2: Monthly Reporting & Metrics
 **Goal**: Automate monthly summary generation and productivity calculations.
@@ -44,6 +49,6 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Daily Data Entry | 0/0 | Not started | - |
+| 1. Foundation & Daily Data Entry | 0/5 | Not started | - |
 | 2. Monthly Reporting & Metrics | 0/0 | Not started | - |
 | 3. Interactive Dashboards | 0/0 | Not started | - |
