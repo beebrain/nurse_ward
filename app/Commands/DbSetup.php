@@ -32,10 +32,26 @@ class DbSetup extends BaseCommand
         }
 
         CLI::write("Connecting to MySQL at {$host}:{$port} ...", 'yellow');
-        $mysqli = @new \mysqli($host, $user, $pass, '', $port);
-        if ($mysqli->connect_error) {
-            CLI::error('Connection failed: ' . $mysqli->connect_error);
-            return;
+        $mysqli = null;
+        try {
+            mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+            $mysqli = new \mysqli($host, $user, $pass, '', $port);
+        } catch (\mysqli_sql_exception $e) {
+            // On Linux, host "localhost" commonly attempts a UNIX socket connection.
+            // If the socket path is missing/mismatched, retry with TCP.
+            if ($host === 'localhost' && str_contains($e->getMessage(), 'No such file or directory')) {
+                $tcpHost = '127.0.0.1';
+                CLI::write("Socket connection failed; retrying via TCP at {$tcpHost}:{$port} ...", 'yellow');
+                try {
+                    $mysqli = new \mysqli($tcpHost, $user, $pass, '', $port);
+                } catch (\mysqli_sql_exception $e2) {
+                    CLI::error('Connection failed: ' . $e2->getMessage());
+                    return;
+                }
+            } else {
+                CLI::error('Connection failed: ' . $e->getMessage());
+                return;
+            }
         }
 
         $escapedDb = str_replace('`', '``', $dbName);
