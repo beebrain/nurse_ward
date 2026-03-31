@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Weekly Summary Report | The Clinical Sanctuary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface": "#f9f9ff",
+              "on-surface-variant": "#414752",
+              "on-secondary-fixed-variant": "#005313",
+              "inverse-surface": "#2d3037",
+              "on-tertiary-fixed": "#0f1d25",
+              "primary-container": "#1976d2",
+              "tertiary": "#505e68",
+              "surface-container-highest": "#e0e2ea",
+              "surface-bright": "#f9f9ff",
+              "on-primary-fixed": "#001c3a",
+              "outline": "#717783",
+              "secondary-container": "#98f994",
+              "on-error": "#ffffff",
+              "on-background": "#181c21",
+              "on-primary-fixed-variant": "#004786",
+              "background": "#f9f9ff",
+              "on-secondary-container": "#0c7521",
+              "secondary": "#006e1c",
+              "surface-container-high": "#e6e8f0",
+              "tertiary-fixed-dim": "#bac9d3",
+              "primary": "#005dac",
+              "secondary-fixed-dim": "#7ddc7a",
+              "surface-tint": "#005faf",
+              "outline-variant": "#c1c6d4",
+              "on-tertiary-fixed-variant": "#3b4951",
+              "error-container": "#ffdad6",
+              "on-secondary-fixed": "#002204",
+              "tertiary-container": "#697781",
+              "surface-variant": "#e0e2ea",
+              "on-tertiary": "#ffffff",
+              "tertiary-fixed": "#d6e5ef",
+              "secondary-fixed": "#98f994",
+              "surface-container": "#ecedf6",
+              "surface-container-low": "#f2f3fc",
+              "inverse-primary": "#a5c8ff",
+              "primary-fixed-dim": "#a5c8ff",
+              "on-surface": "#181c21",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed": "#d4e3ff",
+              "error": "#ba1a1a",
+              "on-tertiary-container": "#fdfdff",
+              "inverse-on-surface": "#eff0f9",
+              "on-secondary": "#ffffff",
+              "surface-dim": "#d8dae2",
+              "on-primary-container": "#fffdff",
+              "on-primary": "#ffffff",
+              "on-error-container": "#93000a"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .glass-effect { backdrop-filter: blur(20px); }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface">
+<!-- TopAppBar Execution -->
+<header class="fixed top-0 w-full z-50 bg-slate-50/60 dark:bg-slate-900/60 backdrop-blur-xl shadow-[0px_12px_32px_rgba(0,95,175,0.06)] flex justify-between items-center px-8 py-4 w-full">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tighter font-headline">The Clinical Sanctuary</span>
+<nav class="hidden md:flex gap-6 items-center">
+<a class="font-headline font-semibold tracking-tight text-blue-700 dark:text-blue-400 border-b-2 border-blue-600 transition-colors duration-300" href="#">Dashboard</a>
+<a class="font-headline font-semibold tracking-tight text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors duration-300" href="#">Patient Reporting</a>
+<a class="font-headline font-semibold tracking-tight text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors duration-300" href="#">Department Management</a>
+<a class="font-headline font-semibold tracking-tight text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors duration-300" href="#">User Management</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-all">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/20">
+<img alt="Executive Profile" class="w-full h-full object-cover" data-alt="professional portrait of a healthcare executive in a clinical office setting with soft natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNJMMDWGvSflK0Ppt7_Th70zX3iyh3N6yZOmy4QE6gWwxt6Bj8-XjMSafYdxowMMi4CNIUNano5_AMwUWGsf0GJsk-nUB4hNWWg2331bDSIbrlaj9XSbNaCerq2aOySMuownhXCtVM1HX6M850Prnw50qfUZb03eiSHhVpYHkY73AaydoSdoFY6KUm07eX4jURC4eeOViE_UZAfdeVpishjON_Zz6NAdeFEWJQ2hYUsUmnrNhaXpGvEbi0fb_yImdiHjvVyNGpHr4"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar Execution -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-slate-50 dark:bg-slate-900 hidden lg:flex flex-col pt-24 p-4 gap-2 border-r border-outline-variant/15">
+<div class="mb-8 px-4">
+<h2 class="text-lg font-extrabold text-blue-800 dark:text-blue-300 font-headline">Executive Portal</h2>
+<p class="text-xs text-on-surface-variant font-medium">Clinical Oversight</p>
+</div>
+<nav class="flex-grow space-y-1">
+<a class="flex items-center gap-3 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 rounded-xl px-4 py-3 shadow-sm font-medium transition-transform scale-98 active:scale-95" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all font-medium" href="#">
+<span class="material-symbols-outlined">person</span>
+<span>Patients</span>
+</a>
+<a class="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all font-medium" href="#">
+<span class="material-symbols-outlined">domain</span>
+<span>Departments</span>
+</a>
+<a class="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all font-medium" href="#">
+<span class="material-symbols-outlined">group</span>
+<span>Users</span>
+</a>
+</nav>
+<div class="mt-auto space-y-1 pt-4 border-t border-outline-variant/15">
+<button class="w-full bg-gradient-to-br from-primary to-primary-container text-white py-3 px-4 rounded-xl font-semibold text-sm shadow-md hover:opacity-90 transition-all mb-4">
+                Generate Report
+            </button>
+<a class="flex items-center gap-3 text-slate-500 px-4 py-3 hover:bg-slate-100 rounded-xl transition-all text-sm" href="#">
+<span class="material-symbols-outlined">help</span>
+<span>Help</span>
+</a>
+<a class="flex items-center gap-3 text-error px-4 py-3 hover:bg-error-container/20 rounded-xl transition-all text-sm" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span>Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="lg:pl-64 pt-24 min-h-screen px-4 md:px-12 pb-12">
+<div class="max-w-7xl mx-auto">
+<!-- Page Header -->
+<header class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+<div>
+<nav class="flex items-center gap-2 text-on-surface-variant text-sm mb-2">
+<span>Reports</span>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-primary font-semibold">Weekly Summary</span>
+</nav>
+<h1 class="text-4xl font-extrabold font-headline tracking-tight text-on-surface">Weekly Summary Report</h1>
+<div class="flex items-center gap-3 mt-3 text-on-surface-variant">
+<span class="material-symbols-outlined text-primary-fixed-dim">calendar_today</span>
+<span class="font-medium">Oct 21, 2024 - Oct 27, 2024</span>
+<button class="ml-2 px-3 py-1 bg-surface-container rounded-full text-xs font-bold flex items-center gap-1 hover:bg-surface-container-high transition-colors">
+                            Change Range <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 bg-surface-container-lowest text-on-surface px-5 py-2.5 rounded-full font-semibold shadow-[0px_12px_32px_rgba(0,95,175,0.06)] hover:bg-surface-container-low transition-all border border-outline-variant/10">
+<span class="material-symbols-outlined text-lg">share</span>
+                        Share
+                    </button>
+<button class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-2.5 rounded-full font-bold shadow-lg hover:shadow-xl transition-all">
+<span class="material-symbols-outlined text-lg">download</span>
+                        Download PDF Report
+                    </button>
+</div>
+</header>
+<!-- Summary Bento Grid -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+<!-- Avg Weekly Occupancy -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-[0px_12px_32px_rgba(0,95,175,0.04)] flex flex-col justify-between h-40 group hover:bg-primary hover:text-white transition-all duration-300">
+<div class="flex justify-between items-start">
+<span class="text-on-surface-variant group-hover:text-white/80 font-semibold text-sm">Avg Weekly Occupancy</span>
+<div class="w-10 h-10 rounded-full bg-primary/10 group-hover:bg-white/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary group-hover:text-white">bed</span>
+</div>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-black font-headline tracking-tighter">84%</span>
+<span class="flex items-center text-secondary font-bold text-sm group-hover:text-secondary-container">
+<span class="material-symbols-outlined text-sm">arrow_upward</span>
+                                2.4%
+                            </span>
+</div>
+<p class="text-xs text-on-surface-variant group-hover:text-white/60 mt-1 italic">vs. previous 7-day period</p>
+</div>
+</div>
+<!-- Total Admissions vs Discharges -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-[0px_12px_32px_rgba(0,95,175,0.04)] flex flex-col justify-between h-40">
+<div class="flex justify-between items-start">
+<span class="text-on-surface-variant font-semibold text-sm">Traffic Volume</span>
+<div class="w-10 h-10 rounded-full bg-secondary-container/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary">swap_horiz</span>
+</div>
+</div>
+<div class="flex gap-8">
+<div>
+<span class="block text-xs text-on-surface-variant font-bold uppercase tracking-wider mb-1">Admissions</span>
+<span class="text-2xl font-black font-headline text-on-surface">342</span>
+</div>
+<div class="h-10 w-px bg-outline-variant/20 self-center"></div>
+<div>
+<span class="block text-xs text-on-surface-variant font-bold uppercase tracking-wider mb-1">Discharges</span>
+<span class="text-2xl font-black font-headline text-on-surface">298</span>
+</div>
+</div>
+</div>
+<!-- Department with Highest Volume -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-[0px_12px_32px_rgba(0,95,175,0.04)] flex flex-col justify-between h-40">
+<div class="flex justify-between items-start">
+<span class="text-on-surface-variant font-semibold text-sm">Peak Volume Dept</span>
+<div class="w-10 h-10 rounded-full bg-error-container/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-error">emergency</span>
+</div>
+</div>
+<div>
+<div class="flex items-center gap-3">
+<span class="text-3xl font-black font-headline text-on-surface">Emergency</span>
+<span class="px-3 py-1 bg-error-container text-on-error-container rounded-full text-[10px] font-bold uppercase tracking-widest">CRITICAL</span>
+</div>
+<p class="text-xs text-on-surface-variant mt-1 font-medium">124 admissions this week</p>
+</div>
+</div>
+</section>
+<!-- Main Data Visuals -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+<!-- Chart Area -->
+<div class="lg:col-span-2 space-y-8">
+<div class="bg-surface-container-lowest p-8 rounded-2xl shadow-[0px_12px_32px_rgba(0,95,175,0.06)]">
+<div class="flex justify-between items-center mb-10">
+<div>
+<h3 class="text-xl font-bold font-headline text-on-surface">Daily Patient Volume Trend</h3>
+<p class="text-sm text-on-surface-variant">Combined admissions and discharges per day</p>
+</div>
+<div class="flex gap-2">
+<div class="flex items-center gap-1 text-xs font-semibold text-on-surface-variant">
+<span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
+                                    Admissions
+                                </div>
+<div class="flex items-center gap-1 text-xs font-semibold text-on-surface-variant">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary-fixed-dim"></span>
+                                    Discharges
+                                </div>
+</div>
+</div>
+<!-- Visual Mockup of Chart (CSS based) -->
+<div class="h-64 flex items-end justify-between gap-4 px-2 relative">
+<!-- Y-Axis Mockup -->
+<div class="absolute left-0 top-0 h-full w-full flex flex-col justify-between pointer-events-none opacity-50">
+<div class="w-full border-t border-dashed border-outline-variant/30"></div>
+<div class="w-full border-t border-dashed border-outline-variant/30"></div>
+<div class="w-full border-t border-dashed border-outline-variant/30"></div>
+<div class="w-full border-t border-dashed border-outline-variant/30"></div>
+</div>
+<!-- Bars Mockup -->
+<div class="flex-1 flex flex-col justify-end items-center gap-1 group relative">
+<div class="w-full bg-tertiary-fixed-dim rounded-t-lg h-3/4 transition-all duration-500 group-hover:h-4/5"></div>
+<div class="w-full bg-primary rounded-t-lg h-1/2 transition-all duration-500 group-hover:h-3/5"></div>
+<span class="text-[10px] font-bold text-on-surface-variant mt-2">MON</span>
+</div>
+<div class="flex-1 flex flex-col justify-end items-center gap-1 group">
+<div class="w-full bg-tertiary-fixed-dim rounded-t-lg h-2/3"></div>
+<div class="w-full bg-primary rounded-t-lg h-1/3"></div>
+<span class="text-[10px] font-bold text-on-surface-variant mt-2">TUE</span>
+</div>
+<div class="flex-1 flex flex-col justify-end items-center gap-1 group">
+<div class="w-full bg-tertiary-fixed-dim rounded-t-lg h-1/2"></div>
+<div class="w-full bg-primary rounded-t-lg h-2/3"></div>
+<span class="text-[10px] font-bold text-on-surface-variant mt-2">WED</span>
+</div>
+<div class="flex-1 flex flex-col justify-end items-center gap-1 group">
+<div class="w-full bg-tertiary-fixed-dim rounded-t-lg h-5/6"></div>
+<div class="w-full bg-primary rounded-t-lg h-4/5"></div>
+<span class="text-[10px] font-bold text-on-surface-variant mt-2">THU</span>
+</div>
+<div class="flex-1 flex flex-col justify-end items-center gap-1 group">
+<div class="w-full bg-tertiary-fixed-dim rounded-t-lg h-2/3"></div>
+<div class="w-full bg-primary rounded-t-lg h-3/4"></div>
+<span class="text-[10px] font-bold text-on-surface-variant mt-2">FRI</span>
+</div>
+<div class="flex-1 flex flex-col justify-end items-center gap-1 group">
+<div class="w-full bg-tertiary-fixed-dim rounded-t-lg h-1/4"></div>
+<div class="w-full bg-primary rounded-t-lg h-1/3"></div>
+<span class="text-[10px] font-bold text-on-surface-variant mt-2">SAT</span>
+</div>
+<div class="flex-1 flex flex-col justify-end items-center gap-1 group">
+<div class="w-full bg-tertiary-fixed-dim rounded-t-lg h-1/5"></div>
+<div class="w-full bg-primary rounded-t-lg h-1/4"></div>
+<span class="text-[10px] font-bold text-on-surface-variant mt-2">SUN</span>
+</div>
+</div>
+</div>
+<!-- Departmental Breakdown Table -->
+<div class="bg-surface-container-lowest rounded-2xl shadow-[0px_12px_32px_rgba(0,95,175,0.06)] overflow-hidden">
+<div class="p-8 border-b border-outline-variant/5">
+<h3 class="text-xl font-bold font-headline text-on-surface">Weekly Departmental Breakdown</h3>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface-container-low text-on-surface-variant text-[10px] font-bold uppercase tracking-widest">
+<tr>
+<th class="px-8 py-4">Department Name</th>
+<th class="px-8 py-4">Avg Occupancy</th>
+<th class="px-8 py-4 text-center">Total Admissions</th>
+<th class="px-8 py-4 text-right">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="px-8 py-5 font-bold text-on-surface">Emergency Response</td>
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<div class="w-24 h-2 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-error w-[92%]"></div>
+</div>
+<span class="text-sm font-semibold">92%</span>
+</div>
+</td>
+<td class="px-8 py-5 text-center font-medium">124</td>
+<td class="px-8 py-5 text-right">
+<span class="bg-error-container text-on-error-container px-3 py-1 rounded-full text-[10px] font-bold">CRITICAL</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="px-8 py-5 font-bold text-on-surface">Cardiology Unit</td>
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<div class="w-24 h-2 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[78%]"></div>
+</div>
+<span class="text-sm font-semibold">78%</span>
+</div>
+</td>
+<td class="px-8 py-5 text-center font-medium">62</td>
+<td class="px-8 py-5 text-right">
+<span class="bg-surface-container text-on-surface-variant px-3 py-1 rounded-full text-[10px] font-bold uppercase">Normal</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="px-8 py-5 font-bold text-on-surface">Intensive Care (ICU)</td>
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<div class="w-24 h-2 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[85%]"></div>
+</div>
+<span class="text-sm font-semibold">85%</span>
+</div>
+</td>
+<td class="px-8 py-5 text-center font-medium">48</td>
+<td class="px-8 py-5 text-right">
+<span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[10px] font-bold uppercase">Stable</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="px-8 py-5 font-bold text-on-surface">Pediatric Ward</td>
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<div class="w-24 h-2 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary-fixed-dim w-[65%]"></div>
+</div>
+<span class="text-sm font-semibold">65%</span>
+</div>
+</td>
+<td class="px-8 py-5 text-center font-medium">32</td>
+<td class="px-8 py-5 text-right">
+<span class="bg-surface-container text-on-surface-variant px-3 py-1 rounded-full text-[10px] font-bold uppercase">Normal</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Executive Insights & Actions Sidebar -->
+<div class="space-y-6">
+<!-- AI Insights Card -->
+<div class="bg-primary text-white p-8 rounded-2xl shadow-xl relative overflow-hidden">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-secondary-fixed">bolt</span>
+<h4 class="font-bold text-sm uppercase tracking-widest">Executive Insights</h4>
+</div>
+<div class="space-y-4">
+<div class="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+<p class="text-xs leading-relaxed font-medium">Occupancy in <span class="font-bold">ER</span> has increased by 12% since Wednesday. Recommend reallocating 2 float nurses from Cardiology for the night shift.</p>
+</div>
+<div class="bg-white/10 p-4 rounded-xl backdrop-blur-sm border-l-2 border-secondary-fixed">
+<p class="text-xs leading-relaxed font-medium">Average discharge time improved by <span class="font-bold">14 mins</span> this week. Discharge lounge implementation showing positive ROI.</p>
+</div>
+<div class="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+<p class="text-xs leading-relaxed font-medium">Supply chain alert: PPE stock in <span class="font-bold">ICU</span> is projected to hit reorder point by Tuesday morning.</p>
+</div>
+</div>
+<button class="mt-8 w-full py-3 bg-white text-primary rounded-full font-bold text-xs uppercase tracking-widest hover:bg-opacity-90 transition-all">
+                            Review Actions
+                        </button>
+</div>
+<!-- Manual Notes / Entry -->
+<div class="bg-surface-container-lowest p-8 rounded-2xl shadow-[0px_12px_32px_rgba(0,95,175,0.04)] border border-outline-variant/10">
+<h4 class="font-bold text-on-surface mb-4 font-headline">Reviewer Notes</h4>
+<textarea class="w-full bg-surface-container-high border-none rounded-xl text-sm p-4 h-32 focus:ring-2 focus:ring-primary/20 placeholder:text-on-surface-variant/40" placeholder="Enter manual observations for the executive committee..."></textarea>
+<div class="flex items-center gap-2 mt-4 text-on-surface-variant text-xs font-medium">
+<span class="material-symbols-outlined text-sm">history</span>
+                            Last edited: Today, 09:42 AM by Dr. Aris
+                        </div>
+</div>
+<!-- Quick Snapshot Component -->
+<div class="bg-surface-container-lowest p-8 rounded-2xl shadow-[0px_12px_32px_rgba(0,95,175,0.04)]">
+<h4 class="font-bold text-on-surface mb-6 font-headline">Clinical Metrics Score</h4>
+<div class="flex flex-col items-center justify-center space-y-4">
+<div class="relative w-32 h-32 flex items-center justify-center">
+<svg class="w-full h-full -rotate-90">
+<circle class="text-surface-container" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-secondary transition-all duration-1000" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" stroke-dasharray="364.4" stroke-dashoffset="40" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-3xl font-black font-headline text-on-surface">8.4</span>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">Excellent</span>
+</div>
+</div>
+<p class="text-center text-xs text-on-surface-variant max-w-[200px]">Composite score based on efficiency, patient satisfaction, and outcomes.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Detailed Log View (Editorial Flow) -->
+<section class="bg-surface-container-lowest p-8 rounded-2xl shadow-[0px_12px_32px_rgba(0,95,175,0.06)] mb-10">
+<div class="flex justify-between items-center mb-10">
+<h3 class="text-xl font-bold font-headline text-on-surface">Weekly Milestone Timeline</h3>
+<button class="text-primary font-bold text-xs uppercase tracking-widest flex items-center gap-1">
+                        View Full History <span class="material-symbols-outlined text-sm">open_in_new</span>
+</button>
+</div>
+<!-- Editorial Timeline Blocks -->
+<div class="space-y-4">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="bg-surface-container p-6 rounded-xl flex flex-col justify-center">
+<span class="text-xs font-black text-primary uppercase tracking-widest mb-1">Oct 21</span>
+<span class="text-on-surface font-bold text-sm">System Upgrade</span>
+</div>
+<div class="md:col-span-3 bg-surface-container-low p-6 rounded-xl border-l-4 border-primary">
+<p class="text-sm text-on-surface-variant">Successful migration of electronic health records to the new high-availability server. Zero downtime reported during peak hours.</p>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="bg-surface-container p-6 rounded-xl flex flex-col justify-center">
+<span class="text-xs font-black text-secondary uppercase tracking-widest mb-1">Oct 23</span>
+<span class="text-on-surface font-bold text-sm">Audit Complete</span>
+</div>
+<div class="md:col-span-3 bg-surface-container-low p-6 rounded-xl border-l-4 border-secondary">
+<p class="text-sm text-on-surface-variant">External quality assurance audit finalized for Cardiology. Passed with a 98% compliance score across all standard operating procedures.</p>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="bg-surface-container p-6 rounded-xl flex flex-col justify-center">
+<span class="text-xs font-black text-error uppercase tracking-widest mb-1">Oct 26</span>
+<span class="text-on-surface font-bold text-sm">Alert Event</span>
+</div>
+<div class="md:col-span-3 bg-surface-container-low p-6 rounded-xl border-l-4 border-error">
+<p class="text-sm text-on-surface-variant">Unexpected surge in ER admissions due to local industrial incident. Mobilized emergency staffing protocols; response time maintained under 8 mins.</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- FAB for Quick Actions -->
+<div class="fixed bottom-8 right-8 z-40">
+<button class="w-16 h-16 bg-gradient-to-br from-primary to-primary-container text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all group">
+<span class="material-symbols-outlined text-3xl group-hover:rotate-90 transition-transform">add</span>
+</button>
+</div>
+</body></html>

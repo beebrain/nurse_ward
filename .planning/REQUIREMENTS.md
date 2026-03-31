@@ -61,26 +61,26 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
-| DEPT-01 | Phase 1 | Pending |
-| DEPT-02 | Phase 1 | Pending |
-| DEPT-03 | Phase 1 | Pending |
-| DATA-01 | Phase 1 | Pending |
-| DATA-02 | Phase 1 | Pending |
-| DATA-03 | Phase 1 | Pending |
-| DATA-04 | Phase 1 | Pending |
-| DATA-05 | Phase 1 | Pending |
-| REPT-01 | Phase 2 | Pending |
-| REPT-02 | Phase 2 | Pending |
-| REPT-03 | Phase 2 | Pending |
-| DASH-01 | Phase 3 | Pending |
-| DASH-02 | Phase 3 | Pending |
-| DASH-03 | Phase 3 | Pending |
-| UI-01 | Phase 1 | Pending |
-| UI-02 | Phase 1 | Pending |
-| UI-03 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Completed |
+| AUTH-02 | Phase 1 | Completed |
+| AUTH-03 | Phase 1 | Completed |
+| DEPT-01 | Phase 1 | Completed |
+| DEPT-02 | Phase 1 | Completed |
+| DEPT-03 | Phase 1 | Completed |
+| DATA-01 | Phase 1 | Completed |
+| DATA-02 | Phase 1 | Completed |
+| DATA-03 | Phase 1 | Completed |
+| DATA-04 | Phase 1 | Completed |
+| DATA-05 | Phase 1 | Completed |
+| REPT-01 | Phase 2 | Completed |
+| REPT-02 | Phase 2 | Completed |
+| REPT-03 | Phase 2 | Completed |
+| DASH-01 | Phase 3 | Completed |
+| DASH-02 | Phase 3 | Completed |
+| DASH-03 | Phase 3 | Completed |
+| UI-01 | Phase 1 | Completed |
+| UI-02 | Phase 1 | Completed |
+| UI-03 | Phase 1 | Completed |
 
 **Coverage:**
 - v1 requirements: 20 total

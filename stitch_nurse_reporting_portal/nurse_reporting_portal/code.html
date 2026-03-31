@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nurse Reporting Portal | Clinical Sanctuary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed-variant": "#3b4951",
+              "on-primary-fixed-variant": "#004786",
+              "surface-container-highest": "#e0e2ea",
+              "surface-dim": "#d8dae2",
+              "on-primary-container": "#fffdff",
+              "outline": "#717783",
+              "on-background": "#181c21",
+              "surface-container-high": "#e6e8f0",
+              "surface-container": "#ecedf6",
+              "primary-fixed-dim": "#a5c8ff",
+              "error-container": "#ffdad6",
+              "surface-bright": "#f9f9ff",
+              "on-secondary": "#ffffff",
+              "on-tertiary-container": "#fdfdff",
+              "primary-container": "#1976d2",
+              "surface-container-lowest": "#ffffff",
+              "tertiary-fixed-dim": "#bac9d3",
+              "surface-container-low": "#f2f3fc",
+              "inverse-primary": "#a5c8ff",
+              "on-secondary-fixed-variant": "#005313",
+              "background": "#f9f9ff",
+              "surface-tint": "#005faf",
+              "on-surface": "#181c21",
+              "on-primary-fixed": "#001c3a",
+              "secondary-container": "#98f994",
+              "surface-variant": "#e0e2ea",
+              "surface": "#f9f9ff",
+              "inverse-surface": "#2d3037",
+              "tertiary": "#505e68",
+              "on-tertiary-fixed": "#0f1d25",
+              "on-secondary-container": "#0c7521",
+              "secondary": "#006e1c",
+              "on-primary": "#ffffff",
+              "outline-variant": "#c1c6d4",
+              "on-surface-variant": "#414752",
+              "inverse-on-surface": "#eff0f9",
+              "error": "#ba1a1a",
+              "on-error": "#ffffff",
+              "on-secondary-fixed": "#002204",
+              "secondary-fixed": "#98f994",
+              "secondary-fixed-dim": "#7ddc7a",
+              "tertiary-container": "#697781",
+              "primary-fixed": "#d4e3ff",
+              "on-tertiary": "#ffffff",
+              "on-error-container": "#93000a",
+              "tertiary-fixed": "#d6e5ef",
+              "primary": "#005dac"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9f9ff;
+            color: #181c21;
+        }
+        h1, h2, h3, .font-headline {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- TopAppBar Execution -->
+<header class="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-[0px_12px_32px_rgba(0,95,175,0.06)]">
+<div class="flex justify-between items-center w-full px-8 py-3 max-w-full mx-auto">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 font-manrope">Clinical Sanctuary</span>
+<nav class="hidden md:flex items-center gap-6 font-manrope font-semibold text-sm tracking-tight">
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors" href="#">Dashboard</a>
+<a class="text-blue-700 dark:text-blue-400 border-b-2 border-blue-600 font-bold pb-1" href="#">Patient Reporting</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors" href="#">Department Management</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors" href="#">User Management</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all scale-98 active:opacity-80">
+<span class="material-symbols-outlined text-slate-600">notifications</span>
+</button>
+<button class="p-2 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all scale-98 active:opacity-80">
+<span class="material-symbols-outlined text-slate-600">settings</span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden border-2 border-primary-fixed">
+<img alt="User profile with role indication" data-alt="Close-up portrait of a professional female nurse in blue scrubs with a friendly and focused expression in a bright clinic setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPlqvgVgQDyrln8vpBEw5JBCyoCi9KfcLzOnNI9GNjXn4K9z02-yqEXExWvda85KbLRgW3J1on8FXRr2ifTGsn9yHsNntSIQGiBlLYJ38fu-wO5Fgx8veuIo3cjnUfmsZyBjyIZMKfE5XuLt6G4rkOlOWc7TDQ7uq8cRGWmH3OezasUNdxV_9AxsFfpN4M8hAcKtKqKZgqjFbcn-N-Th-xxZUKtF_Hlk_C9-ChAHCEYlGxA8AWXyfThjcUN3mcqsJyYvFctUW8iWg"/>
+</div>
+</div>
+</div>
+</header>
+<div class="flex min-h-screen">
+<!-- SideNavBar Execution -->
+<aside class="hidden lg:flex flex-col h-full w-64 fixed left-0 top-[60px] z-40 bg-slate-50 dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 font-inter text-sm font-medium">
+<div class="p-6 flex flex-col gap-1">
+<span class="font-manrope font-bold text-lg text-blue-800 dark:text-blue-300">The Sanctuary</span>
+<span class="text-xs text-on-surface-variant opacity-70">Clinical Portal</span>
+</div>
+<nav class="flex-1 mt-4 space-y-1">
+<a class="text-slate-600 dark:text-slate-400 px-4 py-3 mx-2 flex items-center gap-3 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span> Dashboard
+                </a>
+<a class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-xl px-4 py-3 mx-2 flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">personal_injury</span> Patients
+                </a>
+<a class="text-slate-600 dark:text-slate-400 px-4 py-3 mx-2 flex items-center gap-3 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">domain</span> Departments
+                </a>
+<a class="text-slate-600 dark:text-slate-400 px-4 py-3 mx-2 flex items-center gap-3 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">group</span> Users
+                </a>
+</nav>
+<div class="p-4">
+<button class="w-full bg-error-container text-on-error-container py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all">
+<span class="material-symbols-outlined">emergency</span> Emergency Alert
+                </button>
+</div>
+<div class="mt-auto border-t border-slate-100 dark:border-slate-800 py-4">
+<a class="text-slate-600 dark:text-slate-400 px-4 py-3 mx-2 flex items-center gap-3 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">settings</span> Settings
+                </a>
+<a class="text-slate-600 dark:text-slate-400 px-4 py-3 mx-2 flex items-center gap-3 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">logout</span> Logout
+                </a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-0 lg:ml-64 p-8 md:p-12 lg:p-20 bg-surface">
+<!-- Header Section -->
+<div class="max-w-5xl mx-auto mb-12">
+<h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-2 font-headline">Nurse Reporting Portal</h1>
+<p class="text-lg text-on-surface-variant max-w-2xl">Submit your daily clinical status report. Please ensure all patient metrics are accurate before final submission.</p>
+</div>
+<div class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+<!-- Report Form Column -->
+<div class="lg:col-span-2 space-y-8">
+<!-- Department Selection: Bento Pattern -->
+<section class="bg-surface-container-low p-8 rounded-3xl">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">clinical_notes</span>
+<h2 class="text-xl font-bold font-headline">Select Department</h2>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+<button class="flex flex-col items-center justify-center p-6 bg-surface-container-lowest rounded-2xl border-2 border-primary ring-offset-4 ring-primary-container/20 transition-all shadow-[0px_4px_12px_rgba(0,95,175,0.08)]">
+<span class="material-symbols-outlined text-primary mb-2">emergency</span>
+<span class="font-bold text-sm">ER</span>
+</button>
+<button class="flex flex-col items-center justify-center p-6 bg-surface-container-lowest rounded-2xl hover:bg-primary hover:text-on-primary transition-all group">
+<span class="material-symbols-outlined text-primary-fixed-dim group-hover:text-on-primary mb-2">respiratory_rate</span>
+<span class="font-bold text-sm">ICU</span>
+</button>
+<button class="flex flex-col items-center justify-center p-6 bg-surface-container-lowest rounded-2xl hover:bg-primary hover:text-on-primary transition-all group">
+<span class="material-symbols-outlined text-primary-fixed-dim group-hover:text-on-primary mb-2">surgical</span>
+<span class="font-bold text-sm">Surgery</span>
+</button>
+<button class="flex flex-col items-center justify-center p-6 bg-surface-container-lowest rounded-2xl hover:bg-primary hover:text-on-primary transition-all group">
+<span class="material-symbols-outlined text-primary-fixed-dim group-hover:text-on-primary mb-2">child_care</span>
+<span class="font-bold text-sm">Peds</span>
+</button>
+</div>
+</section>
+<!-- Form Fields -->
+<section class="bg-surface-container-lowest p-8 rounded-3xl shadow-[0px_12px_32px_rgba(0,95,175,0.06)] space-y-8">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant flex items-center gap-2">
+                                    Total Admissions
+                                    <span class="material-symbols-outlined text-xs text-primary cursor-help" title="Number of patients admitted in the last 24 hours">info</span>
+</label>
+<input class="w-full bg-surface-container-high border-none rounded-xl py-4 px-6 focus:ring-2 focus:ring-primary/20 transition-all font-body text-lg" placeholder="00" type="number"/>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant flex items-center gap-2">
+                                    Total Discharges
+                                    <span class="material-symbols-outlined text-xs text-primary cursor-help" title="Number of patients discharged or transferred">info</span>
+</label>
+<input class="w-full bg-surface-container-high border-none rounded-xl py-4 px-6 focus:ring-2 focus:ring-primary/20 transition-all font-body text-lg" placeholder="00" type="number"/>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant flex items-center gap-2">
+                                    Current Capacity
+                                    <span class="material-symbols-outlined text-xs text-primary cursor-help" title="Current bed occupancy percentage">info</span>
+</label>
+<input class="w-full bg-surface-container-high border-none rounded-xl py-4 px-6 focus:ring-2 focus:ring-primary/20 transition-all font-body text-lg" placeholder="e.g. 85%" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant flex items-center gap-2">
+                                    Critical Cases
+                                    <span class="material-symbols-outlined text-xs text-error cursor-help" title="Patients requiring immediate intensive monitoring">warning</span>
+</label>
+<input class="w-full bg-surface-container-high border-none rounded-xl py-4 px-6 focus:ring-2 focus:ring-primary/20 transition-all font-body text-lg" placeholder="0" type="number"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant">Clinical Notes &amp; Updates</label>
+<textarea class="w-full bg-surface-container-high border-none rounded-2xl py-4 px-6 focus:ring-2 focus:ring-primary/20 transition-all font-body" placeholder="Briefly describe any significant patient status changes or equipment needs..." rows="4"></textarea>
+</div>
+<button class="w-full py-5 rounded-full bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-lg shadow-xl shadow-primary/20 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+                            Submit Report
+                            <span class="material-symbols-outlined">send</span>
+</button>
+</section>
+</div>
+<!-- Sidebar History -->
+<div class="space-y-6">
+<div class="bg-white p-6 rounded-3xl shadow-[0px_8px_24px_rgba(0,0,0,0.04)]">
+<h3 class="font-headline font-bold text-lg mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-fixed-dim">history</span>
+                            Recent Reports
+                        </h3>
+<div class="space-y-4">
+<!-- History Item 1 -->
+<div class="p-4 rounded-2xl bg-surface-container-low hover:bg-surface-container transition-colors group cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="text-xs font-bold px-2 py-1 bg-secondary-container text-on-secondary-container rounded-full">ER</span>
+<span class="text-[10px] text-on-surface-variant font-medium">Oct 24, 07:15 AM</span>
+</div>
+<p class="text-sm font-semibold">Morning Shift Handover</p>
+<div class="mt-2 flex items-center gap-4 text-xs text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">group</span> 12 Adm.</span>
+<span class="flex items-center gap-1 text-error font-bold"><span class="material-symbols-outlined text-[14px]">priority_high</span> 2 Crit.</span>
+</div>
+</div>
+<!-- History Item 2 -->
+<div class="p-4 rounded-2xl bg-surface-container-low hover:bg-surface-container transition-colors group cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="text-xs font-bold px-2 py-1 bg-surface-container-highest text-on-surface-variant rounded-full">ICU</span>
+<span class="text-[10px] text-on-surface-variant font-medium">Oct 23, 08:30 PM</span>
+</div>
+<p class="text-sm font-semibold">Night Status Report</p>
+<div class="mt-2 flex items-center gap-4 text-xs text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">group</span> 04 Adm.</span>
+</div>
+</div>
+<!-- History Item 3 -->
+<div class="p-4 rounded-2xl bg-surface-container-low hover:bg-surface-container transition-colors group cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="text-xs font-bold px-2 py-1 bg-secondary-container text-on-secondary-container rounded-full">ER</span>
+<span class="text-[10px] text-on-surface-variant font-medium">Oct 23, 07:00 AM</span>
+</div>
+<p class="text-sm font-semibold">Morning Shift Handover</p>
+</div>
+</div>
+<button class="w-full mt-6 py-3 text-sm font-bold text-primary hover:underline transition-all">
+                            View All History
+                        </button>
+</div>
+<!-- Helpful Tips Card -->
+<div class="bg-primary/5 p-6 rounded-3xl border border-primary/10">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+<div class="space-y-2">
+<p class="text-sm font-bold text-primary">Pro Tip</p>
+<p class="text-xs text-on-surface-variant leading-relaxed">Ensure "Critical Cases" matches the current bedside monitor status for real-time synchronization with the Department Dashboard.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- BottomNavBar Execution (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg rounded-t-3xl z-50 shadow-[0px_-8px_24px_rgba(0,0,0,0.04)]">
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 tap-highlight-transparent active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-wider mt-1">Dash</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 rounded-2xl px-5 py-2 tap-highlight-transparent active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">medical_services</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-wider mt-1">Patients</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 tap-highlight-transparent active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">business_center</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-wider mt-1">Depts</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 tap-highlight-transparent active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">manage_accounts</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-wider mt-1">Users</span>
+</a>
+</nav>
+</body></html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Clinical Sanctuary | Executive Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "on-tertiary-fixed-variant": "#3b4951",
+                "on-primary-fixed-variant": "#004786",
+                "surface-container-highest": "#e0e2ea",
+                "surface-dim": "#d8dae2",
+                "on-primary-container": "#fffdff",
+                "outline": "#717783",
+                "on-background": "#181c21",
+                "surface-container-high": "#e6e8f0",
+                "surface-container": "#ecedf6",
+                "primary-fixed-dim": "#a5c8ff",
+                "error-container": "#ffdad6",
+                "surface-bright": "#f9f9ff",
+                "on-secondary": "#ffffff",
+                "on-tertiary-container": "#fdfdff",
+                "primary-container": "#1976d2",
+                "surface-container-lowest": "#ffffff",
+                "tertiary-fixed-dim": "#bac9d3",
+                "surface-container-low": "#f2f3fc",
+                "inverse-primary": "#a5c8ff",
+                "on-secondary-fixed-variant": "#005313",
+                "background": "#f9f9ff",
+                "surface-tint": "#005faf",
+                "on-surface": "#181c21",
+                "on-primary-fixed": "#001c3a",
+                "secondary-container": "#98f994",
+                "surface-variant": "#e0e2ea",
+                "surface": "#f9f9ff",
+                "inverse-surface": "#2d3037",
+                "tertiary": "#505e68",
+                "on-tertiary-fixed": "#0f1d25",
+                "on-secondary-container": "#0c7521",
+                "secondary": "#006e1c",
+                "on-primary": "#ffffff",
+                "outline-variant": "#c1c6d4",
+                "on-surface-variant": "#414752",
+                "inverse-on-surface": "#eff0f9",
+                "error": "#ba1a1a",
+                "on-error": "#ffffff",
+                "on-secondary-fixed": "#002204",
+                "secondary-fixed": "#98f994",
+                "secondary-fixed-dim": "#7ddc7a",
+                "tertiary-container": "#697781",
+                "primary-fixed": "#d4e3ff",
+                "on-tertiary": "#ffffff",
+                "on-error-container": "#93000a",
+                "tertiary-fixed": "#d6e5ef",
+                "primary": "#005dac"
+              },
+              fontFamily: {
+                "headline": ["Manrope"],
+                "body": ["Inter"],
+                "label": ["Inter"]
+              },
+              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9f9ff;
+        }
+        .editorial-shadow {
+            box-shadow: 0px 12px 32px rgba(0, 95, 175, 0.06);
+        }
+        .hero-gradient {
+            background: linear-gradient(135deg, #005dac 0%, #1976d2 100%);
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- TopAppBar Execution -->
+<nav class="docked full-width top-0 sticky z-50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl shadow-[0px_12px_32px_rgba(0,95,175,0.06)] px-8 py-3 flex justify-between items-center w-full max-w-full mx-auto">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 font-manrope">Clinical Sanctuary</span>
+<div class="hidden md:flex items-center gap-6">
+<!-- Active Navigation: Dashboard -->
+<a class="font-manrope font-semibold text-sm tracking-tight text-blue-700 dark:text-blue-400 border-b-2 border-blue-600 font-bold pb-1 transition-all" href="#">Dashboard</a>
+<a class="font-manrope font-semibold text-sm tracking-tight text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors" href="#">Patient Reporting</a>
+<a class="font-manrope font-semibold text-sm tracking-tight text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors" href="#">Department Management</a>
+<a class="font-manrope font-semibold text-sm tracking-tight text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors" href="#">User Management</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<input class="bg-surface-container-high border-none rounded-full py-2 px-4 text-sm w-64 focus:ring-2 focus:ring-primary/20" placeholder="Search analytics..." type="text"/>
+</div>
+<button class="p-2 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all scale-98 active:opacity-80">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+<button class="p-2 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all scale-98 active:opacity-80">
+<span class="material-symbols-outlined text-on-surface-variant">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-fixed-dim overflow-hidden ml-2 border border-outline-variant/20">
+<img alt="User profile with role indication" class="w-full h-full object-cover" data-alt="Professional portrait of a male doctor in a white lab coat with a warm approachable smile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsr-H8sNws7y86WGh5QOB6u9OSrJ1fgSf3wJ2NP4Aay4pTxLKmj3CUJm6RpDKt345y4vGRlLq2gu9K_SCw79sIS8Y3Cmygg3aEREtAOFSvfeFsDmDKBxJYzAodx6rHADN5KFfEKDsprxa_fe_kmn10A71Gc_M_t0VJqkokSF93anrDWT2ff3P4w8ymg_jxUxChrlyC3bQ8RObFxP50JP9K_V8KC6y77oCpZEWsA3UFXe_8GeNDJgGyayIAqTGDrHrL3Vhh9e8M9JI"/>
+</div>
+</div>
+</nav>
+<main class="max-w-[1440px] mx-auto px-8 py-12">
+<!-- Header Section -->
+<header class="mb-12">
+<h1 class="font-headline text-4xl font-extrabold tracking-tight text-on-surface mb-2">Hospital Command Center</h1>
+<p class="font-body text-on-surface-variant">Executive Overview &amp; Clinical Operations Tracking</p>
+</header>
+<!-- Bento Grid: Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+<!-- Card 1: Total Patients -->
+<div class="bg-surface-container-lowest rounded-xl p-8 editorial-shadow transition-transform hover:scale-[1.01]">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined p-3 bg-primary-fixed text-primary rounded-xl">personal_injury</span>
+<span class="text-secondary font-bold flex items-center gap-1 bg-secondary-container px-3 py-1 rounded-full text-xs">
+<span class="material-symbols-outlined text-sm">trending_up</span> +4.2%
+                    </span>
+</div>
+<h3 class="font-label text-sm font-medium text-on-surface-variant mb-1">Total Patients</h3>
+<p class="font-headline text-5xl font-extrabold text-on-surface">1,284</p>
+<p class="text-xs text-on-surface-variant mt-4 opacity-70">Compared to yesterday: 1,232</p>
+</div>
+<!-- Card 2: Top Department -->
+<div class="bg-surface-container-lowest rounded-xl p-8 editorial-shadow transition-transform hover:scale-[1.01]">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined p-3 bg-tertiary-fixed text-tertiary rounded-xl">emergency</span>
+<span class="text-primary font-bold text-xs bg-primary-fixed px-3 py-1 rounded-full">Peak Demand</span>
+</div>
+<h3 class="font-label text-sm font-medium text-on-surface-variant mb-1">Top Department</h3>
+<p class="font-headline text-5xl font-extrabold text-on-surface">ICU</p>
+<div class="flex items-center gap-2 mt-4">
+<div class="flex-1 h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[92%]"></div>
+</div>
+<span class="text-xs font-bold text-primary">92% Cap.</span>
+</div>
+</div>
+<!-- Card 3: Trend -->
+<div class="hero-gradient rounded-xl p-8 editorial-shadow transition-transform hover:scale-[1.01] text-on-primary">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined p-3 bg-white/20 text-white rounded-xl">analytics</span>
+</div>
+<h3 class="font-label text-sm font-medium opacity-80 mb-1">Efficiency Trend</h3>
+<p class="font-headline text-5xl font-extrabold">88.4%</p>
+<p class="text-xs mt-4 font-medium">Optimal flow maintained across all wings</p>
+</div>
+</div>
+<!-- Main Analytics Section -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+<!-- Bar Chart Component -->
+<section class="lg:col-span-8 bg-surface-container-lowest rounded-xl p-8 editorial-shadow">
+<div class="flex justify-between items-center mb-10">
+<div>
+<h2 class="font-headline text-xl font-bold text-on-surface">Patient Distribution</h2>
+<p class="text-sm text-on-surface-variant">Real-time load across core departments</p>
+</div>
+<div class="flex bg-surface-container rounded-lg p-1">
+<button class="px-4 py-1.5 text-xs font-bold bg-white rounded-md shadow-sm">Daily</button>
+<button class="px-4 py-1.5 text-xs font-medium text-on-surface-variant">Weekly</button>
+</div>
+</div>
+<!-- Simplified Bar Chart Visualization -->
+<div class="flex items-end justify-between h-[320px] pt-10 px-4">
+<div class="flex flex-col items-center gap-4 w-full">
+<div class="w-12 bg-primary/20 hover:bg-primary transition-all rounded-t-lg relative group h-[180px]">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-inverse-surface text-inverse-on-surface px-2 py-1 rounded text-[10px] font-bold">142</div>
+</div>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">ER</span>
+</div>
+<div class="flex flex-col items-center gap-4 w-full">
+<div class="w-12 bg-primary h-[280px] rounded-t-lg relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 opacity-100 bg-inverse-surface text-inverse-on-surface px-2 py-1 rounded text-[10px] font-bold">210</div>
+</div>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">ICU</span>
+</div>
+<div class="flex flex-col items-center gap-4 w-full">
+<div class="w-12 bg-primary/20 hover:bg-primary transition-all rounded-t-lg relative group h-[140px]">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-inverse-surface text-inverse-on-surface px-2 py-1 rounded text-[10px] font-bold">98</div>
+</div>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">Peds</span>
+</div>
+<div class="flex flex-col items-center gap-4 w-full">
+<div class="w-12 bg-primary/20 hover:bg-primary transition-all rounded-t-lg relative group h-[220px]">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-inverse-surface text-inverse-on-surface px-2 py-1 rounded text-[10px] font-bold">175</div>
+</div>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">Surgery</span>
+</div>
+<div class="flex flex-col items-center gap-4 w-full">
+<div class="w-12 bg-primary/20 hover:bg-primary transition-all rounded-t-lg relative group h-[160px]">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-inverse-surface text-inverse-on-surface px-2 py-1 rounded text-[10px] font-bold">120</div>
+</div>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">Cardio</span>
+</div>
+<div class="flex flex-col items-center gap-4 w-full">
+<div class="w-12 bg-primary/20 hover:bg-primary transition-all rounded-t-lg relative group h-[110px]">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-inverse-surface text-inverse-on-surface px-2 py-1 rounded text-[10px] font-bold">85</div>
+</div>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">Oncology</span>
+</div>
+</div>
+</section>
+<!-- Department Status Sidebar -->
+<aside class="lg:col-span-4 flex flex-col gap-6">
+<div class="bg-surface-container-low rounded-xl p-6 border border-white/40">
+<h2 class="font-headline text-lg font-bold text-on-surface mb-4">Urgent Alerts</h2>
+<div class="space-y-4">
+<div class="bg-error-container p-4 rounded-xl flex items-start gap-3">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">warning</span>
+<div>
+<p class="text-xs font-bold text-on-error-container">Critical Occupancy</p>
+<p class="text-xs text-on-error-container/80">Intensive Care Unit reached 95% capacity at 08:14 AM.</p>
+</div>
+</div>
+<div class="bg-primary-fixed p-4 rounded-xl flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">info</span>
+<div>
+<p class="text-xs font-bold text-on-primary-fixed">Shift Handover</p>
+<p class="text-xs text-on-primary-fixed/80">Surgical team Alpha scheduled for rotation in 15 mins.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-highest/30 rounded-xl p-6 relative overflow-hidden h-full min-h-[200px] flex items-end">
+<img alt="Healthcare Insight Abstract" class="absolute inset-0 w-full h-full object-cover opacity-20 grayscale transition-transform hover:scale-110 duration-700" data-alt="Futuristic clinical interface with abstract neural network glowing in soft blue and white tones representing healthcare AI" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOTnNaEzZldsEo5m6veSysn_6Yr9AluJn9q_MAgmF4f8XrLAfiYVeqSZpUcHghNy7_5FZvLLOr_yQnq81c666ouxAcahWNkCMsBNFMyUZrpv3izyCBThpO6yoInlOdGcw6XbhU2zrcQ0g5NRLTPZSA-qIqFmMmdDDeQH1g2tAZNtjbE1sP7owzK_FFTE5j8DB2KRruQlaxYubeGTIhdkVWjOAUK98q2Y7ZzH48g7N3l_pi_IYYZZcfjBjDfTmhTUyDKn9USOmz4gA"/>
+<div class="relative z-10">
+<h3 class="font-headline text-lg font-bold text-on-surface">Smart Insights</h3>
+<p class="text-sm text-on-surface-variant">AI predicts a 15% increase in ER admissions over the next 4 hours due to regional weather.</p>
+</div>
+</div>
+</aside>
+</div>
+<!-- Detailed Table Section -->
+<section class="bg-surface-container-lowest rounded-xl overflow-hidden editorial-shadow">
+<div class="px-8 py-6 border-b border-surface-container flex justify-between items-center">
+<h2 class="font-headline text-xl font-bold text-on-surface">Departmental Status Report</h2>
+<button class="text-primary font-bold text-sm flex items-center gap-2 hover:underline">
+                    Download Full Report <span class="material-symbols-outlined text-sm">download</span>
+</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low">
+<tr>
+<th class="px-8 py-4 font-label text-[11px] uppercase tracking-widest text-on-surface-variant opacity-70">Department Name</th>
+<th class="px-8 py-4 font-label text-[11px] uppercase tracking-widest text-on-surface-variant opacity-70">Current Count</th>
+<th class="px-8 py-4 font-label text-[11px] uppercase tracking-widest text-on-surface-variant opacity-70">Occupancy</th>
+<th class="px-8 py-4 font-label text-[11px] uppercase tracking-widest text-on-surface-variant opacity-70">Status</th>
+<th class="px-8 py-4 font-label text-[11px] uppercase tracking-widest text-on-surface-variant opacity-70 text-right">Last Updated</th>
+</tr>
+</thead>
+<tbody class="font-body text-sm">
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-8 py-6 font-semibold text-on-surface">Emergency Room</td>
+<td class="px-8 py-6">142 Patients</td>
+<td class="px-8 py-6">
+<div class="flex items-center gap-3">
+<div class="w-24 h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[75%]"></div>
+</div>
+<span class="text-xs font-medium">75%</span>
+</div>
+</td>
+<td class="px-8 py-6">
+<span class="bg-secondary-fixed text-on-secondary-fixed px-3 py-1 rounded-full text-xs font-bold">Stable</span>
+</td>
+<td class="px-8 py-6 text-right text-on-surface-variant font-medium">08:45 AM</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-8 py-6 font-semibold text-on-surface">Intensive Care Unit (ICU)</td>
+<td class="px-8 py-6">210 Patients</td>
+<td class="px-8 py-6">
+<div class="flex items-center gap-3">
+<div class="w-24 h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-error w-[95%]"></div>
+</div>
+<span class="text-xs font-medium text-error">95%</span>
+</div>
+</td>
+<td class="px-8 py-6">
+<span class="bg-error-container text-on-error-container px-3 py-1 rounded-full text-xs font-bold">Urgent</span>
+</td>
+<td class="px-8 py-6 text-right text-on-surface-variant font-medium">08:42 AM</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-8 py-6 font-semibold text-on-surface">Pediatrics</td>
+<td class="px-8 py-6">98 Patients</td>
+<td class="px-8 py-6">
+<div class="flex items-center gap-3">
+<div class="w-24 h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[40%]"></div>
+</div>
+<span class="text-xs font-medium">40%</span>
+</div>
+</td>
+<td class="px-8 py-6">
+<span class="bg-secondary-fixed text-on-secondary-fixed px-3 py-1 rounded-full text-xs font-bold">Stable</span>
+</td>
+<td class="px-8 py-6 text-right text-on-surface-variant font-medium">08:38 AM</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-8 py-6 font-semibold text-on-surface">Cardiology</td>
+<td class="px-8 py-6">120 Patients</td>
+<td class="px-8 py-6">
+<div class="flex items-center gap-3">
+<div class="w-24 h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[62%]"></div>
+</div>
+<span class="text-xs font-medium">62%</span>
+</div>
+</td>
+<td class="px-8 py-6">
+<span class="bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-full text-xs font-bold">Moderate</span>
+</td>
+<td class="px-8 py-6 text-right text-on-surface-variant font-medium">08:30 AM</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+<!-- SideNavBar (Mobile Triggered or Fixed on larger Desktop) -->
+<aside class="hidden xl:flex flex-col h-full border-r border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 h-full w-64 fixed left-0 top-0 z-40">
+<div class="p-8">
+<h2 class="font-manrope font-bold text-lg text-blue-800 dark:text-blue-300">The Sanctuary</h2>
+<p class="font-inter text-[10px] font-bold uppercase tracking-wider text-slate-400">Clinical Portal</p>
+</div>
+<nav class="flex-1 space-y-1 mt-4">
+<a class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-xl px-4 py-3 mx-2 flex items-center gap-3 font-inter text-sm font-medium ease-in-out duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span> Dashboard
+            </a>
+<a class="text-slate-600 dark:text-slate-400 px-4 py-3 mx-2 flex items-center gap-3 font-inter text-sm font-medium hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">personal_injury</span> Patients
+            </a>
+<a class="text-slate-600 dark:text-slate-400 px-4 py-3 mx-2 flex items-center gap-3 font-inter text-sm font-medium hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">domain</span> Departments
+            </a>
+<a class="text-slate-600 dark:text-slate-400 px-4 py-3 mx-2 flex items-center gap-3 font-inter text-sm font-medium hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">group</span> Users
+            </a>
+</nav>
+<div class="p-4 mt-auto">
+<button class="w-full bg-error text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-sm shadow-lg shadow-error/20">
+<span class="material-symbols-outlined text-sm">emergency</span> Emergency Alert
+            </button>
+</div>
+<div class="border-t border-slate-100 dark:border-slate-800 p-4">
+<a class="text-slate-600 dark:text-slate-400 px-4 py-3 mx-2 flex items-center gap-3 font-inter text-sm font-medium hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">settings</span> Settings
+            </a>
+<a class="text-slate-600 dark:text-slate-400 px-4 py-3 mx-2 flex items-center gap-3 font-inter text-sm font-medium hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">logout</span> Logout
+            </a>
+</div>
+</aside>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg rounded-t-3xl z-50 shadow-[0px_-8px_24px_rgba(0,0,0,0.04)]">
+<a class="flex flex-col items-center justify-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 rounded-2xl px-5 py-2 tap-highlight-transparent active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-wider mt-1">Dash</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 hover:text-blue-600 dark:hover:text-blue-300 transition-all" href="#">
+<span class="material-symbols-outlined">medical_services</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-wider mt-1">Patients</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 hover:text-blue-600 dark:hover:text-blue-300 transition-all" href="#">
+<span class="material-symbols-outlined">business_center</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-wider mt-1">Depts</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 hover:text-blue-600 dark:hover:text-blue-300 transition-all" href="#">
+<span class="material-symbols-outlined">manage_accounts</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-wider mt-1">Users</span>
+</a>
+</nav>
+</body></html>
