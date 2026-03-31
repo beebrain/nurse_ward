@@ -14,7 +14,7 @@ class DebugLoginController extends BaseController
         // Test credentials
         $credentials = [
             'username' => 'superadmin',
-            'password' => 'Test1234!',
+            'password' => env('DEBUG_LOGIN_PASSWORD'),
         ];
         
         $result = $auth->attempt($credentials);
