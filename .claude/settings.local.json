@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ssh -p 1112 -o StrictHostKeyChecking=no -o ConnectTimeout=10 beebrain@beebrain.duckdns.org \"echo ''Connected successfully''\")",
+      "Bash(ssh -p 1112 -o StrictHostKeyChecking=no beebrain@beebrain.duckdns.org \"ls -la /var/www/html/nurse_ward/ 2>/dev/null || ls -la /opt/lampp/htdocs/nurse_ward/ 2>/dev/null || ls -la /home/beebrain/nurse_ward/ 2>/dev/null || echo ''NOT_FOUND''; which apache2 || which httpd || which nginx || echo ''NO_WEBSERVER_FOUND''; systemctl status apache2 2>/dev/null | head -5; systemctl status nginx 2>/dev/null | head -5\")",
+      "Bash(ssh -p 1112 -o StrictHostKeyChecking=no beebrain@beebrain.duckdns.org \"find /var/www -type d -maxdepth 3 2>/dev/null; echo ''===''; php -v 2>/dev/null | head -1; echo ''===''; mysql --version 2>/dev/null; echo ''===''; ls /etc/apache2/sites-available/ 2>/dev/null; echo ''===''; cat /etc/apache2/sites-available/000-default.conf 2>/dev/null\")",
+      "Bash(ssh -p 1112 -o StrictHostKeyChecking=no beebrain@beebrain.duckdns.org \"cat /etc/apache2/sites-available/example.com.conf 2>/dev/null; echo ''===''; ls /etc/apache2/sites-enabled/ 2>/dev/null; echo ''===''; apache2ctl -M 2>/dev/null | grep -i rewrite; echo ''===''; cat /etc/apache2/apache2.conf 2>/dev/null | grep -A5 ''Directory /var/www''\")",
+      "Bash(ssh -p 1112 -o StrictHostKeyChecking=no beebrain@beebrain.duckdns.org \"find / -path ''*/caddy-docker/site'' -type d 2>/dev/null | head -5; echo ''===''; find / -name ''caddy-docker'' -type d 2>/dev/null | head -5\")",
+      "Bash(ssh -p 1112 -o StrictHostKeyChecking=no beebrain@beebrain.duckdns.org \"ls ~/caddy-docker/ 2>/dev/null; echo ''===''; ls /home/beebrain/caddy-docker/site/ 2>/dev/null | head -20; echo ''===''; docker ps 2>/dev/null; echo ''===''; cat ~/caddy-docker/docker-compose.yml 2>/dev/null || cat ~/caddy-docker/Caddyfile 2>/dev/null\")",
+      "Bash(ssh -p 1112 -o StrictHostKeyChecking=no beebrain@beebrain.duckdns.org \"cat ~/caddy-docker/Caddyfile\")",
+      "Bash(ssh -p 1112 -o StrictHostKeyChecking=no beebrain@beebrain.duckdns.org \"ls -la ~/caddy-docker/site/nurse_ward/ | head -30\")",
+      "Bash(ssh -p 1112 -o StrictHostKeyChecking=no beebrain@beebrain.duckdns.org \"cat ~/caddy-docker/Dockerfile.php\")",
+      "Bash(ssh -p 1112 -o StrictHostKeyChecking=no beebrain@beebrain.duckdns.org \"cat ~/caddy-docker/site/nurse_ward/.env\")",
+      "Bash(ssh -p 1112 -o StrictHostKeyChecking=no beebrain@beebrain.duckdns.org \"docker exec php-fpm php -m 2>/dev/null | grep -iE ''mysql|intl|zip|pdo''\")",
+      "Bash(ssh -p:*)"
+    ]
+  }
+}
