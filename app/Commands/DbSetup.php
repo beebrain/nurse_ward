@@ -98,8 +98,15 @@ class DbSetup extends BaseCommand
         if ($migrate) {
             CLI::write('Running migrations ...', 'yellow');
             $migrations = Services::migrations();
-            // Run migrations from all namespaces (e.g., Shield) to ensure core auth tables
-            // exist before app migrations that alter them.
+            // Run Shield migrations first to create `users` and auth tables.
+            $migrations->setNamespace('CodeIgniter\\Shield');
+            $result = $migrations->latest();
+            if ($result === false) {
+                CLI::error('Shield migrations failed.');
+                return;
+            }
+
+            // Then run the remaining app + vendor migrations.
             $migrations->setNamespace(null);
             $result = $migrations->latest();
             if ($result === false) {

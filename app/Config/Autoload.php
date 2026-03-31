@@ -39,6 +39,8 @@ class Autoload extends AutoloadConfig
      */
     public $psr4 = [
         APP_NAMESPACE => APPPATH,
+        // Ensure Shield namespace is discoverable for migrations/locator.
+        'CodeIgniter\\Shield\\' => ROOTPATH . 'vendor/codeigniter4/shield/src',
     ];
 
     /**
