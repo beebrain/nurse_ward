@@ -4,6 +4,7 @@ namespace App\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
+use CodeIgniter\Commands\Database\Migrate;
 use Config\Services;
 
 class DbSetup extends BaseCommand
@@ -97,22 +98,10 @@ class DbSetup extends BaseCommand
 
         if ($migrate) {
             CLI::write('Running migrations ...', 'yellow');
-            $migrations = Services::migrations();
-            // Run Shield migrations first to create `users` and auth tables.
-            $migrations->setNamespace('CodeIgniter\\Shield');
-            $result = $migrations->latest();
-            if ($result === false) {
-                CLI::error('Shield migrations failed.');
-                return;
-            }
-
-            // Then run the remaining app + vendor migrations.
-            $migrations->setNamespace(null);
-            $result = $migrations->latest();
-            if ($result === false) {
-                CLI::error('Migrations failed.');
-                return;
-            }
+            // Use the same mechanism as: `php spark migrate --all`
+            // This ensures vendor migrations (e.g., Shield) run before app migrations.
+            $command = new Migrate(Services::logger(), Services::commands());
+            $command->run(['all' => null]);
             CLI::write('Migrations complete.', 'green');
         }
 
