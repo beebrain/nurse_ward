@@ -33,6 +33,7 @@ class DbSetup extends BaseCommand
 
         CLI::write("Connecting to MySQL at {$host}:{$port} ...", 'yellow');
         $mysqli = null;
+        $effectiveHost = $host;
         try {
             mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
             $mysqli = new \mysqli($host, $user, $pass, '', $port);
@@ -44,6 +45,7 @@ class DbSetup extends BaseCommand
                 CLI::write("Socket connection failed; retrying via TCP at {$tcpHost}:{$port} ...", 'yellow');
                 try {
                     $mysqli = new \mysqli($tcpHost, $user, $pass, '', $port);
+                    $effectiveHost = $tcpHost;
                 } catch (\mysqli_sql_exception $e2) {
                     CLI::error('Connection failed: ' . $e2->getMessage());
                     return;
@@ -54,16 +56,32 @@ class DbSetup extends BaseCommand
             }
         }
 
-        $escapedDb = str_replace('`', '``', $dbName);
-        $sql = "CREATE DATABASE IF NOT EXISTS `{$escapedDb}` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci";
-        if (! $mysqli->query($sql)) {
-            CLI::error('Error creating database: ' . $mysqli->error);
-            $mysqli->close();
-            return;
-        }
+        // Check database existence first (then create only if missing)
+        $dbNameForSql = $mysqli->real_escape_string($dbName);
+        $existsResult = $mysqli->query("SHOW DATABASES LIKE '{$dbNameForSql}'");
+        $exists = $existsResult && $existsResult->num_rows > 0;
 
-        CLI::write("Database ensured: {$dbName}", 'green');
+        if ($exists) {
+            CLI::write("Database exists: {$dbName}", 'green');
+        } else {
+            CLI::write("Database not found; creating: {$dbName}", 'yellow');
+            $escapedDb = str_replace('`', '``', $dbName);
+            $sql = "CREATE DATABASE `{$escapedDb}` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci";
+            if (! $mysqli->query($sql)) {
+                CLI::error('Error creating database: ' . $mysqli->error);
+                $mysqli->close();
+                return;
+            }
+            CLI::write("Database created: {$dbName}", 'green');
+        }
         $mysqli->close();
+
+        // Ensure CI4 DB connection uses same host (avoid localhost socket on Linux)
+        if ($effectiveHost !== $host) {
+            putenv("database.default.hostname={$effectiveHost}");
+            $_ENV['database.default.hostname'] = $effectiveHost;
+            $_SERVER['database.default.hostname'] = $effectiveHost;
+        }
 
         $migrate = true;
         $seed = false;
