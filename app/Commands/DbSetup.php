@@ -98,6 +98,9 @@ class DbSetup extends BaseCommand
         if ($migrate) {
             CLI::write('Running migrations ...', 'yellow');
             $migrations = Services::migrations();
+            // Run migrations from all namespaces (e.g., Shield) to ensure core auth tables
+            // exist before app migrations that alter them.
+            $migrations->setNamespace(null);
             $result = $migrations->latest();
             if ($result === false) {
                 CLI::error('Migrations failed.');
