@@ -53,8 +53,28 @@ $routes->group('admin', ['filter' => 'group:superadmin'], static function ($rout
 
     $routes->group('users', static function ($routes) {
         $routes->get('/', '\App\Controllers\Admin\UserController::index');
+        $routes->get('create', '\App\Controllers\Admin\UserController::create');
+        $routes->post('store', '\App\Controllers\Admin\UserController::store');
+        $routes->get('edit/(:num)', '\App\Controllers\Admin\UserController::edit/$1');
+        $routes->post('update/(:num)', '\App\Controllers\Admin\UserController::update/$1');
+        $routes->post('delete/(:num)', '\App\Controllers\Admin\UserController::delete/$1');
         $routes->post('approve/(:num)', '\App\Controllers\Admin\UserController::approve/$1');
         $routes->post('deactivate/(:num)', '\App\Controllers\Admin\UserController::deactivate/$1');
         $routes->post('activate/(:num)', '\App\Controllers\Admin\UserController::activate/$1');
+    });
+
+    $routes->group('import-export', static function ($routes) {
+        $routes->get('/', '\App\Controllers\Admin\ImportExportController::index');
+        $routes->get('export', '\App\Controllers\Admin\ImportExportController::exportCensus');
+        $routes->get('template', '\App\Controllers\Admin\ImportExportController::downloadTemplate');
+        $routes->post('import', '\App\Controllers\Admin\ImportExportController::importCensus');
+    });
+
+    $routes->group('backup', static function ($routes) {
+        $routes->get('/', '\App\Controllers\Admin\BackupController::index');
+        $routes->post('create', '\App\Controllers\Admin\BackupController::create');
+        $routes->get('download', '\App\Controllers\Admin\BackupController::download');
+        $routes->get('download-now', '\App\Controllers\Admin\BackupController::downloadNow');
+        $routes->post('delete', '\App\Controllers\Admin\BackupController::delete');
     });
 });

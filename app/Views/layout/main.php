@@ -393,6 +393,8 @@ if (auth()->loggedIn()) {
     }
     if (auth()->user()->inGroup('superadmin')) {
         $navItems[] = ['label' => 'จัดการผู้ใช้', 'icon' => 'group', 'url' => base_url('admin/users')];
+        $navItems[] = ['label' => 'นำเข้า/ส่งออก', 'icon' => 'import_export', 'url' => base_url('admin/import-export')];
+        $navItems[] = ['label' => 'สำรองข้อมูล', 'icon' => 'database', 'url' => base_url('admin/backup')];
     }
 }
 ?>
