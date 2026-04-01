@@ -10,12 +10,20 @@ class LoginController extends BaseController
 {
     public function loginView()
     {
-        // Use custom login view
+        if (auth()->loggedIn()) {
+            return redirect()->to('/');
+        }
+
         return view('auth/login');
     }
 
     public function loginAction()
     {
+        // Clear any existing session before attempting a new login
+        if (auth()->loggedIn()) {
+            auth()->logout();
+        }
+
         $rules = [
             'username' => 'required',
             'password' => 'required',
