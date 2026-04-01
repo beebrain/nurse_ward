@@ -76,5 +76,6 @@ $routes->group('admin', ['filter' => 'group:superadmin'], static function ($rout
         $routes->get('download', '\App\Controllers\Admin\BackupController::download');
         $routes->get('download-now', '\App\Controllers\Admin\BackupController::downloadNow');
         $routes->post('delete', '\App\Controllers\Admin\BackupController::delete');
+        $routes->post('import', '\App\Controllers\Admin\BackupController::importSql');
     });
 });

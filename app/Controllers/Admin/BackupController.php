@@ -97,6 +97,144 @@ class BackupController extends BaseController
         return redirect()->back()->with('message', 'ลบไฟล์ "' . $filename . '" สำเร็จ');
     }
 
+    // ─── IMPORT SQL ──────────────────────────────────────────────────────────
+
+    /**
+     * Upload and execute a .sql file against the current database.
+     * POST admin/backup/import
+     */
+    public function importSql()
+    {
+        $file = $this->request->getFile('sql_file');
+
+        if (!$file || !$file->isValid() || $file->hasMoved()) {
+            return redirect()->back()->with('error', 'กรุณาเลือกไฟล์ SQL ที่ถูกต้อง');
+        }
+
+        if (strtolower($file->getClientExtension()) !== 'sql') {
+            return redirect()->back()->with('error', 'รองรับเฉพาะไฟล์ .sql เท่านั้น');
+        }
+
+        if ($file->getSize() > 50 * 1024 * 1024) {
+            return redirect()->back()->with('error', 'ไฟล์ขนาดใหญ่เกิน 50 MB');
+        }
+
+        $tmpPath = WRITEPATH . 'uploads/' . $file->getRandomName();
+        $file->move(WRITEPATH . 'uploads/', basename($tmpPath));
+
+        $sql = file_get_contents($tmpPath);
+        unlink($tmpPath);
+
+        if ($sql === false || trim($sql) === '') {
+            return redirect()->back()->with('error', 'ไม่สามารถอ่านไฟล์ได้หรือไฟล์ว่างเปล่า');
+        }
+
+        $db = \Config\Database::connect();
+
+        // Split SQL into individual statements (handle delimiter ; safely)
+        $statements = $this->splitSql($sql);
+
+        $db->transStart();
+
+        $executed = 0;
+        $errors   = [];
+
+        foreach ($statements as $stmt) {
+            $stmt = trim($stmt);
+            if ($stmt === '') {
+                continue;
+            }
+
+            try {
+                $db->query($stmt);
+                $executed++;
+            } catch (\Throwable $e) {
+                $errors[] = substr($stmt, 0, 80) . '… → ' . $e->getMessage();
+                // Stop on first error to avoid corrupted state
+                break;
+            }
+        }
+
+        if (!empty($errors)) {
+            $db->transRollback();
+            return redirect()->back()
+                ->with('error', 'นำเข้าไม่สำเร็จ (rollback แล้ว): ' . $errors[0]);
+        }
+
+        $db->transComplete();
+
+        return redirect()->back()
+            ->with('message', 'นำเข้า SQL สำเร็จ ' . $executed . ' statements');
+    }
+
+    /**
+     * Split a full SQL dump into individual executable statements.
+     * Handles multi-line INSERT, comments, and SET commands correctly.
+     */
+    private function splitSql(string $sql): array
+    {
+        // Strip BOM
+        $sql = ltrim($sql, "\xEF\xBB\xBF");
+
+        $statements = [];
+        $current    = '';
+        $inString   = false;
+        $strChar    = '';
+        $len        = strlen($sql);
+
+        for ($i = 0; $i < $len; $i++) {
+            $char = $sql[$i];
+
+            // Skip single-line comments (-- ... \n)
+            if (!$inString && $char === '-' && isset($sql[$i + 1]) && $sql[$i + 1] === '-') {
+                while ($i < $len && $sql[$i] !== "\n") {
+                    $i++;
+                }
+                continue;
+            }
+
+            // Skip block comments (/* ... */)
+            if (!$inString && $char === '/' && isset($sql[$i + 1]) && $sql[$i + 1] === '*') {
+                $i += 2;
+                while ($i < $len - 1 && !($sql[$i] === '*' && $sql[$i + 1] === '/')) {
+                    $i++;
+                }
+                $i += 2;
+                continue;
+            }
+
+            // Track string literals to avoid splitting on ; inside strings
+            if (!$inString && ($char === "'" || $char === '"' || $char === '`')) {
+                $inString = true;
+                $strChar  = $char;
+            } elseif ($inString && $char === $strChar) {
+                // Handle escaped quote ('' or \')
+                if (isset($sql[$i + 1]) && $sql[$i + 1] === $strChar) {
+                    $current .= $char;
+                    $i++;
+                } elseif ($i > 0 && $sql[$i - 1] === '\\') {
+                    // escaped with backslash — stay in string
+                } else {
+                    $inString = false;
+                }
+            }
+
+            if (!$inString && $char === ';') {
+                $statements[] = trim($current);
+                $current      = '';
+                continue;
+            }
+
+            $current .= $char;
+        }
+
+        if (trim($current) !== '') {
+            $statements[] = trim($current);
+        }
+
+        return $statements;
+    }
+
     // ─── QUICK DOWNLOAD (backup + download in one step) ──────────────────────
 
     /**

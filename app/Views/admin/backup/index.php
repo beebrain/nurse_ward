@@ -113,6 +113,54 @@ function formatBytes(int $bytes): string {
         </div>
     </div>
 
+    <!-- Import SQL -->
+    <div class="col-12">
+        <div class="card shadow-sm border-warning">
+            <div class="card-header d-flex align-items-center gap-2" style="background:#7c4a00;color:#fff;border-radius:.75rem .75rem 0 0;">
+                <span class="material-symbols-outlined">upload_file</span>
+                <strong>นำเข้าข้อมูลจากไฟล์ SQL (Restore)</strong>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning d-flex gap-2 mb-3 py-2">
+                    <span class="material-symbols-outlined flex-shrink-0 mt-1">warning</span>
+                    <div class="small">
+                        <strong>คำเตือน:</strong> การนำเข้า SQL จะ <strong>เขียนทับข้อมูลในฐานข้อมูลปัจจุบัน</strong>
+                        โปรดสำรองข้อมูลก่อนทุกครั้ง และตรวจสอบให้แน่ใจว่าไฟล์ SQL มาจากแหล่งที่เชื่อถือได้
+                    </div>
+                </div>
+                <form action="<?= base_url('admin/backup/import') ?>" method="post" enctype="multipart/form-data"
+                      onsubmit="return confirmImport(this)">
+                    <?= csrf_field() ?>
+                    <div class="row g-3 align-items-end">
+                        <div class="col-lg-8">
+                            <label class="form-label fw-semibold">เลือกไฟล์ SQL (.sql)</label>
+                            <input type="file"
+                                   name="sql_file"
+                                   id="sqlFileInput"
+                                   class="form-control"
+                                   accept=".sql"
+                                   required>
+                            <div class="form-text">ขนาดไฟล์ไม่เกิน 50 MB — รองรับไฟล์ที่ export จากระบบนี้หรือ phpMyAdmin</div>
+                        </div>
+                        <div class="col-lg-4">
+                            <button type="submit" class="btn w-100" style="background:#7c4a00;color:#fff;">
+                                <span class="material-symbols-outlined align-middle me-1">restore</span>
+                                นำเข้า SQL
+                            </button>
+                        </div>
+                    </div>
+                    <div id="sqlFileInfo" class="mt-2 d-none">
+                        <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:var(--surface-low);">
+                            <span class="material-symbols-outlined text-warning">description</span>
+                            <span id="sqlFileName" class="small fw-semibold"></span>
+                            <span id="sqlFileSize" class="small text-muted ms-auto"></span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- File List -->
     <div class="col-12">
         <div class="card shadow-sm">
@@ -184,6 +232,32 @@ function formatBytes(int $bytes): string {
 </div>
 
 <script>
+// SQL file preview
+document.getElementById('sqlFileInput').addEventListener('change', function () {
+    const info    = document.getElementById('sqlFileInfo');
+    const nameEl  = document.getElementById('sqlFileName');
+    const sizeEl  = document.getElementById('sqlFileSize');
+    if (this.files.length > 0) {
+        const f    = this.files[0];
+        const mb   = (f.size / 1048576).toFixed(2);
+        nameEl.textContent = f.name;
+        sizeEl.textContent = mb + ' MB';
+        info.classList.remove('d-none');
+    } else {
+        info.classList.add('d-none');
+    }
+});
+
+function confirmImport(form) {
+    const filename = document.getElementById('sqlFileInput').value.split(/[\\/]/).pop();
+    return confirm(
+        '⚠️ ยืนยันการนำเข้า SQL?\n\n' +
+        'ไฟล์: ' + filename + '\n\n' +
+        'การดำเนินการนี้จะเขียนทับข้อมูลในฐานข้อมูลปัจจุบัน\n' +
+        'โปรดตรวจสอบให้แน่ใจว่าได้สำรองข้อมูลแล้ว'
+    );
+}
+
 // Show spinner while generating backup
 document.getElementById('btnDownloadNow').addEventListener('click', function () {
     this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> กำลังสำรองข้อมูล...';
