@@ -85,24 +85,6 @@
         height: 100%;
     }
 
-    .history-item {
-        background: var(--surface-low);
-        border-radius: 1rem;
-        padding: 1rem;
-        margin-bottom: 0.85rem;
-    }
-
-    .history-chip {
-        background: rgba(152, 249, 148, 0.35);
-        color: var(--secondary-text);
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        font-size: 0.72rem;
-        font-weight: 800;
-        padding: 0.25rem 0.6rem;
-    }
-
     .census-history-mobile-card {
         background: var(--surface-card);
         border-radius: 1.25rem;
@@ -240,26 +222,6 @@ $historyDateTo   = date('Y-m-d');
     </div>
 
     <aside>
-        <div class="history-card mb-4">
-            <div class="section-title d-flex align-items-center gap-2"><span class="material-symbols-outlined text-primary">history</span>แนวทางการกรอกข้อมูล</div>
-            <div class="section-subtitle">ช่วยให้การบันทึกข้อมูลสอดคล้องกันทุกเวร</div>
-            <div class="history-item">
-                <span class="history-chip">ขั้นตอน 1</span>
-                <div class="fw-bold mt-2">เลือกแผนกและเวรให้ถูกต้อง</div>
-                <div class="text-muted small mt-1">ระบบ autosave จะเริ่มทำงานเมื่อเลือกแผนก วันที่ และเวรครบแล้ว</div>
-            </div>
-            <div class="history-item">
-                <span class="history-chip">ขั้นตอน 2</span>
-                <div class="fw-bold mt-2">กรอกข้อมูลผู้ป่วยตามเหตุการณ์จริง</div>
-                <div class="text-muted small mt-1">ค่าที่เป็นตัวเลขติดลบจะถูกป้องกันอัตโนมัติ และตรวจสอบอีกครั้งก่อนบันทึก</div>
-            </div>
-            <div class="history-item mb-0">
-                <span class="history-chip">ขั้นตอน 3</span>
-                <div class="fw-bold mt-2">กดบันทึกหรือรอ autosave</div>
-                <div class="text-muted small mt-1">ข้อมูลที่บันทึกแล้วจะถูกนำไปใช้ในสรุปรายวัน รายเดือน และแดชบอร์ด</div>
-            </div>
-        </div>
-
         <div class="history-card">
             <div class="section-title d-flex align-items-center gap-2"><span class="material-symbols-outlined text-primary">tips_and_updates</span>คำแนะนำเพิ่มเติม</div>
             <p class="text-muted mb-0">หากมีการย้ายเข้า-ย้ายออกจำนวนมากในเวรเดียว ควรตรวจสอบยอดคงพยาบาลให้ตรงกับสถานะล่าสุดของหอผู้ป่วยก่อนกดยืนยัน</p>
