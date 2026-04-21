@@ -209,6 +209,144 @@ class ReportService
     }
 
     /**
+     * Yearly patient-days trend for every active ward (for multi-series charts).
+     *
+     * @return list<array{ward_id: int, ward_name: string, patient_days: list<int>}>
+     */
+    public function getYearlyTrendAllWards(int $year): array
+    {
+        $wards = $this->getWardModel()
+            ->where('is_active', true)
+            ->orderBy('name', 'ASC')
+            ->findAll();
+
+        $out = [];
+        foreach ($wards as $ward) {
+            $wid = (int) $ward['id'];
+            $out[] = [
+                'ward_id'      => $wid,
+                'ward_name'    => (string) $ward['name'],
+                'patient_days' => $this->getYearlyTrend($wid, $year),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Yearly productivity % trend for every active ward.
+     *
+     * @return list<array{ward_id: int, ward_name: string, productivity: list<float>}>
+     */
+    public function getYearlyProductivityTrendAllWards(int $year): array
+    {
+        $wards = $this->getWardModel()
+            ->where('is_active', true)
+            ->orderBy('name', 'ASC')
+            ->findAll();
+
+        $out = [];
+        foreach ($wards as $ward) {
+            $wid = (int) $ward['id'];
+            $out[] = [
+                'ward_id'     => $wid,
+                'ward_name'   => (string) $ward['name'],
+                'productivity' => $this->getYearlyProductivityTrend($wid, $year),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Colors for Chart.js datasets (line charts, multiple wards).
+     *
+     * @return list<array{border: string, fill: string}>
+     */
+    public function getChartColorPalette(int $count): array
+    {
+        $rgb = [
+            [0, 93, 172],
+            [25, 135, 84],
+            [220, 53, 69],
+            [102, 16, 242],
+            [253, 126, 20],
+            [32, 201, 151],
+            [214, 51, 132],
+            [111, 66, 193],
+            [13, 202, 240],
+            [108, 117, 125],
+        ];
+
+        $out = [];
+        for ($i = 0; $i < $count; $i++) {
+            $c   = $rgb[$i % count($rgb)];
+            $out[] = [
+                'border' => sprintf('rgb(%d,%d,%d)', $c[0], $c[1], $c[2]),
+                'fill'   => sprintf('rgba(%d,%d,%d,0.06)', $c[0], $c[1], $c[2]),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Build Chart.js-style datasets for patient-day trends.
+     *
+     * @param list<array{ward_name: string, patient_days: list<int>}> $series
+     * @return list<array{label: string, data: list<int>, borderColor: string, backgroundColor: string, fill: bool, tension: float, pointRadius: int}>
+     */
+    public function buildPatientDayTrendDatasets(array $series): array
+    {
+        $palette = $this->getChartColorPalette(count($series));
+        $datasets = [];
+
+        foreach ($series as $i => $row) {
+            $p = $palette[$i];
+            $datasets[] = [
+                'label'            => $row['ward_name'],
+                'data'             => $row['patient_days'],
+                'borderColor'      => $p['border'],
+                'backgroundColor'  => $p['fill'],
+                'fill'             => count($series) === 1,
+                'tension'          => 0.25,
+                'pointRadius'      => count($series) > 5 ? 2 : 3,
+                'pointHoverRadius' => 5,
+                'borderWidth'      => 2,
+            ];
+        }
+
+        return $datasets;
+    }
+
+    /**
+     * @param list<array{ward_name: string, productivity: list<float>}> $series
+     * @return list<array<string, mixed>>
+     */
+    public function buildProductivityTrendDatasets(array $series): array
+    {
+        $palette = $this->getChartColorPalette(count($series));
+        $datasets  = [];
+
+        foreach ($series as $i => $row) {
+            $p = $palette[$i];
+            $datasets[] = [
+                'label'            => $row['ward_name'],
+                'data'             => $row['productivity'],
+                'borderColor'      => $p['border'],
+                'backgroundColor'  => $p['fill'],
+                'fill'             => count($series) === 1,
+                'tension'          => 0.25,
+                'pointRadius'      => count($series) > 5 ? 2 : 3,
+                'pointHoverRadius' => 5,
+                'borderWidth'      => 2,
+            ];
+        }
+
+        return $datasets;
+    }
+
+    /**
      * Get daily summary rows for a ward in selected month/year.
      *
      * @param int $wardId

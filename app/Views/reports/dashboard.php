@@ -200,7 +200,7 @@
                 <div class="col-md-4">
                     <label for="ward_id" class="form-label fw-bold">แผนก (เส้นแนวโน้ม)</label>
                     <select name="ward_id" id="ward_id" class="form-select" required>
-                        <option value="">เลือกแผนก...</option>
+                        <option value="all" selected>ทุกแผนก</option>
                         <?php foreach ($wards as $ward): ?>
                             <option value="<?= $ward['id'] ?>"><?= esc($ward['name']) ?></option>
                         <?php endforeach; ?>
@@ -268,27 +268,71 @@
             maintainAspectRatio: false,
         };
 
-        function renderTrendChart(labels, values) {
+        function normalizeTrendDatasets(trendPayload) {
+            if (trendPayload.datasets && trendPayload.datasets.length) {
+                return trendPayload.datasets;
+            }
+            if (trendPayload.patient_days) {
+                return [{
+                    label: 'วันนอนผู้ป่วย (รวมในเดือน)',
+                    data: trendPayload.patient_days,
+                    fill: true,
+                    tension: 0.25,
+                    backgroundColor: 'rgba(0, 93, 172, 0.12)',
+                    borderColor: 'rgba(0, 93, 172, 1)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                }];
+            }
+            return [];
+        }
+
+        function normalizeProductivityDatasets(prodPayload) {
+            if (!prodPayload) {
+                return [];
+            }
+            if (prodPayload.datasets && prodPayload.datasets.length) {
+                return prodPayload.datasets;
+            }
+            if (prodPayload.values) {
+                return [{
+                    label: 'อัตราผลิต %',
+                    data: prodPayload.values,
+                    fill: true,
+                    tension: 0.25,
+                    backgroundColor: 'rgba(152, 249, 148, 0.2)',
+                    borderColor: 'rgba(12, 117, 33, 1)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                }];
+            }
+            return [];
+        }
+
+        function renderTrendChart(labels, trendPayload) {
             const ctx = document.getElementById('trendChart').getContext('2d');
             if (trendChart) {
                 trendChart.destroy();
+            }
+
+            const datasets = normalizeTrendDatasets(trendPayload);
+            const showLegend = datasets.length > 1;
+
+            if (!datasets.length) {
+                if (trendChart) {
+                    trendChart.destroy();
+                    trendChart = null;
+                }
+                return;
             }
 
             trendChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: 'วันนอนผู้ป่วย (รวมในเดือน)',
-                        data: values,
-                        fill: true,
-                        tension: 0.25,
-                        backgroundColor: 'rgba(0, 93, 172, 0.12)',
-                        borderColor: 'rgba(0, 93, 172, 1)',
-                        borderWidth: 2,
-                        pointRadius: 3,
-                        pointHoverRadius: 5,
-                    }]
+                    datasets: datasets,
                 },
                 options: {
                     ...chartDefaults,
@@ -299,33 +343,34 @@
                         }
                     },
                     plugins: {
-                        legend: { display: true, position: 'bottom' }
+                        legend: { display: showLegend, position: 'bottom' }
                     }
                 }
             });
         }
 
-        function renderProductivityTrendChart(labels, values) {
+        function renderProductivityTrendChart(labels, prodPayload) {
             const ctx = document.getElementById('productivityTrendChart').getContext('2d');
             if (productivityTrendChart) {
                 productivityTrendChart.destroy();
+            }
+
+            const datasets = normalizeProductivityDatasets(prodPayload);
+            const showLegend = datasets.length > 1;
+
+            if (!datasets.length) {
+                if (productivityTrendChart) {
+                    productivityTrendChart.destroy();
+                    productivityTrendChart = null;
+                }
+                return;
             }
 
             productivityTrendChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: 'อัตราผลิต %',
-                        data: values,
-                        fill: true,
-                        tension: 0.25,
-                        backgroundColor: 'rgba(152, 249, 148, 0.2)',
-                        borderColor: 'rgba(12, 117, 33, 1)',
-                        borderWidth: 2,
-                        pointRadius: 3,
-                        pointHoverRadius: 5,
-                    }]
+                    datasets: datasets,
                 },
                 options: {
                     ...chartDefaults,
@@ -337,7 +382,7 @@
                         }
                     },
                     plugins: {
-                        legend: { display: true, position: 'bottom' }
+                        legend: { display: showLegend, position: 'bottom' }
                     }
                 }
             });
@@ -384,7 +429,7 @@
             const month = $('#month').val();
             const year = $('#year').val();
 
-            if (!wardId) {
+            if (wardId === undefined || wardId === null || wardId === '') {
                 return;
             }
 
@@ -399,11 +444,11 @@
                 },
                 success: function(data) {
                     $('#trend-ward-label').text(data.selected_ward + ' · ปี ' + data.year);
-                    renderTrendChart(data.trend.labels, data.trend.patient_days);
+                    renderTrendChart(data.trend.labels, data.trend);
                     if (data.productivity_trend) {
                         renderProductivityTrendChart(
                             data.productivity_trend.labels,
-                            data.productivity_trend.values
+                            data.productivity_trend
                         );
                     }
                     renderComparisonChart(data.comparison.labels, data.comparison.productivity);
@@ -414,6 +459,8 @@
                 }
             });
         });
+
+        $('#dashboard-filter').trigger('submit');
     });
 </script>
 <?= $this->endSection() ?>

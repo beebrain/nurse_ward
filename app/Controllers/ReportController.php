@@ -160,35 +160,76 @@ class ReportController extends BaseController
      */
     public function dashboardData()
     {
-        $wardId = (int) $this->request->getGet('ward_id');
-        $month = (int) $this->request->getGet('month');
-        $year = (int) $this->request->getGet('year');
+        $wardIdRaw = $this->request->getGet('ward_id');
+        $month     = (int) $this->request->getGet('month');
+        $year      = (int) $this->request->getGet('year');
 
-        if ($wardId <= 0 || $month <= 0 || $month > 12 || $year <= 0) {
+        if ($month <= 0 || $month > 12 || $year <= 0) {
             return $this->response->setJSON(['error' => 'Invalid parameters'])->setStatusCode(400);
         }
 
+        $monthLabels = $this->reportService->getThaiMonthShortLabels();
+        $comparison  = $this->reportService->getWardComparison($month, $year);
+
+        $wardToken = is_scalar($wardIdRaw) ? strtolower(trim((string) $wardIdRaw)) : '';
+        $isAll     = ($wardToken === '' || $wardToken === 'all' || $wardToken === '0');
+
+        if (! $isAll && (! ctype_digit($wardToken) || (int) $wardToken <= 0)) {
+            return $this->response->setJSON(['error' => 'Invalid ward'])->setStatusCode(400);
+        }
+
+        if ($isAll) {
+            $trendSeries = $this->reportService->getYearlyTrendAllWards($year);
+            $prodSeries  = $this->reportService->getYearlyProductivityTrendAllWards($year);
+
+            return $this->response->setJSON([
+                'mode'          => 'all',
+                'selected_ward' => 'ทุกแผนก',
+                'year'          => $year,
+                'month'         => $month,
+                'trend'         => [
+                    'labels'   => $monthLabels,
+                    'datasets' => $this->reportService->buildPatientDayTrendDatasets($trendSeries),
+                ],
+                'productivity_trend' => [
+                    'labels'   => $monthLabels,
+                    'datasets' => $this->reportService->buildProductivityTrendDatasets($prodSeries),
+                ],
+                'comparison' => $comparison,
+            ]);
+        }
+
+        $wardId = (int) $wardToken;
+        if ($wardId <= 0) {
+            return $this->response->setJSON(['error' => 'Invalid ward'])->setStatusCode(400);
+        }
+
         $ward = $this->wardModel->find($wardId);
-        if (!$ward) {
+        if (! $ward) {
             return $this->response->setJSON(['error' => 'Ward not found'])->setStatusCode(404);
         }
 
-        $trend       = $this->reportService->getYearlyTrend($wardId, $year);
-        $comparison  = $this->reportService->getWardComparison($month, $year);
-        $monthLabels = $this->reportService->getThaiMonthShortLabels();
-        $prodTrend   = $this->reportService->getYearlyProductivityTrend($wardId, $year);
+        $trendSeries = [[
+            'ward_name'    => $ward['name'],
+            'patient_days' => $this->reportService->getYearlyTrend($wardId, $year),
+        ]];
+        $prodSeries = [[
+            'ward_name'    => $ward['name'],
+            'productivity' => $this->reportService->getYearlyProductivityTrend($wardId, $year),
+        ]];
 
         return $this->response->setJSON([
+            'mode'          => 'single',
             'selected_ward' => $ward['name'],
             'year'          => $year,
             'month'         => $month,
             'trend'         => [
-                'labels'        => $monthLabels,
-                'patient_days'  => $trend,
+                'labels'   => $monthLabels,
+                'datasets' => $this->reportService->buildPatientDayTrendDatasets($trendSeries),
             ],
             'productivity_trend' => [
-                'labels' => $monthLabels,
-                'values' => $prodTrend,
+                'labels'   => $monthLabels,
+                'datasets' => $this->reportService->buildProductivityTrendDatasets($prodSeries),
             ],
             'comparison' => $comparison,
         ]);
