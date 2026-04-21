@@ -129,7 +129,8 @@ class ReportService
     {
         $data = $this->getMonthlyData($wardId, $month, $year);
         $beds = $this->getWardBeds($wardId);
-        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+        // Use date() so the optional PHP "calendar" extension is not required (often missing in minimal Docker images).
+        $daysInMonth = (int) date('t', mktime(0, 0, 0, $month, 1, $year));
 
         $data['ward_beds'] = $beds;
         $data['days_in_month'] = $daysInMonth;
@@ -264,5 +265,120 @@ class ReportService
         unset($day);
 
         return array_values($daily);
+    }
+
+    /**
+     * @return list<string> Thai short month labels (12).
+     */
+    public function getThaiMonthShortLabels(): array
+    {
+        return ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    }
+
+    /**
+     * Monthly productivity % for one ward across a calendar year.
+     *
+     * @return list<float>
+     */
+    public function getYearlyProductivityTrend(int $wardId, int $year): array
+    {
+        $values = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $report = $this->getMonthlyReport($wardId, $m, $year);
+            $values[] = round((float) $report['productivity'], 2);
+        }
+
+        return $values;
+    }
+
+    /**
+     * Latest recorded census day for a ward: occupancy (คงพยาบาล) using Night → Afternoon → Morning.
+     *
+     * @return array{occupancy: int, record_date: string|null, shift_used: string|null, shift_label: string|null}
+     */
+    public function getLatestCensusDaySnapshot(int $wardId): array
+    {
+        $builder = $this->getCensusModel()->builder();
+        $builder->selectMax('record_date', 'max_date');
+        $builder->where('ward_id', $wardId);
+        $maxRow = $builder->get()->getRowArray();
+
+        $date = $maxRow['max_date'] ?? null;
+        if ($date === null || $date === '') {
+            return [
+                'occupancy'    => 0,
+                'record_date'  => null,
+                'shift_used'   => null,
+                'shift_label'  => null,
+            ];
+        }
+
+        $rows = $this->getCensusModel()
+            ->where('ward_id', $wardId)
+            ->where('record_date', $date)
+            ->findAll();
+
+        $shifts = [];
+        foreach ($rows as $r) {
+            $shifts[$r['shift']] = (int) $r['total_remaining'];
+        }
+
+        $occupancy  = 0;
+        $shiftUsed  = null;
+        $shiftLabel = null;
+        $map        = ['Morning' => 'เช้า', 'Afternoon' => 'บ่าย', 'Night' => 'ดึก'];
+
+        foreach (['Night', 'Afternoon', 'Morning'] as $s) {
+            if (isset($shifts[$s])) {
+                $occupancy  = $shifts[$s];
+                $shiftUsed  = $s;
+                $shiftLabel = $map[$s] ?? $s;
+                break;
+            }
+        }
+
+        return [
+            'occupancy'    => $occupancy,
+            'record_date'  => $date,
+            'shift_used'   => $shiftUsed,
+            'shift_label'  => $shiftLabel,
+        ];
+    }
+
+    /**
+     * Per-ward snapshot for executive dashboard (latest census vs bed capacity).
+     *
+     * @return list<array<string, int|float|string|null>>
+     */
+    public function getExecutiveSnapshot(): array
+    {
+        $wards = $this->getWardModel()
+            ->where('is_active', true)
+            ->orderBy('name', 'ASC')
+            ->findAll();
+
+        $out = [];
+        foreach ($wards as $ward) {
+            $wid  = (int) $ward['id'];
+            $beds = (int) $ward['total_beds'];
+            $snap = $this->getLatestCensusDaySnapshot($wid);
+
+            $util = null;
+            if ($beds > 0) {
+                $util = round(($snap['occupancy'] / $beds) * 100, 1);
+            }
+
+            $out[] = [
+                'ward_id'       => $wid,
+                'ward_name'     => (string) $ward['name'],
+                'total_beds'    => $beds,
+                'occupancy'     => $snap['occupancy'],
+                'record_date'   => $snap['record_date'],
+                'shift_label'   => $snap['shift_label'],
+                'utilization_pct' => $util,
+            ];
+        }
+
+        return $out;
     }
 }

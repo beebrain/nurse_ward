@@ -145,10 +145,11 @@ class ReportController extends BaseController
     public function dashboard()
     {
         $data = [
-            'title' => 'Interactive Dashboard',
-            'wards' => $this->wardModel->where('is_active', true)->findAll(),
-            'current_month' => date('n'),
-            'current_year' => date('Y'),
+            'title'           => 'แดชบอร์ดผู้บริหาร',
+            'wards'           => $this->wardModel->where('is_active', true)->orderBy('name', 'ASC')->findAll(),
+            'current_month'   => date('n'),
+            'current_year'    => date('Y'),
+            'snapshot'        => $this->reportService->getExecutiveSnapshot(),
         ];
 
         return view('reports/dashboard', $data);
@@ -172,16 +173,22 @@ class ReportController extends BaseController
             return $this->response->setJSON(['error' => 'Ward not found'])->setStatusCode(404);
         }
 
-        $trend = $this->reportService->getYearlyTrend($wardId, $year);
-        $comparison = $this->reportService->getWardComparison($month, $year);
+        $trend       = $this->reportService->getYearlyTrend($wardId, $year);
+        $comparison  = $this->reportService->getWardComparison($month, $year);
+        $monthLabels = $this->reportService->getThaiMonthShortLabels();
+        $prodTrend   = $this->reportService->getYearlyProductivityTrend($wardId, $year);
 
         return $this->response->setJSON([
             'selected_ward' => $ward['name'],
-            'year' => $year,
-            'month' => $month,
-            'trend' => [
-                'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                'patient_days' => $trend,
+            'year'          => $year,
+            'month'         => $month,
+            'trend'         => [
+                'labels'        => $monthLabels,
+                'patient_days'  => $trend,
+            ],
+            'productivity_trend' => [
+                'labels' => $monthLabels,
+                'values' => $prodTrend,
             ],
             'comparison' => $comparison,
         ]);
