@@ -3,19 +3,13 @@
 <?= $this->section('content') ?>
 <style>
     .census-hero {
-        margin-bottom: 2rem;
+        margin-bottom: 1.25rem;
     }
 
     .census-hero h1 {
-        font-size: clamp(2rem, 3vw, 3.2rem);
+        font-size: clamp(1.5rem, 3vw, 2.25rem);
         font-weight: 800;
         letter-spacing: -0.04em;
-        margin-bottom: 0.35rem;
-    }
-
-    .census-hero p {
-        color: var(--text-muted);
-        max-width: 760px;
         margin-bottom: 0;
     }
 
@@ -29,12 +23,6 @@
         font-size: 0.88rem;
         font-weight: 700;
         padding: 0.75rem 1rem;
-    }
-
-    .census-shell {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
     }
 
     .census-panel {
@@ -51,15 +39,9 @@
     }
 
     .section-title {
-        font-size: 1.15rem;
+        font-size: 1.05rem;
         font-weight: 800;
-        margin-bottom: 0.35rem;
-    }
-
-    .section-subtitle {
-        color: var(--text-muted);
-        font-size: 0.95rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0.75rem;
     }
 
     .metric-card {
@@ -75,14 +57,6 @@
         font-size: 0.85rem;
         font-weight: 700;
         margin-bottom: 0.55rem;
-    }
-
-    .history-card {
-        background: var(--surface-card);
-        border-radius: 1.5rem;
-        box-shadow: var(--shadow-soft);
-        padding: 1.5rem;
-        height: 100%;
     }
 
     .census-history-mobile-card {
@@ -102,20 +76,12 @@
         font-size: 0.9rem;
     }
 
-    @media (min-width: 992px) {
-        .census-shell {
-            grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
-            align-items: start;
-        }
-    }
-
     @media (max-width: 575.98px) {
         .census-hero {
             flex-wrap: wrap;
         }
 
-        .census-panel,
-        .history-card {
+        .census-panel {
             padding: 1.15rem;
         }
     }
@@ -125,117 +91,100 @@
 $historyDateFrom = date('Y-m-d', strtotime('-30 days'));
 $historyDateTo   = date('Y-m-d');
 ?>
-<div class="census-hero d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-end gap-3">
-    <div>
-        <h1>บันทึกข้อมูลผู้ป่วยรายวัน</h1>
-        <p>กรอกข้อมูลผู้ป่วยแต่ละเวรให้ครบถ้วนเพื่ออัปเดตสรุปผลและแดชบอร์ดของผู้บริหารแบบต่อเนื่อง</p>
-    </div>
+<div class="census-hero d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+    <h1 class="mb-0">บันทึกข้อมูลผู้ป่วยรายวัน</h1>
     <span id="autosave-status" class="status-pill"><span class="material-symbols-outlined">cloud_done</span>พร้อม</span>
 </div>
 
-<div class="census-shell">
-    <div class="census-panel">
-        <div class="census-soft-panel mb-4">
-            <div class="section-title">บริบทการรายงาน</div>
-            <div class="section-subtitle">เลือกแผนก วันที่ และเวร ก่อนบันทึกข้อมูลรายวัน</div>
-            <form action="<?= base_url('census/store') ?>" method="post">
-                <?= csrf_field() ?>
-                <div class="row g-3 g-md-4 mb-4">
-                    <div class="col-12 col-lg-4">
-                        <label for="ward_id" class="form-label fw-bold">แผนก</label>
-                        <select name="ward_id" id="ward_id" class="form-select <?= session('errors.ward_id') ? 'is-invalid' : '' ?>" required>
-                            <option value="">เลือกแผนก...</option>
-                            <?php foreach ($wards as $ward): ?>
-                                <option value="<?= $ward['id'] ?>" <?= old('ward_id') == $ward['id'] ? 'selected' : '' ?>><?= esc($ward['name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <?php if (session('errors.ward_id')): ?>
-                            <div class="invalid-feedback"><?= session('errors.ward_id') ?></div>
-                        <?php endif; ?>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <label for="record_date" class="form-label fw-bold">วันที่</label>
-                        <input type="date" name="record_date" id="record_date" class="form-control <?= session('errors.record_date') ? 'is-invalid' : '' ?>" value="<?= old('record_date', date('Y-m-d')) ?>" required>
-                        <?php if (session('errors.record_date')): ?>
-                            <div class="invalid-feedback"><?= session('errors.record_date') ?></div>
-                        <?php endif; ?>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <label for="shift" class="form-label fw-bold">เวร</label>
-                        <select name="shift" id="shift" class="form-select <?= session('errors.shift') ? 'is-invalid' : '' ?>" required>
-                            <option value="Morning" <?= old('shift') == 'Morning' ? 'selected' : '' ?>>เช้า</option>
-                            <option value="Afternoon" <?= old('shift') == 'Afternoon' ? 'selected' : '' ?>>บ่าย</option>
-                            <option value="Night" <?= old('shift') == 'Night' ? 'selected' : '' ?>>ดึก</option>
-                        </select>
-                        <?php if (session('errors.shift')): ?>
-                            <div class="invalid-feedback"><?= session('errors.shift') ?></div>
-                        <?php endif; ?>
-                    </div>
+<div class="census-panel mb-4">
+    <div class="census-soft-panel mb-0">
+        <div class="section-title">บริบทการรายงาน</div>
+        <form action="<?= base_url('census/store') ?>" method="post">
+            <?= csrf_field() ?>
+            <div class="row g-3 g-md-4 mb-4">
+                <div class="col-12 col-lg-4">
+                    <label for="ward_id" class="form-label fw-bold">แผนก</label>
+                    <select name="ward_id" id="ward_id" class="form-select <?= session('errors.ward_id') ? 'is-invalid' : '' ?>" required>
+                        <option value="">เลือกแผนก...</option>
+                        <?php foreach ($wards as $ward): ?>
+                            <option value="<?= $ward['id'] ?>" <?= old('ward_id') == $ward['id'] ? 'selected' : '' ?>><?= esc($ward['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if (session('errors.ward_id')): ?>
+                        <div class="invalid-feedback"><?= session('errors.ward_id') ?></div>
+                    <?php endif; ?>
                 </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <label for="record_date" class="form-label fw-bold">วันที่</label>
+                    <input type="date" name="record_date" id="record_date" class="form-control <?= session('errors.record_date') ? 'is-invalid' : '' ?>" value="<?= old('record_date', date('Y-m-d')) ?>" required>
+                    <?php if (session('errors.record_date')): ?>
+                        <div class="invalid-feedback"><?= session('errors.record_date') ?></div>
+                    <?php endif; ?>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <label for="shift" class="form-label fw-bold">เวร</label>
+                    <select name="shift" id="shift" class="form-select <?= session('errors.shift') ? 'is-invalid' : '' ?>" required>
+                        <option value="Morning" <?= old('shift') == 'Morning' ? 'selected' : '' ?>>เช้า</option>
+                        <option value="Afternoon" <?= old('shift') == 'Afternoon' ? 'selected' : '' ?>>บ่าย</option>
+                        <option value="Night" <?= old('shift') == 'Night' ? 'selected' : '' ?>>ดึก</option>
+                    </select>
+                    <?php if (session('errors.shift')): ?>
+                        <div class="invalid-feedback"><?= session('errors.shift') ?></div>
+                    <?php endif; ?>
+                </div>
+            </div>
 
-                <div class="section-title">ตัวชี้วัดผู้ป่วย</div>
-                <div class="section-subtitle">บันทึกการเคลื่อนไหวของผู้ป่วยในเวรนี้ให้ครบทุกช่อง</div>
-                <div class="row g-3 g-md-4">
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="metric-card">
-                            <label for="admissions">รับใหม่</label>
-                            <input type="number" name="admissions" id="admissions" class="form-control census-input" value="<?= old('admissions', 0) ?>" min="0" required>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="metric-card">
-                            <label for="discharges">จำหน่าย</label>
-                            <input type="number" name="discharges" id="discharges" class="form-control census-input" value="<?= old('discharges', 0) ?>" min="0" required>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="metric-card">
-                            <label for="deaths">เสียชีวิต</label>
-                            <input type="number" name="deaths" id="deaths" class="form-control census-input" value="<?= old('deaths', 0) ?>" min="0" required>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="metric-card">
-                            <label for="transfers_in">ย้ายเข้า</label>
-                            <input type="number" name="transfers_in" id="transfers_in" class="form-control census-input" value="<?= old('transfers_in', 0) ?>" min="0" required>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="metric-card">
-                            <label for="transfers_out">ย้ายออก</label>
-                            <input type="number" name="transfers_out" id="transfers_out" class="form-control census-input" value="<?= old('transfers_out', 0) ?>" min="0" required>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="metric-card">
-                            <label for="total_remaining" class="text-primary">คงพยาบาล</label>
-                            <input type="number" name="total_remaining" id="total_remaining" class="form-control census-input" value="<?= old('total_remaining', 0) ?>" min="0" required>
-                        </div>
+            <div class="section-title">ตัวชี้วัดผู้ป่วย</div>
+            <div class="row g-3 g-md-4">
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="metric-card">
+                        <label for="admissions">รับใหม่</label>
+                        <input type="number" name="admissions" id="admissions" class="form-control census-input" value="<?= old('admissions', 0) ?>" min="0" required>
                     </div>
                 </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="metric-card">
+                        <label for="discharges">จำหน่าย</label>
+                        <input type="number" name="discharges" id="discharges" class="form-control census-input" value="<?= old('discharges', 0) ?>" min="0" required>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="metric-card">
+                        <label for="deaths">เสียชีวิต</label>
+                        <input type="number" name="deaths" id="deaths" class="form-control census-input" value="<?= old('deaths', 0) ?>" min="0" required>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="metric-card">
+                        <label for="transfers_in">ย้ายเข้า</label>
+                        <input type="number" name="transfers_in" id="transfers_in" class="form-control census-input" value="<?= old('transfers_in', 0) ?>" min="0" required>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="metric-card">
+                        <label for="transfers_out">ย้ายออก</label>
+                        <input type="number" name="transfers_out" id="transfers_out" class="form-control census-input" value="<?= old('transfers_out', 0) ?>" min="0" required>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="metric-card">
+                        <label for="total_remaining" class="text-primary">คงพยาบาล</label>
+                        <input type="number" name="total_remaining" id="total_remaining" class="form-control census-input" value="<?= old('total_remaining', 0) ?>" min="0" required>
+                    </div>
+                </div>
+            </div>
 
-                <div class="d-grid mt-5">
-                    <button type="submit" class="btn btn-primary btn-lg">บันทึกข้อมูลรายงาน</button>
-                </div>
-            </form>
-        </div>
+            <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">บันทึกข้อมูลรายงาน</button>
+            </div>
+        </form>
     </div>
-
-    <aside>
-        <div class="history-card">
-            <div class="section-title d-flex align-items-center gap-2"><span class="material-symbols-outlined text-primary">tips_and_updates</span>คำแนะนำเพิ่มเติม</div>
-            <p class="text-muted mb-0">หากมีการย้ายเข้า-ย้ายออกจำนวนมากในเวรเดียว ควรตรวจสอบยอดคงพยาบาลให้ตรงกับสถานะล่าสุดของหอผู้ป่วยก่อนกดยืนยัน</p>
-        </div>
-    </aside>
 </div>
 
 <div class="census-panel mt-4 mb-5 pb-3" id="census-history-root" data-history-url="<?= esc(base_url('census/history'), 'attr') ?>">
-    <div class="section-title d-flex align-items-center gap-2 flex-wrap">
+    <div class="section-title d-flex align-items-center gap-2 flex-wrap mb-3">
         <span class="material-symbols-outlined text-primary">manage_search</span>
         ประวัติการบันทึก
-    </div>
-    <div class="section-subtitle mb-3">
-        ดูข้อมูลที่บันทึกแล้ว แยกตามแผนกและช่วงวันที่ — แสดงผู้บันทึกล่าสุดและเวลาที่อัปเดต (ข้อมูลเดิมที่มีผู้แก้ไขจะแสดงชื่อผู้แก้ไขครั้งล่าสุด)
     </div>
 
     <form id="census-history-filters" class="row g-3 align-items-end mb-3">

@@ -13,12 +13,6 @@
         margin-bottom: 0.4rem;
     }
 
-    .dashboard-hero p {
-        color: var(--text-muted);
-        max-width: 760px;
-        margin-bottom: 0;
-    }
-
     .dashboard-shell {
         display: grid;
         grid-template-columns: 1fr;
@@ -27,7 +21,6 @@
 
     .dashboard-filter-card,
     .dashboard-chart-card,
-    .dashboard-side-card,
     .dashboard-mini-card {
         background: var(--surface-card);
         border-radius: 1.75rem;
@@ -35,8 +28,7 @@
     }
 
     .dashboard-filter-card,
-    .dashboard-chart-card,
-    .dashboard-side-card {
+    .dashboard-chart-card {
         padding: 1.5rem;
     }
 
@@ -72,48 +64,14 @@
         color: #fff;
     }
 
-    .dashboard-spotlight .dashboard-mini-label,
-    .dashboard-spotlight .dashboard-mini-caption {
+    .dashboard-spotlight .dashboard-mini-label {
         color: rgba(255, 255, 255, 0.78);
-    }
-
-    .dashboard-mini-caption {
-        color: var(--text-muted);
-        font-size: 0.82rem;
-        margin-top: 0.65rem;
     }
 
     .dashboard-section-title {
         font-size: 1.15rem;
         font-weight: 800;
-        margin-bottom: 0.35rem;
-    }
-
-    .dashboard-section-subtitle {
-        color: var(--text-muted);
-        font-size: 0.95rem;
-        margin-bottom: 1rem;
-    }
-
-    .dashboard-stat-list {
-        display: grid;
-        gap: 0.85rem;
-    }
-
-    .dashboard-stat-item {
-        background: var(--surface-low);
-        border-radius: 1rem;
-        padding: 1rem;
-    }
-
-    .dashboard-stat-item strong {
-        display: block;
-        margin-bottom: 0.2rem;
-    }
-
-    .dashboard-stat-item span {
-        color: var(--text-muted);
-        font-size: 0.9rem;
+        margin-bottom: 0.75rem;
     }
 
     #trendChart,
@@ -127,41 +85,31 @@
         }
     }
 
-    @media (min-width: 1200px) {
-        .dashboard-shell {
-            grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
-        }
-    }
 </style>
 
-<div class="dashboard-hero">
-    <h1>แดชบอร์ดผู้บริหาร</h1>
-    <p>ติดตามแนวโน้มจำนวนผู้ป่วยและเปรียบเทียบอัตราผลิตของแต่ละแผนกจากข้อมูลรายวันแบบภาพรวม</p>
+<div class="dashboard-hero mb-3">
+    <h1 class="mb-0">แดชบอร์ดผู้บริหาร</h1>
 </div>
 
 <div class="dashboard-mini-grid mb-4">
     <div class="dashboard-mini-card">
-        <div class="dashboard-mini-label">ข้อมูลพร้อมใช้งาน</div>
+        <div class="dashboard-mini-label">แผนก</div>
         <div class="dashboard-mini-value"><?= count($wards) ?></div>
-        <div class="dashboard-mini-caption">แผนกที่เปิดให้เลือกดูเทรนด์</div>
     </div>
     <div class="dashboard-mini-card">
-        <div class="dashboard-mini-label">เดือนอ้างอิง</div>
+        <div class="dashboard-mini-label">เดือน</div>
         <div class="dashboard-mini-value"><?= $current_month ?></div>
-        <div class="dashboard-mini-caption">สามารถสลับดูข้อมูลย้อนหลังได้</div>
     </div>
     <div class="dashboard-mini-card dashboard-spotlight">
-        <div class="dashboard-mini-label">ปีอ้างอิง</div>
+        <div class="dashboard-mini-label">ปี</div>
         <div class="dashboard-mini-value"><?= $current_year ?></div>
-        <div class="dashboard-mini-caption">ใช้สำหรับเทรนด์รายปีและการเปรียบเทียบ</div>
     </div>
 </div>
 
 <div class="dashboard-shell">
     <div>
         <div class="dashboard-filter-card mb-4">
-            <div class="dashboard-section-title">ตัวกรองรายงาน</div>
-            <div class="dashboard-section-subtitle">เลือกแผนก เดือน และปี เพื่อโหลดกราฟเปรียบเทียบ</div>
+            <div class="dashboard-section-title">ตัวกรอง</div>
             <form id="dashboard-filter" class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label for="ward_id" class="form-label fw-bold">แผนก (เทรนด์)</label>
@@ -196,43 +144,18 @@
 
         <div id="dashboard-result" class="d-none">
             <div class="dashboard-chart-card mb-4">
-                <div class="dashboard-section-title">เทรนด์ผู้ป่วยรายเดือน</div>
-                <div class="dashboard-section-subtitle">แผนกที่เลือก: <span id="trend-ward-label">-</span></div>
+                <div class="dashboard-section-title d-flex flex-wrap align-items-baseline justify-content-between gap-2">
+                    <span>เทรนด์ผู้ป่วยรายเดือน</span>
+                    <span class="small fw-semibold text-muted"><span id="trend-ward-label">-</span></span>
+                </div>
                 <canvas id="trendChart" height="110"></canvas>
             </div>
             <div class="dashboard-chart-card">
-                <div class="dashboard-section-title">เปรียบเทียบอัตราผลิตของแต่ละแผนก</div>
-                <div class="dashboard-section-subtitle">คำนวณจากข้อมูลในเดือนและปีที่เลือก</div>
+                <div class="dashboard-section-title">อัตราผลิตตามแผนก</div>
                 <canvas id="comparisonChart" height="220"></canvas>
             </div>
         </div>
     </div>
-
-    <aside>
-        <div class="dashboard-side-card mb-4">
-            <div class="dashboard-section-title d-flex align-items-center gap-2"><span class="material-symbols-outlined text-primary">insights</span>สิ่งที่ผู้บริหารควรดู</div>
-            <div class="dashboard-section-subtitle">อ่านกราฟให้เร็วขึ้นด้วยบริบทต่อไปนี้</div>
-            <div class="dashboard-stat-list">
-                <div class="dashboard-stat-item">
-                    <strong>เทรนด์รายเดือน</strong>
-                    <span>ช่วยดูความเปลี่ยนแปลงของวันนอนผู้ป่วยตลอดทั้งปีในแผนกเดียวกัน</span>
-                </div>
-                <div class="dashboard-stat-item">
-                    <strong>อัตราผลิตรายแผนก</strong>
-                    <span>ช่วยเปรียบเทียบภาระงานจริงกับจำนวนเตียงและวันในเดือนที่เลือก</span>
-                </div>
-                <div class="dashboard-stat-item">
-                    <strong>การใช้งานร่วมกับรายงาน</strong>
-                    <span>หากพบค่าผิดปกติ ควรเปิดดูตารางรายวันหรือสรุปรายเดือนต่อทันที</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="dashboard-side-card">
-            <div class="dashboard-section-title d-flex align-items-center gap-2"><span class="material-symbols-outlined text-primary">bolt</span>สรุปการใช้งาน</div>
-            <div class="dashboard-section-subtitle mb-0">เลือกแผนกแล้วกดโหลดแดชบอร์ด ระบบจะดึงข้อมูลผ่าน AJAX และอัปเดตกราฟทันทีโดยไม่รีเฟรชหน้า</div>
-        </div>
-    </aside>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
