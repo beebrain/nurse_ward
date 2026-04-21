@@ -26,9 +26,10 @@
 # app.forceGlobalSecureRequests = false
 # app.CSPEnabled = false
 #
-# When the server document root is the project folder (not public/), static files are under public/.
-# Uncomment so asset_url() resolves e.g. .../nurse_ward/public/js/...
+# When the server document root is the project folder (not public/), you may have used:
 # app.publicAssetsPrefix = public
+# That URL is routed via AppAsset (see Routes.php). Prefer leaving this commented and using
+# base_url('app-asset/js/...') in views to avoid an extra "public" path segment.
 
 #--------------------------------------------------------------------
 # DATABASE

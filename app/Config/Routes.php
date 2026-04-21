@@ -25,6 +25,11 @@ $routes->get('debug/auth', '\App\Controllers\DebugController::auth');
 $routes->get('debug/test-login', '\App\Controllers\DebugLoginController::test');
 $routes->get('debug/check-user', '\App\Controllers\DebugLoginController::checkUser');
 
+// Static JS via PHP (avoids 404 when reverse proxy does not serve public/js/*)
+$routes->get('app-asset/js/(:segment)', '\App\Controllers\AppAsset::javascript/$1');
+// Same file when browser requests .../public/js/... (e.g. app.publicAssetsPrefix = public + all requests via index.php)
+$routes->get('public/js/(:segment)', '\App\Controllers\AppAsset::javascript/$1');
+
 $routes->group('census', ['filter' => 'permission:census.record'], static function ($routes) {
     $routes->get('/', '\App\Controllers\CensusController::index');
     $routes->get('new', '\App\Controllers\CensusController::create');
