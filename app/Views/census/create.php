@@ -181,6 +181,28 @@ $historyDateTo   = date('Y-m-d');
     </div>
 </div>
 
+<div class="modal fade" id="census-confirm-modal" tabindex="-1" aria-labelledby="censusConfirmLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="censusConfirmLabel">ยืนยันการบันทึกข้อมูล</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="text-muted small mb-3">ตรวจสอบรายละเอียดด้านล่างให้ถูกต้องก่อนกดยืนยัน เพื่อลดความผิดพลาดจากการบันทึก</p>
+                <div id="census-confirm-summary" class="rounded-4 bg-body-secondary bg-opacity-50 p-3 small"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">กลับไปแก้ไข</button>
+                <button type="button" class="btn btn-primary" id="census-confirm-save">
+                    <span class="material-symbols-outlined align-middle me-1" style="font-size: 1.15rem;">check_circle</span>
+                    ยืนยันบันทึก
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="census-panel mt-4 mb-5 pb-3" id="census-history-root" data-history-url="<?= esc(base_url('census/history'), 'attr') ?>">
     <div class="section-title d-flex align-items-center gap-2 flex-wrap mb-3">
         <span class="material-symbols-outlined text-primary">manage_search</span>

@@ -50,6 +50,104 @@ $(document).ready(function() {
         }
     });
 
+    // ─── Confirm modal before final submit (full page POST) ─────────────
+    const $confirmModalEl = document.getElementById('census-confirm-modal');
+    const $confirmSummary = $('#census-confirm-summary');
+    let allowFormSubmit = false;
+
+    function escText(s) {
+        return $('<div>').text(s == null ? '' : String(s)).html();
+    }
+
+    function formatDateThai(ymd) {
+        if (!ymd) {
+            return '—';
+        }
+        const p = String(ymd).split('-');
+        if (p.length !== 3) {
+            return escText(ymd);
+        }
+        return escText(p[2] + '/' + p[1] + '/' + p[0]);
+    }
+
+    function numOrZero(id) {
+        const v = $('#' + id).val();
+        const n = parseInt(v, 10);
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    function fillConfirmSummary() {
+        const wardText = $('#ward_id option:selected').text().trim() || '—';
+        const shiftText = $('#shift option:selected').text().trim() || '—';
+        const dateDisplay = formatDateThai($('#record_date').val());
+
+        const rows = [
+            ['แผนก', escText(wardText)],
+            ['วันที่', dateDisplay],
+            ['เวร', escText(shiftText)],
+            ['รับใหม่', escText(String(numOrZero('admissions')))],
+            ['จำหน่าย', escText(String(numOrZero('discharges')))],
+            ['เสียชีวิต', escText(String(numOrZero('deaths')))],
+            ['ย้ายเข้า', escText(String(numOrZero('transfers_in')))],
+            ['ย้ายออก', escText(String(numOrZero('transfers_out')))],
+            ['คงพยาบาล', '<strong class="text-primary">' + escText(String(numOrZero('total_remaining'))) + '</strong>'],
+        ];
+
+        let html = '<dl class="row mb-0 g-2">';
+        rows.forEach(function(pair) {
+            html += '<dt class="col-5 text-muted fw-semibold mb-0">' + pair[0] + '</dt>';
+            html += '<dd class="col-7 mb-0 text-break">' + pair[1] + '</dd>';
+        });
+        html += '</dl>';
+
+        $confirmSummary.html(html);
+    }
+
+    $form.on('submit', function(e) {
+        if (allowFormSubmit) {
+            allowFormSubmit = false;
+            return;
+        }
+        e.preventDefault();
+        if (!this.checkValidity()) {
+            this.reportValidity();
+            return;
+        }
+        if (!$confirmModalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+            allowFormSubmit = true;
+            if (typeof this.requestSubmit === 'function') {
+                this.requestSubmit();
+            } else {
+                this.submit();
+            }
+            return;
+        }
+        fillConfirmSummary();
+        const modal = bootstrap.Modal.getOrCreateInstance($confirmModalEl);
+        modal.show();
+    });
+
+    $('#census-confirm-save').on('click', function() {
+        const $btn = $(this);
+        allowFormSubmit = true;
+        if ($confirmModalEl && bootstrap.Modal) {
+            const inst = bootstrap.Modal.getInstance($confirmModalEl);
+            if (inst) {
+                inst.hide();
+            }
+        }
+        $btn.prop('disabled', true);
+        const formEl = $form[0];
+        if (typeof formEl.requestSubmit === 'function') {
+            formEl.requestSubmit();
+        } else {
+            $form.find('button[type="submit"]').first().trigger('click');
+        }
+        setTimeout(function() {
+            $btn.prop('disabled', false);
+        }, 3000);
+    });
+
     // ─── History (ward, who saved, metrics) ─────────────────────────────
     const $root = $('#census-history-root');
     if ($root.length === 0) {
