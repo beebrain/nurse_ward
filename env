@@ -25,6 +25,10 @@
 # app_baseURL = ''
 # app.forceGlobalSecureRequests = false
 # app.CSPEnabled = false
+#
+# When the server document root is the project folder (not public/), static files are under public/.
+# Uncomment so asset_url() resolves e.g. .../nurse_ward/public/js/...
+# app.publicAssetsPrefix = public
 
 #--------------------------------------------------------------------
 # DATABASE

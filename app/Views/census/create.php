@@ -291,5 +291,5 @@ $historyDateTo   = date('Y-m-d');
     <div class="d-lg-none" id="census-history-cards" aria-live="polite"></div>
 </div>
 
-<script src="<?= base_url('js/census_entry.js') ?>"></script>
+<script src="<?= asset_url('js/census_entry.js') ?>"></script>
 <?= $this->endSection() ?>
