@@ -44,10 +44,20 @@ class CensusController extends BaseController
         $data = $this->request->getPost();
         $data['created_by'] = auth()->id();
 
+        $existing = $this->censusModel->where([
+            'ward_id'     => $data['ward_id'],
+            'record_date' => $data['record_date'],
+            'shift'       => $data['shift'],
+        ])->first();
+
         try {
-            $this->censusModel->insert($data);
+            if ($existing) {
+                $this->censusModel->update($existing['id'], $data);
+            } else {
+                $this->censusModel->insert($data);
+            }
         } catch (\Exception $e) {
-            return redirect()->back()->withInput()->with('error', 'Failed to save record. Possible duplicate entry for this ward, date, and shift.');
+            return redirect()->back()->withInput()->with('error', 'Failed to save record.');
         }
 
         return redirect()->to('census/new')->with('message', 'Census record saved successfully.');

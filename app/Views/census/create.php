@@ -72,6 +72,11 @@
         margin-bottom: 0;
     }
 
+    /* Modal อยู่ใน .page-shell (z-index ต่ำ) — ย้ายไป body แล้วยังกันซ้ำด้วยเลเยอร์เหนือ header/bottom-nav */
+    #census-confirm-modal {
+        z-index: 1080;
+    }
+
     #census-history-table {
         font-size: 0.9rem;
     }
@@ -93,7 +98,7 @@ $historyDateTo   = date('Y-m-d');
 ?>
 <div class="census-hero d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
     <h1 class="mb-0">บันทึกข้อมูลผู้ป่วยรายวัน</h1>
-    <span id="autosave-status" class="status-pill"><span class="material-symbols-outlined">cloud_done</span>พร้อม</span>
+    <span id="autosave-status" class="status-pill"><span class="material-symbols-outlined">edit_note</span>รอกดบันทึกและยืนยัน</span>
 </div>
 
 <div class="census-panel mb-4">

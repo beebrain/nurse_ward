@@ -1,6 +1,4 @@
 $(document).ready(function() {
-    let autosaveTimer;
-    const autosaveDelay = 1000;
     const $form = $('form[action*="census/store"]');
     const $statusIndicator = $('#autosave-status');
 
@@ -8,50 +6,26 @@ $(document).ready(function() {
         $statusIndicator.text(text).removeClass('text-muted text-success text-danger text-warning').addClass(className);
     }
 
-    function doAutosave() {
-        const formData = $form.serialize();
-        const autosaveUrl = $form.attr('action').replace('store', 'autosave');
-
-        updateStatus('กำลังบันทึก...', 'text-warning');
-
-        $.ajax({
-            url: autosaveUrl,
-            method: 'POST',
-            data: formData,
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    updateStatus('บันทึกอัตโนมัติสำเร็จ', 'text-success');
-                    setTimeout(() => updateStatus('พร้อม', 'text-muted'), 3000);
-                    loadHistoryDebounced();
-                } else {
-                    updateStatus('ข้อมูลไม่ผ่านการตรวจสอบ', 'text-danger');
-                    console.error('Validation errors:', response.errors);
-                }
-            },
-            error: function(xhr, status, error) {
-                updateStatus('เกิดข้อผิดพลาดในการบันทึก', 'text-danger');
-                console.error('AJAX error:', error);
-            }
-        });
-    }
-
     $form.on('input change', 'input, select', function() {
         if ($(this).attr('type') === 'number' && $(this).val() < 0) {
             $(this).val(0);
         }
 
-        clearTimeout(autosaveTimer);
-
         if ($('#ward_id').val() && $('#record_date').val() && $('#shift').val()) {
-            autosaveTimer = setTimeout(doAutosave, autosaveDelay);
+            updateStatus('ยังไม่บันทึกลงฐานข้อมูล — กดบันทึกแล้วยืนยัน', 'text-muted');
         } else {
-            updateStatus('เลือกแผนก วันที่ และเวร เพื่อเปิดใช้การบันทึกอัตโนมัติ', 'text-muted');
+            updateStatus('เลือกแผนก วันที่ และเวร ให้ครบก่อนบันทึก', 'text-muted');
         }
     });
+    if ($('#ward_id').val() && $('#record_date').val() && $('#shift').val()) {
+        updateStatus('ยังไม่บันทึกลงฐานข้อมูล — กดบันทึกแล้วยืนยัน', 'text-muted');
+    }
 
     // ─── Confirm modal before final submit (full page POST) ─────────────
     const $confirmModalEl = document.getElementById('census-confirm-modal');
+    if ($confirmModalEl && $confirmModalEl.parentNode !== document.body) {
+        document.body.appendChild($confirmModalEl);
+    }
     const $confirmSummary = $('#census-confirm-summary');
     let allowFormSubmit = false;
 
@@ -164,8 +138,6 @@ $(document).ready(function() {
     const $tbody = $('#census-history-table tbody');
     const $cards = $('#census-history-cards');
 
-    let historyTimer;
-
     function escHtml(s) {
         return $('<div>').text(s == null ? '' : String(s)).html();
     }
@@ -273,11 +245,6 @@ $(document).ready(function() {
             .always(function() {
                 $histLoading.addClass('d-none');
             });
-    }
-
-    function loadHistoryDebounced() {
-        clearTimeout(historyTimer);
-        historyTimer = setTimeout(loadHistory, 400);
     }
 
     $('#census-history-filters').on('submit', function(e) {
