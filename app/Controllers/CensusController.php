@@ -92,4 +92,66 @@ class CensusController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
     }
+
+    /**
+     * JSON list of census history for nurses (ward, metrics, recorder, timestamps).
+     */
+    public function history()
+    {
+        if (! auth()->loggedIn()) {
+            return $this->response->setStatusCode(401)->setJSON(['error' => 'Unauthorized']);
+        }
+
+        $wardId   = $this->request->getGet('ward_id');
+        $dateFrom = (string) ($this->request->getGet('date_from') ?? date('Y-m-d', strtotime('-30 days')));
+        $dateTo   = (string) ($this->request->getGet('date_to') ?? date('Y-m-d'));
+
+        if (strtotime($dateFrom) === false || strtotime($dateTo) === false) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'วันที่ไม่ถูกต้อง']);
+        }
+
+        if ($dateFrom > $dateTo) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'ช่วงวันที่ไม่ถูกต้อง']);
+        }
+
+        $wardIdInt = null;
+        if ($wardId !== null && $wardId !== '') {
+            $wardIdInt = (int) $wardId;
+            if ($wardIdInt < 1) {
+                return $this->response->setStatusCode(400)->setJSON(['error' => 'แผนกไม่ถูกต้อง']);
+            }
+        }
+
+        $shiftLabels = [
+            'Morning'   => 'เช้า',
+            'Afternoon' => 'บ่าย',
+            'Night'     => 'ดึก',
+        ];
+
+        $rows = $this->censusModel->getHistoryForList($wardIdInt, $dateFrom, $dateTo);
+
+        $out = [];
+        foreach ($rows as $row) {
+            $shift = $row['shift'] ?? '';
+            $out[] = [
+                'id'                 => (int) $row['id'],
+                'ward_id'            => (int) $row['ward_id'],
+                'ward_name'          => $row['ward_name'] ?? '—',
+                'record_date'        => $row['record_date'],
+                'shift'              => $shift,
+                'shift_label'        => $shiftLabels[$shift] ?? $shift,
+                'admissions'         => (int) $row['admissions'],
+                'discharges'         => (int) $row['discharges'],
+                'transfers_in'       => (int) $row['transfers_in'],
+                'transfers_out'      => (int) $row['transfers_out'],
+                'deaths'             => (int) $row['deaths'],
+                'total_remaining'    => (int) $row['total_remaining'],
+                'recorder_username'  => $row['recorder_username'] ?? '—',
+                'created_at'         => $row['created_at'],
+                'updated_at'         => $row['updated_at'],
+            ];
+        }
+
+        return $this->response->setJSON(['rows' => $out]);
+    }
 }

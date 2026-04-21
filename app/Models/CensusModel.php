@@ -43,4 +43,41 @@ class CensusModel extends Model
     protected $validationMessages   = [];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
+
+    /**
+     * Census rows with ward name and recorder username for history UI.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getHistoryForList(?int $wardId, string $dateFrom, string $dateTo, int $limit = 400): array
+    {
+        $builder = $this->builder();
+        $builder->select([
+            'daily_census.id',
+            'daily_census.ward_id',
+            'daily_census.record_date',
+            'daily_census.shift',
+            'daily_census.admissions',
+            'daily_census.discharges',
+            'daily_census.transfers_in',
+            'daily_census.transfers_out',
+            'daily_census.deaths',
+            'daily_census.total_remaining',
+            'daily_census.created_at',
+            'daily_census.updated_at',
+            'wards.name AS ward_name',
+            'users.username AS recorder_username',
+        ]);
+        $builder->join('wards', 'wards.id = daily_census.ward_id', 'left');
+        $builder->join('users', 'users.id = daily_census.created_by', 'left');
+        $builder->where('daily_census.record_date >=', $dateFrom);
+        $builder->where('daily_census.record_date <=', $dateTo);
+        if ($wardId !== null) {
+            $builder->where('daily_census.ward_id', $wardId);
+        }
+        $builder->orderBy('daily_census.record_date', 'DESC');
+        $builder->orderBy('daily_census.updated_at', 'DESC');
+
+        return $builder->get($limit)->getResultArray();
+    }
 }

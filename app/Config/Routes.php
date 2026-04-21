@@ -28,6 +28,7 @@ $routes->get('debug/check-user', '\App\Controllers\DebugLoginController::checkUs
 $routes->group('census', ['filter' => 'permission:census.record'], static function ($routes) {
     $routes->get('/', '\App\Controllers\CensusController::index');
     $routes->get('new', '\App\Controllers\CensusController::create');
+    $routes->get('history', '\App\Controllers\CensusController::history');
     $routes->post('store', '\App\Controllers\CensusController::store');
     $routes->post('autosave', '\App\Controllers\CensusController::autosave');
 });
