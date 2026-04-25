@@ -3,187 +3,243 @@
 <?= $this->section('content') ?>
 
 <style>
-/* ── Level Cards ────────────────────────────────────────────────────── */
-.level-card {
+/* ═══════════════════════════════════════════════════════════════════════
+   PROFESSIONAL HEALTHCARE PALETTE
+   Calm muted tones, soft tints, off-white surfaces (no pure white)
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+    /* App surfaces */
+    --bg-page:        #eef2f7;   /* soft cool gray-blue, easy on eyes */
+    --bg-card:        #fbfcfe;   /* near-white card surface */
+    --bg-input:       #fafbfd;   /* off-white inputs */
+    --border-soft:    #d8dee8;
+    --text-primary:   #1f2937;
+    --text-muted:     #64748b;
+
+    /* Severity (clinical, muted but distinguishable) */
+    --c-l5:    #9c2942;   --c-l5-bg:  #fbeef1;
+    --c-l4:    #a85c1f;   --c-l4-bg:  #fbf2e8;
+    --c-l3:    #1f6f8b;   --c-l3-bg:  #ebf3f7;
+    --c-l2:    #3f7a4f;   --c-l2-bg:  #ecf3ee;
+    --c-l1:    #5a4eb6;   --c-l1-bg:  #efedf8;
+    --c-total: #2c3e50;
+
+    /* Movements (soft accent tones) */
+    --c-admit: #2e7d56;   --c-admit-bg:  #e8f1ec;
+    --c-dc:    #8c3a5e;   --c-dc-bg:     #f5e8ee;
+    --c-tin:   #3d5fa3;   --c-tin-bg:    #ebeff7;
+    --c-tout:  #8a6d2c;   --c-tout-bg:   #f6f0e2;
+    --c-death: #2c3e50;   --c-death-bg:  #2c3e50;
+
+    /* Nurses */
+    --c-rn:    #9c2942;   --c-rn-bg:    #fbeef1;
+    --c-other: #4d6485;   --c-other-bg: #eaeef5;
+}
+
+/* Page background — stop "bright white" glare */
+body { background: var(--bg-page) !important; }
+
+/* ── Cards & section headers ───────────────────────────────────────── */
+.card {
     border-radius: 12px;
-    padding: 12px 8px 10px;
-    text-align: center;
-    border: 2px solid transparent;
-    transition: transform .1s, box-shadow .1s;
+    border: 1px solid var(--border-soft);
+    background: var(--bg-card);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(15,23,42,.06);
 }
-.level-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
-
-.level-card.lv5 { background: #fff0f0; border-color: #dc3545; }
-.level-card.lv4 { background: #fff8e1; border-color: #fd7e14; }
-.level-card.lv3 { background: #e8f4fd; border-color: #0dcaf0; }
-.level-card.lv2 { background: #eafaf1; border-color: #198754; }
-.level-card.lv1 { background: #f4f0ff; border-color: #6f42c1; }
-.level-card.lv-total { background: #1a1a2e; border-color: #1a1a2e; color: #fff; }
-
-.level-badge { font-size: 1rem; font-weight: 700; letter-spacing: .5px; }
-.level-badge.lv5 { color: #dc3545; }
-.level-badge.lv4 { color: #fd7e14; }
-.level-badge.lv3 { color: #0989b7; }
-.level-badge.lv2 { color: #198754; }
-.level-badge.lv1 { color: #6f42c1; }
-.level-badge.lv-total { color: #fff; }
-
-.level-input {
-    font-size: 1.8rem;
-    font-weight: 700;
-    border: 2px solid;
-    border-radius: 10px;
-    text-align: center;
-    width: 100%;
-    padding: 6px 4px;
-    background: #fff;
-    transition: border-color .15s, box-shadow .15s;
-    -moz-appearance: textfield;
-}
-.level-input::-webkit-inner-spin-button,
-.level-input::-webkit-outer-spin-button { opacity: .4; }
-.level-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(0,0,0,.12); }
-
-.level-input.lv5 { border-color: #dc3545; color: #dc3545; }
-.level-input.lv5:focus { box-shadow: 0 0 0 3px rgba(220,53,69,.25); }
-.level-input.lv4 { border-color: #fd7e14; color: #fd7e14; }
-.level-input.lv4:focus { box-shadow: 0 0 0 3px rgba(253,126,20,.25); }
-.level-input.lv3 { border-color: #0dcaf0; color: #0989b7; }
-.level-input.lv3:focus { box-shadow: 0 0 0 3px rgba(13,202,240,.25); }
-.level-input.lv2 { border-color: #198754; color: #198754; }
-.level-input.lv2:focus { box-shadow: 0 0 0 3px rgba(25,135,84,.25); }
-.level-input.lv1 { border-color: #6f42c1; color: #6f42c1; }
-.level-input.lv1:focus { box-shadow: 0 0 0 3px rgba(111,66,193,.25); }
-.level-input.lv-total { border-color: #fff3; color: #fff; background: transparent; }
-
-/* ── Movement inputs ────────────────────────────────────────────────── */
-.move-card {
-    border-radius: 10px;
-    padding: 10px 8px;
-    text-align: center;
-    border: 2px solid;
-}
-.move-card.mc-admit   { background: #eaf7f0; border-color: #20c997; }
-.move-card.mc-dc      { background: #fff0f5; border-color: #e83e8c; }
-.move-card.mc-in      { background: #e8f0ff; border-color: #6610f2; }
-.move-card.mc-out     { background: #fff5e0; border-color: #ffc107; }
-.move-card.mc-death   { background: #1a1a2e; border-color: #1a1a2e; }
-
-.move-label { font-size: .8rem; font-weight: 600; margin-bottom: 4px; }
-.mc-admit .move-label  { color: #0f9b6a; }
-.mc-dc    .move-label  { color: #c0285a; }
-.mc-in    .move-label  { color: #5a03c7; }
-.mc-out   .move-label  { color: #a17800; }
-.mc-death .move-label  { color: #adb5bd; }
-
-.move-input {
-    font-size: 1.5rem;
-    font-weight: 700;
-    border: none;
-    background: transparent;
-    text-align: center;
-    width: 100%;
-    padding: 2px;
-    -moz-appearance: textfield;
-}
-.move-input::-webkit-inner-spin-button,
-.move-input::-webkit-outer-spin-button { opacity: .4; }
-.move-input:focus { outline: none; }
-.mc-admit .move-input  { color: #0f9b6a; }
-.mc-dc    .move-input  { color: #c0285a; }
-.mc-in    .move-input  { color: #5a03c7; }
-.mc-out   .move-input  { color: #a17800; }
-.mc-death .move-input  { color: #fff; }
-
-/* ── Nurse inputs ───────────────────────────────────────────────────── */
-.nurse-card {
-    border-radius: 10px;
-    padding: 10px 8px;
-    text-align: center;
-    border: 2px solid;
-}
-.nurse-card.nc-calc   { background: #fff5f5; border-color: #dc3545; }
-.nurse-card.nc-other  { background: #eef1ff; border-color: #4a6cf7; }
-
-.nurse-label { font-size: .85rem; font-weight: 700; }
-.nc-calc  .nurse-label { color: #dc3545; }
-.nc-other .nurse-label { color: #4a6cf7; }
-.nurse-desc { font-size: .72rem; color: #6c757d; }
-
-.nurse-input {
-    font-size: 1.5rem;
-    font-weight: 700;
-    border: none;
-    background: transparent;
-    text-align: center;
-    width: 100%;
-    padding: 2px;
-    -moz-appearance: textfield;
-}
-.nurse-input::-webkit-inner-spin-button,
-.nurse-input::-webkit-outer-spin-button { opacity: .4; }
-.nurse-input:focus { outline: none; }
-.nc-calc  .nurse-input { color: #dc3545; }
-.nc-other .nurse-input { color: #4a6cf7; }
-
-/* ── Section headers ────────────────────────────────────────────────── */
 .card-header {
-    padding: 13px 18px !important;
-    font-size: 1rem !important;
+    padding: 12px 18px !important;
+    font-size: .98rem !important;
     font-weight: 700 !important;
     letter-spacing: .2px;
     border-bottom: none !important;
-    box-shadow: 0 3px 6px rgba(0,0,0,.18);
+    color: #fff !important;
 }
-.sh-blue   { background: linear-gradient(90deg,#0a58ca,#2176ff) !important; color: #fff !important; }
-.sh-teal   { background: linear-gradient(90deg,#0a7a52,#1cc98a) !important; color: #fff !important; }
-.sh-purple { background: linear-gradient(90deg,#520dc2,#8540f5) !important; color: #fff !important; }
-.sh-red    { background: linear-gradient(90deg,#9b1616,#e02020) !important; color: #fff !important; }
-.sh-gray   { background: linear-gradient(90deg,#2b3035,#555e68) !important; color: #fff !important; }
+.card-header .material-symbols-outlined,
+.card-header i { font-size: 1.1rem; vertical-align: -2px; opacity: .9; }
 
-/* ── Productivity preview ───────────────────────────────────────────── */
-.prod-preview {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+.sh-blue   { background: linear-gradient(135deg,#1e3a8a,#3b5fb8) !important; }
+.sh-teal   { background: linear-gradient(135deg,#0f5e58,#2a8a82) !important; }
+.sh-purple { background: linear-gradient(135deg,#3f1d8a,#6b46b8) !important; }
+.sh-red    { background: linear-gradient(135deg,#7a1f33,#9c2942) !important; }
+.sh-gray   { background: linear-gradient(135deg,#1f2937,#475569) !important; }
+
+/* ── Generic stat cards (used by levels / movements / nurses) ─────── */
+.stat-card {
     border-radius: 10px;
-    color: #fff;
-    padding: 14px;
-    margin-top: 12px;
+    padding: 10px 8px;
+    text-align: center;
+    border: 1px solid;
+    transition: box-shadow .15s, transform .1s;
+    height: 100%;
 }
-.prod-stat-label { font-size: .72rem; opacity: .7; letter-spacing: .5px; text-transform: uppercase; }
-.prod-stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
-.prod-divider { border-color: rgba(255,255,255,.2) !important; }
+.stat-card:hover { box-shadow: 0 3px 8px rgba(15,23,42,.12); }
 
-/* ── QI inputs ──────────────────────────────────────────────────────── */
-.qi-input {
-    font-size: 1.2rem;
-    font-weight: 600;
-    border: 2px solid #dee2e6;
+.stat-label  { font-size: .8rem; font-weight: 700; letter-spacing: .2px; }
+.stat-sub    { font-size: .68rem; color: var(--text-muted); line-height: 1.25; min-height: 1.6em; }
+
+.stat-input {
+    font-size: 1.55rem;
+    font-weight: 700;
+    border: 1.5px solid;
     border-radius: 8px;
     text-align: center;
     width: 100%;
-    padding: 4px;
-    background: #fff;
-    transition: border-color .15s;
+    padding: 6px 4px;
+    background: var(--bg-input);
+    transition: border-color .15s, box-shadow .15s;
+    margin-top: 6px;
+    min-height: 48px;
     -moz-appearance: textfield;
 }
-.qi-input:focus { outline: none; border-color: #0d6efd; box-shadow: 0 0 0 3px rgba(13,110,253,.15); }
-.qi-input::-webkit-inner-spin-button,
-.qi-input::-webkit-outer-spin-button { opacity: .4; }
-.qi-hai:focus     { border-color: #dc3545; box-shadow: 0 0 0 3px rgba(220,53,69,.15); }
-.qi-special:focus { border-color: #0d6efd; box-shadow: 0 0 0 3px rgba(13,110,253,.15); }
+.stat-input::-webkit-inner-spin-button,
+.stat-input::-webkit-outer-spin-button { opacity: .35; }
+.stat-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(31,41,55,.12); }
 
-/* ── Header card ────────────────────────────────────────────────────── */
-.card { border-radius: 12px; border: 2px solid #e9ecef; overflow: hidden; }
-.card-header.sh-blue, .card-header.sh-teal,
-.card-header.sh-purple, .card-header.sh-red,
-.card-header.sh-gray { border: none !important; }
+/* ── Level Cards (severity 5→1) ───────────────────────────────────── */
+.lv5 { background: var(--c-l5-bg); border-color: var(--c-l5); }
+.lv5 .stat-label, .lv5 .stat-input { color: var(--c-l5); border-color: var(--c-l5); }
+.lv5 .stat-input:focus { box-shadow: 0 0 0 3px rgba(156,41,66,.18); }
+
+.lv4 { background: var(--c-l4-bg); border-color: var(--c-l4); }
+.lv4 .stat-label, .lv4 .stat-input { color: var(--c-l4); border-color: var(--c-l4); }
+.lv4 .stat-input:focus { box-shadow: 0 0 0 3px rgba(168,92,31,.18); }
+
+.lv3 { background: var(--c-l3-bg); border-color: var(--c-l3); }
+.lv3 .stat-label, .lv3 .stat-input { color: var(--c-l3); border-color: var(--c-l3); }
+.lv3 .stat-input:focus { box-shadow: 0 0 0 3px rgba(31,111,139,.18); }
+
+.lv2 { background: var(--c-l2-bg); border-color: var(--c-l2); }
+.lv2 .stat-label, .lv2 .stat-input { color: var(--c-l2); border-color: var(--c-l2); }
+.lv2 .stat-input:focus { box-shadow: 0 0 0 3px rgba(63,122,79,.18); }
+
+.lv1 { background: var(--c-l1-bg); border-color: var(--c-l1); }
+.lv1 .stat-label, .lv1 .stat-input { color: var(--c-l1); border-color: var(--c-l1); }
+.lv1 .stat-input:focus { box-shadow: 0 0 0 3px rgba(90,78,182,.18); }
+
+.lv-total { background: var(--c-total); border-color: var(--c-total); color: #fff; }
+.lv-total .stat-label { color: #fff; }
+.lv-total .stat-input {
+    background: rgba(255,255,255,.08); color: #fff;
+    border-color: rgba(255,255,255,.25);
+}
+
+/* Larger numbers for patient levels (key data) */
+.lv5 .stat-input, .lv4 .stat-input, .lv3 .stat-input,
+.lv2 .stat-input, .lv1 .stat-input, .lv-total .stat-input { font-size: 1.85rem; min-height: 56px; }
+
+/* ── Movement Cards ───────────────────────────────────────────────── */
+.mc-admit { background: var(--c-admit-bg); border-color: var(--c-admit); }
+.mc-admit .stat-label, .mc-admit .stat-input { color: var(--c-admit); border-color: var(--c-admit); }
+.mc-admit .stat-input:focus { box-shadow: 0 0 0 3px rgba(46,125,86,.18); }
+
+.mc-dc    { background: var(--c-dc-bg);    border-color: var(--c-dc); }
+.mc-dc .stat-label, .mc-dc .stat-input    { color: var(--c-dc);    border-color: var(--c-dc); }
+.mc-dc .stat-input:focus    { box-shadow: 0 0 0 3px rgba(140,58,94,.18); }
+
+.mc-in    { background: var(--c-tin-bg);   border-color: var(--c-tin); }
+.mc-in .stat-label, .mc-in .stat-input    { color: var(--c-tin);   border-color: var(--c-tin); }
+.mc-in .stat-input:focus    { box-shadow: 0 0 0 3px rgba(61,95,163,.18); }
+
+.mc-out   { background: var(--c-tout-bg);  border-color: var(--c-tout); }
+.mc-out .stat-label, .mc-out .stat-input  { color: var(--c-tout);  border-color: var(--c-tout); }
+.mc-out .stat-input:focus   { box-shadow: 0 0 0 3px rgba(138,109,44,.18); }
+
+.mc-death { background: var(--c-death-bg); border-color: var(--c-death); color: #fff; }
+.mc-death .stat-label { color: #fff; }
+.mc-death .stat-input {
+    background: rgba(255,255,255,.1); color: #fff;
+    border-color: rgba(255,255,255,.3);
+}
+
+/* ── Nurse Cards ──────────────────────────────────────────────────── */
+.nc-calc  { background: var(--c-rn-bg);    border-color: var(--c-rn); }
+.nc-calc .stat-label, .nc-calc .stat-input  { color: var(--c-rn);    border-color: var(--c-rn); }
+.nc-calc .stat-input:focus  { box-shadow: 0 0 0 3px rgba(156,41,66,.18); }
+
+.nc-other { background: var(--c-other-bg); border-color: var(--c-other); }
+.nc-other .stat-label, .nc-other .stat-input { color: var(--c-other); border-color: var(--c-other); }
+.nc-other .stat-input:focus { box-shadow: 0 0 0 3px rgba(77,100,133,.18); }
+
+/* ── Productivity preview ─────────────────────────────────────────── */
+.prod-preview {
+    background: linear-gradient(135deg,#1f2937 0%,#334155 100%);
+    border-radius: 10px;
+    color: #fff;
+    padding: 14px;
+    margin-top: 14px;
+}
+.prod-stat-label { font-size: .72rem; opacity: .75; letter-spacing: .4px; text-transform: uppercase; }
+.prod-stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+.prod-divider    { border-color: rgba(255,255,255,.18) !important; }
+
+/* ── QI inputs ────────────────────────────────────────────────────── */
+.qi-card {
+    border: 1px solid var(--border-soft);
+    background: var(--bg-input);
+    border-radius: 8px;
+    padding: 8px 6px;
+    text-align: center;
+    height: 100%;
+}
+.qi-card.qi-hai     { border-color: #c08191; background: #fbeef1; }
+.qi-card.qi-special { border-color: #8da4c4; background: #ebeff7; }
+.qi-card-label { font-size: .72rem; font-weight: 700; }
+.qi-hai .qi-card-label     { color: var(--c-l5); }
+.qi-special .qi-card-label { color: var(--c-tin); }
+
+.qi-input {
+    font-size: 1.2rem;
+    font-weight: 700;
+    border: 1.5px solid;
+    border-radius: 6px;
+    text-align: center;
+    width: 100%;
+    padding: 4px;
+    background: var(--bg-input);
+    margin-top: 4px;
+    min-height: 40px;
+    -moz-appearance: textfield;
+}
+.qi-input::-webkit-inner-spin-button,
+.qi-input::-webkit-outer-spin-button { opacity: .35; }
+.qi-input:focus { outline: none; }
+.qi-hai .qi-input     { color: var(--c-l5); border-color: var(--c-l5); }
+.qi-hai .qi-input:focus     { box-shadow: 0 0 0 3px rgba(156,41,66,.18); }
+.qi-special .qi-input { color: var(--c-tin); border-color: var(--c-tin); }
+.qi-special .qi-input:focus { box-shadow: 0 0 0 3px rgba(61,95,163,.18); }
+
+/* ── Form controls (Ward/Date/Shift) ──────────────────────────────── */
+.form-control, .form-select {
+    background: var(--bg-input) !important;
+    border-color: var(--border-soft) !important;
+    color: var(--text-primary) !important;
+}
+.form-control:focus, .form-select:focus {
+    border-color: #3b5fb8 !important;
+    box-shadow: 0 0 0 3px rgba(59,95,184,.15) !important;
+}
+.form-label { color: var(--text-primary); }
+
+/* ── Touch device tweaks ──────────────────────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+    .stat-input { font-size: 1.65rem !important; min-height: 54px; }
+    .qi-input   { min-height: 46px; font-size: 1.3rem; }
+}
+
+/* ── Small-screen layout ──────────────────────────────────────────── */
+@media (max-width: 575.98px) {
+    .stat-input  { font-size: 1.4rem; min-height: 44px; }
+    .stat-sub    { display: none; }            /* hide subtitle on phones */
+    .card-header { padding: 10px 14px !important; font-size: .9rem !important; }
+    .card-body   { padding: .85rem !important; }
+}
 </style>
 
-<div class="row justify-content-center">
-  <div class="col-xxl-10 col-xl-11">
+<div class="container-fluid px-md-3 px-2" style="max-width: 1400px;">
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h4 class="mb-0">บันทึกยอดผู้ป่วยรายวัน</h4>
+      <h4 class="mb-0" style="color: var(--text-primary);">บันทึกยอดผู้ป่วยรายวัน</h4>
       <a href="<?= base_url('census/history') ?>" class="btn btn-sm btn-outline-secondary">ประวัติการบันทึก</a>
     </div>
 
@@ -272,70 +328,64 @@
           <small class="ms-2 opacity-75 fw-normal">(รวม ปกติ + พิเศษ)</small>
         </div>
         <div class="card-body">
-          <div class="row g-2">
+          <div class="row row-cols-2 row-cols-sm-3 row-cols-md-6 g-2">
 
             <div class="col">
-              <div class="level-card lv5">
-                <div class="level-badge lv5">Level 5</div>
-                <div class="small text-muted mt-1">วิกฤต</div>
-                <div class="small text-muted">12 ชม./คน</div>
+              <div class="stat-card lv5">
+                <div class="stat-label">Level 5</div>
+                <div class="stat-sub">วิกฤต · 12 ชม./คน</div>
                 <input type="number" name="patients_level_5" id="patients_level_5"
-                       class="level-input lv5 patient-level mt-1"
+                       class="stat-input patient-level"
                        min="0" value="<?= old('patients_level_5', 0) ?>" data-hours="12">
               </div>
             </div>
 
             <div class="col">
-              <div class="level-card lv4">
-                <div class="level-badge lv4">Level 4</div>
-                <div class="small text-muted mt-1">หนัก</div>
-                <div class="small text-muted">7.5 ชม./คน</div>
+              <div class="stat-card lv4">
+                <div class="stat-label">Level 4</div>
+                <div class="stat-sub">หนัก · 7.5 ชม./คน</div>
                 <input type="number" name="patients_level_4" id="patients_level_4"
-                       class="level-input lv4 patient-level mt-1"
+                       class="stat-input patient-level"
                        min="0" value="<?= old('patients_level_4', 0) ?>" data-hours="7.5">
               </div>
             </div>
 
             <div class="col">
-              <div class="level-card lv3">
-                <div class="level-badge lv3">Level 3</div>
-                <div class="small text-muted mt-1">ปานกลาง</div>
-                <div class="small text-muted">5.5 ชม./คน</div>
+              <div class="stat-card lv3">
+                <div class="stat-label">Level 3</div>
+                <div class="stat-sub">ปานกลาง · 5.5 ชม./คน</div>
                 <input type="number" name="patients_level_3" id="patients_level_3"
-                       class="level-input lv3 patient-level mt-1"
+                       class="stat-input patient-level"
                        min="0" value="<?= old('patients_level_3', 0) ?>" data-hours="5.5">
               </div>
             </div>
 
             <div class="col">
-              <div class="level-card lv2">
-                <div class="level-badge lv2">Level 2</div>
-                <div class="small text-muted mt-1">น้อย</div>
-                <div class="small text-muted">3.5 ชม./คน</div>
+              <div class="stat-card lv2">
+                <div class="stat-label">Level 2</div>
+                <div class="stat-sub">น้อย · 3.5 ชม./คน</div>
                 <input type="number" name="patients_level_2" id="patients_level_2"
-                       class="level-input lv2 patient-level mt-1"
+                       class="stat-input patient-level"
                        min="0" value="<?= old('patients_level_2', 0) ?>" data-hours="3.5">
               </div>
             </div>
 
             <div class="col">
-              <div class="level-card lv1">
-                <div class="level-badge lv1">Level 1</div>
-                <div class="small text-muted mt-1">ช่วยตัวเองได้</div>
-                <div class="small text-muted">1.5 ชม./คน</div>
+              <div class="stat-card lv1">
+                <div class="stat-label">Level 1</div>
+                <div class="stat-sub">ช่วยตัวเองได้ · 1.5 ชม./คน</div>
                 <input type="number" name="patients_level_1" id="patients_level_1"
-                       class="level-input lv1 patient-level mt-1"
+                       class="stat-input patient-level"
                        min="0" value="<?= old('patients_level_1', 0) ?>" data-hours="1.5">
               </div>
             </div>
 
             <div class="col">
-              <div class="level-card lv-total">
-                <div class="level-badge lv-total">รวม</div>
-                <div class="small opacity-50 mt-1">&nbsp;</div>
-                <div class="small opacity-50">&nbsp;</div>
+              <div class="stat-card lv-total">
+                <div class="stat-label">รวมทั้งหมด</div>
+                <div class="stat-sub">&nbsp;</div>
                 <input type="text" id="total_patients_display"
-                       class="level-input lv-total mt-1" readonly value="0">
+                       class="stat-input" readonly value="0">
               </div>
               <input type="hidden" name="total_patients" id="total_patients" value="0">
             </div>
@@ -350,12 +400,12 @@
             <div class="row text-center g-0">
               <div class="col border-end prod-divider">
                 <div class="prod-stat-label">ชั่วโมงดูแลที่ต้องการ</div>
-                <div class="prod-stat-value text-info" id="preview_care_hrs">0</div>
+                <div class="prod-stat-value" style="color: #7dd3fc;" id="preview_care_hrs">0</div>
                 <div class="prod-stat-label">ชม.</div>
               </div>
               <div class="col border-end prod-divider">
                 <div class="prod-stat-label">ชั่วโมงทำงาน (RN+TN+PN×7)</div>
-                <div class="prod-stat-value text-success" id="preview_work_hrs">0</div>
+                <div class="prod-stat-value" style="color: #86efac;" id="preview_work_hrs">0</div>
                 <div class="prod-stat-label">ชม.</div>
               </div>
               <div class="col">
@@ -375,44 +425,49 @@
           <i class="bi bi-arrow-left-right me-1"></i> การเคลื่อนไหวผู้ป่วย
         </div>
         <div class="card-body">
-          <div class="row g-2">
+          <div class="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-2">
 
             <div class="col">
-              <div class="move-card mc-admit">
-                <div class="move-label">รับใหม่</div>
-                <input type="number" name="admissions" class="move-input"
+              <div class="stat-card mc-admit">
+                <div class="stat-label">รับใหม่</div>
+                <div class="stat-sub">Admission</div>
+                <input type="number" name="admissions" class="stat-input"
                        min="0" value="<?= old('admissions', 0) ?>">
               </div>
             </div>
 
             <div class="col">
-              <div class="move-card mc-dc">
-                <div class="move-label">จำหน่าย</div>
-                <input type="number" name="discharges" class="move-input"
+              <div class="stat-card mc-dc">
+                <div class="stat-label">จำหน่าย</div>
+                <div class="stat-sub">Discharge</div>
+                <input type="number" name="discharges" class="stat-input"
                        min="0" value="<?= old('discharges', 0) ?>">
               </div>
             </div>
 
             <div class="col">
-              <div class="move-card mc-in">
-                <div class="move-label">ย้ายเข้า</div>
-                <input type="number" name="transfers_in" class="move-input"
+              <div class="stat-card mc-in">
+                <div class="stat-label">ย้ายเข้า</div>
+                <div class="stat-sub">Transfer In</div>
+                <input type="number" name="transfers_in" class="stat-input"
                        min="0" value="<?= old('transfers_in', 0) ?>">
               </div>
             </div>
 
             <div class="col">
-              <div class="move-card mc-out">
-                <div class="move-label">ย้ายออก</div>
-                <input type="number" name="transfers_out" class="move-input"
+              <div class="stat-card mc-out">
+                <div class="stat-label">ย้ายออก</div>
+                <div class="stat-sub">Transfer Out</div>
+                <input type="number" name="transfers_out" class="stat-input"
                        min="0" value="<?= old('transfers_out', 0) ?>">
               </div>
             </div>
 
             <div class="col">
-              <div class="move-card mc-death">
-                <div class="move-label">เสียชีวิต</div>
-                <input type="number" name="deaths" class="move-input"
+              <div class="stat-card mc-death">
+                <div class="stat-label">เสียชีวิต</div>
+                <div class="stat-sub">Death</div>
+                <input type="number" name="deaths" class="stat-input"
                        min="0" value="<?= old('deaths', 0) ?>">
               </div>
             </div>
@@ -428,59 +483,59 @@
           <small class="ms-2 opacity-75 fw-normal">RN ★ TN ★ PN ★ ใช้คำนวณ Productivity</small>
         </div>
         <div class="card-body">
-          <div class="row g-2">
+          <div class="row row-cols-3 row-cols-md-6 g-2">
 
             <div class="col">
-              <div class="nurse-card nc-other">
-                <div class="nurse-label">HW</div>
-                <div class="nurse-desc">หัวหน้าเวร</div>
+              <div class="stat-card nc-other">
+                <div class="stat-label">HW</div>
+                <div class="stat-sub">หัวหน้าเวร</div>
                 <input type="number" name="nurses_hw" id="nurses_hw"
-                       class="nurse-input" min="0" value="<?= old('nurses_hw', 0) ?>">
+                       class="stat-input" min="0" value="<?= old('nurses_hw', 0) ?>">
               </div>
             </div>
 
             <div class="col">
-              <div class="nurse-card nc-calc">
-                <div class="nurse-label">RN ★</div>
-                <div class="nurse-desc">พยาบาลวิชาชีพ</div>
+              <div class="stat-card nc-calc">
+                <div class="stat-label">RN ★</div>
+                <div class="stat-sub">พยาบาลวิชาชีพ</div>
                 <input type="number" name="nurses_rn" id="nurses_rn"
-                       class="nurse-input nurse-calc" min="0" value="<?= old('nurses_rn', 0) ?>">
+                       class="stat-input nurse-calc" min="0" value="<?= old('nurses_rn', 0) ?>">
               </div>
             </div>
 
             <div class="col">
-              <div class="nurse-card nc-calc">
-                <div class="nurse-label">TN ★</div>
-                <div class="nurse-desc">พยาบาลเทคนิค</div>
+              <div class="stat-card nc-calc">
+                <div class="stat-label">TN ★</div>
+                <div class="stat-sub">พยาบาลเทคนิค</div>
                 <input type="number" name="nurses_tn" id="nurses_tn"
-                       class="nurse-input nurse-calc" min="0" value="<?= old('nurses_tn', 0) ?>">
+                       class="stat-input nurse-calc" min="0" value="<?= old('nurses_tn', 0) ?>">
               </div>
             </div>
 
             <div class="col">
-              <div class="nurse-card nc-calc">
-                <div class="nurse-label">PN ★</div>
-                <div class="nurse-desc">จนท.ช่วยพยาบาล</div>
+              <div class="stat-card nc-calc">
+                <div class="stat-label">PN ★</div>
+                <div class="stat-sub">จนท.ช่วยพยาบาล</div>
                 <input type="number" name="nurses_pn" id="nurses_pn"
-                       class="nurse-input nurse-calc" min="0" value="<?= old('nurses_pn', 0) ?>">
+                       class="stat-input nurse-calc" min="0" value="<?= old('nurses_pn', 0) ?>">
               </div>
             </div>
 
             <div class="col">
-              <div class="nurse-card nc-other">
-                <div class="nurse-label">Aide</div>
-                <div class="nurse-desc">ผู้ช่วยเหลือคนไข้</div>
+              <div class="stat-card nc-other">
+                <div class="stat-label">Aide</div>
+                <div class="stat-sub">ผู้ช่วยเหลือคนไข้</div>
                 <input type="number" name="nurses_aide" id="nurses_aide"
-                       class="nurse-input" min="0" value="<?= old('nurses_aide', 0) ?>">
+                       class="stat-input" min="0" value="<?= old('nurses_aide', 0) ?>">
               </div>
             </div>
 
             <div class="col">
-              <div class="nurse-card nc-other">
-                <div class="nurse-label">W</div>
-                <div class="nurse-desc">พนักงานผู้ป่วย</div>
+              <div class="stat-card nc-other">
+                <div class="stat-label">W</div>
+                <div class="stat-sub">พนักงานผู้ป่วย</div>
                 <input type="number" name="nurses_ward" id="nurses_ward"
-                       class="nurse-input" min="0" value="<?= old('nurses_ward', 0) ?>">
+                       class="stat-input" min="0" value="<?= old('nurses_ward', 0) ?>">
               </div>
             </div>
 
@@ -496,8 +551,10 @@
         </div>
         <div class="card-body" id="qiSection" style="display:none">
 
-          <p class="fw-semibold text-danger mb-2 small">Hospital-Acquired Infections (HAI)</p>
-          <div class="row g-2 text-center mb-3">
+          <p class="fw-semibold mb-2 small" style="color: var(--c-l5);">
+            <i class="bi bi-virus me-1"></i> Hospital-Acquired Infections (HAI)
+          </p>
+          <div class="row row-cols-4 row-cols-md-8 g-2 mb-3">
             <?php
             $haiFields = [
                 'hai_vap'    => 'VAP',
@@ -512,16 +569,20 @@
             foreach ($haiFields as $field => $label):
             ?>
             <div class="col">
-              <label class="form-label small fw-semibold text-danger"><?= $label ?></label>
-              <input type="number" name="qi[<?= $field ?>]"
-                     class="qi-input qi-hai"
-                     min="0" value="<?= old("qi[$field]", 0) ?>">
+              <div class="qi-card qi-hai">
+                <div class="qi-card-label"><?= $label ?></div>
+                <input type="number" name="qi[<?= $field ?>]"
+                       class="qi-input"
+                       min="0" value="<?= old("qi[$field]", 0) ?>">
+              </div>
             </div>
             <?php endforeach; ?>
           </div>
 
-          <p class="fw-semibold text-primary mb-2 small">ภาวะพิเศษ</p>
-          <div class="row g-2 text-center">
+          <p class="fw-semibold mb-2 small" style="color: var(--c-tin);">
+            <i class="bi bi-clipboard-pulse me-1"></i> ภาวะพิเศษ
+          </p>
+          <div class="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-2">
             <?php
             $specialFields = [
                 'new_sepsis'            => 'New Sepsis',
@@ -533,10 +594,12 @@
             foreach ($specialFields as $field => $label):
             ?>
             <div class="col">
-              <label class="form-label small fw-semibold text-primary"><?= $label ?></label>
-              <input type="number" name="qi[<?= $field ?>]"
-                     class="qi-input qi-special"
-                     min="0" value="<?= old("qi[$field]", 0) ?>">
+              <div class="qi-card qi-special">
+                <div class="qi-card-label"><?= $label ?></div>
+                <input type="number" name="qi[<?= $field ?>]"
+                       class="qi-input"
+                       min="0" value="<?= old("qi[$field]", 0) ?>">
+              </div>
             </div>
             <?php endforeach; ?>
           </div>
@@ -561,7 +624,6 @@
       </div>
 
     </form>
-  </div>
 </div>
 
 <script>
