@@ -1,271 +1,358 @@
 <?= $this->extend('layout/main') ?>
 
 <?= $this->section('content') ?>
-<style>
-    .census-hero {
-        margin-bottom: 1.25rem;
-    }
 
-    .census-hero h1 {
-        font-size: clamp(1.5rem, 3vw, 2.25rem);
-        font-weight: 800;
-        letter-spacing: -0.04em;
-        margin-bottom: 0;
-    }
+<div class="row justify-content-center">
+  <div class="col-xxl-10 col-xl-11">
 
-    .status-pill {
-        background: var(--surface-low);
-        border-radius: 999px;
-        color: var(--text-muted);
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-        font-size: 0.88rem;
-        font-weight: 700;
-        padding: 0.75rem 1rem;
-    }
-
-    .census-panel {
-        background: var(--surface-card);
-        border-radius: 1.75rem;
-        box-shadow: var(--shadow-soft);
-        padding: 1.5rem;
-    }
-
-    .census-soft-panel {
-        background: var(--surface-low);
-        border-radius: 1.5rem;
-        padding: 1.25rem;
-    }
-
-    .section-title {
-        font-size: 1.05rem;
-        font-weight: 800;
-        margin-bottom: 0.75rem;
-    }
-
-    .metric-card {
-        background: var(--surface-card);
-        border-radius: 1.25rem;
-        padding: 1rem;
-        height: 100%;
-    }
-
-    .metric-card label {
-        color: var(--text-muted);
-        display: block;
-        font-size: 0.85rem;
-        font-weight: 700;
-        margin-bottom: 0.55rem;
-    }
-
-    .census-history-mobile-card {
-        background: var(--surface-card);
-        border-radius: 1.25rem;
-        box-shadow: var(--shadow-soft);
-        padding: 1rem 1.1rem;
-        margin-bottom: 0.85rem;
-        border: 1px solid rgba(193, 198, 212, 0.2);
-    }
-
-    .census-history-mobile-card:last-child {
-        margin-bottom: 0;
-    }
-
-    /* Modal อยู่ใน .page-shell (z-index ต่ำ) — ย้ายไป body แล้วยังกันซ้ำด้วยเลเยอร์เหนือ header/bottom-nav */
-    #census-confirm-modal {
-        z-index: 1080;
-    }
-
-    #census-history-table {
-        font-size: 0.9rem;
-    }
-
-    @media (max-width: 575.98px) {
-        .census-hero {
-            flex-wrap: wrap;
-        }
-
-        .census-panel {
-            padding: 1.15rem;
-        }
-    }
-</style>
-
-<?php
-$historyDateFrom = date('Y-m-d', strtotime('-30 days'));
-$historyDateTo   = date('Y-m-d');
-?>
-<div class="census-hero d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
-    <h1 class="mb-0">บันทึกข้อมูลผู้ป่วยรายวัน</h1>
-    <span id="autosave-status" class="status-pill"><span class="material-symbols-outlined">edit_note</span>รอกดบันทึกและยืนยัน</span>
-</div>
-
-<div class="census-panel mb-4">
-    <div class="census-soft-panel mb-0">
-        <div class="section-title">บริบทการรายงาน</div>
-        <form action="<?= base_url('census/store') ?>" method="post">
-            <?= csrf_field() ?>
-            <div class="row g-3 g-md-4 mb-4">
-                <div class="col-12 col-lg-4">
-                    <label for="ward_id" class="form-label fw-bold">แผนก</label>
-                    <select name="ward_id" id="ward_id" class="form-select <?= session('errors.ward_id') ? 'is-invalid' : '' ?>" required>
-                        <option value="">เลือกแผนก...</option>
-                        <?php foreach ($wards as $ward): ?>
-                            <option value="<?= $ward['id'] ?>" <?= old('ward_id') == $ward['id'] ? 'selected' : '' ?>><?= esc($ward['name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <?php if (session('errors.ward_id')): ?>
-                        <div class="invalid-feedback"><?= session('errors.ward_id') ?></div>
-                    <?php endif; ?>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <label for="record_date" class="form-label fw-bold">วันที่</label>
-                    <input type="date" name="record_date" id="record_date" class="form-control <?= session('errors.record_date') ? 'is-invalid' : '' ?>" value="<?= old('record_date', date('Y-m-d')) ?>" required>
-                    <?php if (session('errors.record_date')): ?>
-                        <div class="invalid-feedback"><?= session('errors.record_date') ?></div>
-                    <?php endif; ?>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <label for="shift" class="form-label fw-bold">เวร</label>
-                    <select name="shift" id="shift" class="form-select <?= session('errors.shift') ? 'is-invalid' : '' ?>" required>
-                        <option value="Morning" <?= old('shift') == 'Morning' ? 'selected' : '' ?>>เช้า</option>
-                        <option value="Afternoon" <?= old('shift') == 'Afternoon' ? 'selected' : '' ?>>บ่าย</option>
-                        <option value="Night" <?= old('shift') == 'Night' ? 'selected' : '' ?>>ดึก</option>
-                    </select>
-                    <?php if (session('errors.shift')): ?>
-                        <div class="invalid-feedback"><?= session('errors.shift') ?></div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <div class="section-title">ตัวชี้วัดผู้ป่วย</div>
-            <div class="row g-3 g-md-4">
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="metric-card">
-                        <label for="admissions">รับใหม่</label>
-                        <input type="number" name="admissions" id="admissions" class="form-control census-input" value="<?= old('admissions', 0) ?>" min="0" required>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="metric-card">
-                        <label for="discharges">จำหน่าย</label>
-                        <input type="number" name="discharges" id="discharges" class="form-control census-input" value="<?= old('discharges', 0) ?>" min="0" required>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="metric-card">
-                        <label for="deaths">เสียชีวิต</label>
-                        <input type="number" name="deaths" id="deaths" class="form-control census-input" value="<?= old('deaths', 0) ?>" min="0" required>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="metric-card">
-                        <label for="transfers_in">ย้ายเข้า</label>
-                        <input type="number" name="transfers_in" id="transfers_in" class="form-control census-input" value="<?= old('transfers_in', 0) ?>" min="0" required>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="metric-card">
-                        <label for="transfers_out">ย้ายออก</label>
-                        <input type="number" name="transfers_out" id="transfers_out" class="form-control census-input" value="<?= old('transfers_out', 0) ?>" min="0" required>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="metric-card">
-                        <label for="total_remaining" class="text-primary">คงพยาบาล</label>
-                        <input type="number" name="total_remaining" id="total_remaining" class="form-control census-input" value="<?= old('total_remaining', 0) ?>" min="0" required>
-                    </div>
-                </div>
-            </div>
-
-            <div class="d-grid mt-4">
-                <button type="submit" class="btn btn-primary btn-lg">บันทึกข้อมูลรายงาน</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="modal fade" id="census-confirm-modal" tabindex="-1" aria-labelledby="censusConfirmLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold" id="censusConfirmLabel">ยืนยันการบันทึกข้อมูล</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
-            </div>
-            <div class="modal-body pt-2">
-                <p class="text-muted small mb-3">ตรวจสอบรายละเอียดด้านล่างให้ถูกต้องก่อนกดยืนยัน เพื่อลดความผิดพลาดจากการบันทึก</p>
-                <div id="census-confirm-summary" class="rounded-4 bg-body-secondary bg-opacity-50 p-3 small"></div>
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">กลับไปแก้ไข</button>
-                <button type="button" class="btn btn-primary" id="census-confirm-save">
-                    <span class="material-symbols-outlined align-middle me-1" style="font-size: 1.15rem;">check_circle</span>
-                    ยืนยันบันทึก
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="census-panel mt-4 mb-5 pb-3" id="census-history-root" data-history-url="<?= esc(base_url('census/history'), 'attr') ?>">
-    <div class="section-title d-flex align-items-center gap-2 flex-wrap mb-3">
-        <span class="material-symbols-outlined text-primary">manage_search</span>
-        ประวัติการบันทึก
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">บันทึกยอดผู้ป่วยรายวัน</h4>
+      <a href="<?= base_url('census/history') ?>" class="btn btn-sm btn-outline-secondary">ประวัติการบันทึก</a>
     </div>
 
-    <form id="census-history-filters" class="row g-3 align-items-end mb-3">
-        <div class="col-12 col-md-4 col-lg-3">
-            <label for="history_ward_id" class="form-label fw-bold mb-1">แผนก</label>
-            <select id="history_ward_id" class="form-select">
-                <option value="">ทุกแผนก</option>
-                <?php foreach ($wards as $ward): ?>
-                    <option value="<?= (int) $ward['id'] ?>"><?= esc($ward['name']) ?></option>
+    <?php if (session()->getFlashdata('message')): ?>
+      <div class="alert alert-success alert-dismissible fade show">
+        <?= session()->getFlashdata('message') ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <?php endif; ?>
+    <?php if (session()->getFlashdata('error')): ?>
+      <div class="alert alert-danger alert-dismissible fade show">
+        <?= session()->getFlashdata('error') ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <?php endif; ?>
+
+    <form id="censusForm" action="<?= base_url('census/store') ?>" method="post" novalidate>
+      <?= csrf_field() ?>
+
+      <!-- ── Header: Ward / Date / Shift ──────────────────────────────── -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Ward <span class="text-danger">*</span></label>
+              <select name="ward_id" id="ward_id" class="form-select" required>
+                <option value="">— เลือก Ward —</option>
+                <?php
+                $currentDept = '';
+                foreach ($wards as $w):
+                    $dept = $w['department_name'] ?? '';
+                    if ($dept !== $currentDept):
+                        if ($currentDept !== '') echo '</optgroup>';
+                        echo '<optgroup label="' . esc($dept ?: 'ไม่ระบุกลุ่มงาน') . '">';
+                        $currentDept = $dept;
+                    endif;
+                ?>
+                  <option value="<?= $w['id'] ?>" <?= old('ward_id') == $w['id'] ? 'selected' : '' ?>>
+                    <?= esc($w['code'] ? $w['code'] . ' — ' . $w['name'] : $w['name']) ?>
+                  </option>
                 <?php endforeach; ?>
-            </select>
+                <?php if ($currentDept !== '') echo '</optgroup>'; ?>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">วันที่ <span class="text-danger">*</span></label>
+              <input type="date" name="record_date" id="record_date" class="form-control"
+                     value="<?= old('record_date', date('Y-m-d')) ?>" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Shift <span class="text-danger">*</span></label>
+              <select name="shift" id="shift" class="form-select" required>
+                <option value="">— เลือก —</option>
+                <option value="Night"     <?= old('shift') === 'Night'     ? 'selected' : '' ?>>ดึก (Night)</option>
+                <option value="Morning"   <?= old('shift') === 'Morning'   ? 'selected' : '' ?>>เช้า (Morning)</option>
+                <option value="Afternoon" <?= old('shift') === 'Afternoon' ? 'selected' : '' ?>>บ่าย (Afternoon)</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <div class="col-6 col-md-4 col-lg-3">
-            <label for="history_date_from" class="form-label fw-bold mb-1">ตั้งแต่วันที่</label>
-            <input type="date" id="history_date_from" class="form-control" value="<?= esc($historyDateFrom) ?>">
+      </div>
+
+      <!-- ── Section 1: Patient Levels ────────────────────────────────── -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header bg-primary text-white">
+          <strong>ผู้ป่วยคงอยู่ แยกตาม Level การพยาบาล</strong>
+          <small class="ms-2 opacity-75">(รวม ปกติ + พิเศษ)</small>
         </div>
-        <div class="col-6 col-md-4 col-lg-3">
-            <label for="history_date_to" class="form-label fw-bold mb-1">ถึงวันที่</label>
-            <input type="date" id="history_date_to" class="form-control" value="<?= esc($historyDateTo) ?>">
+        <div class="card-body">
+          <div class="row g-2 align-items-end">
+            <?php
+            $levels = [
+                5 => ['label' => 'Level 5', 'desc' => 'วิกฤต',          'hours' => '12',  'color' => 'danger'],
+                4 => ['label' => 'Level 4', 'desc' => 'หนัก',            'hours' => '7.5', 'color' => 'warning'],
+                3 => ['label' => 'Level 3', 'desc' => 'ปานกลาง',         'hours' => '5.5', 'color' => 'info'],
+                2 => ['label' => 'Level 2', 'desc' => 'น้อย',            'hours' => '3.5', 'color' => 'success'],
+                1 => ['label' => 'Level 1', 'desc' => 'ช่วยตัวเองได้',  'hours' => '1.5', 'color' => 'secondary'],
+            ];
+            foreach ($levels as $lvl => $meta):
+            ?>
+            <div class="col">
+              <div class="text-center mb-1">
+                <span class="badge bg-<?= $meta['color'] ?> fs-6 px-2"><?= $meta['label'] ?></span>
+                <div class="small text-muted mt-1"><?= $meta['desc'] ?></div>
+                <div class="small text-muted"><?= $meta['hours'] ?> ชม./คน</div>
+              </div>
+              <input type="number" name="patients_level_<?= $lvl ?>"
+                     id="patients_level_<?= $lvl ?>"
+                     class="form-control text-center patient-level"
+                     min="0" value="<?= old("patients_level_$lvl", 0) ?>"
+                     data-hours="<?= $meta['hours'] ?>">
+            </div>
+            <?php endforeach; ?>
+            <div class="col">
+              <div class="text-center mb-1">
+                <span class="badge bg-dark fs-6 px-2">รวม</span>
+                <div class="small text-muted mt-1">&nbsp;</div>
+                <div class="small text-muted">&nbsp;</div>
+              </div>
+              <input type="text" id="total_patients_display"
+                     class="form-control text-center fw-bold bg-light fs-5" readonly value="0">
+              <input type="hidden" name="total_patients" id="total_patients" value="0">
+            </div>
+          </div>
+
+          <!-- Productivity preview (Afternoon shift only) -->
+          <div id="care_hours_preview" class="alert alert-light border mt-3 mb-0 d-none">
+            <div class="small text-center text-muted mb-2">
+              Preview Productivity (คำนวณเมื่อบันทึกครบ 3 Shift)
+            </div>
+            <div class="row text-center g-0">
+              <div class="col border-end">
+                <div class="small text-muted">ชั่วโมงดูแลที่ต้องการ</div>
+                <div class="fs-5 fw-bold text-primary" id="preview_care_hrs">0</div>
+                <div class="small text-muted">ชม.</div>
+              </div>
+              <div class="col border-end">
+                <div class="small text-muted">ชั่วโมงทำงาน (RN+TN+PN×7)</div>
+                <div class="fs-5 fw-bold text-success" id="preview_work_hrs">0</div>
+                <div class="small text-muted">ชม.</div>
+              </div>
+              <div class="col">
+                <div class="small text-muted">Productivity (เฉพาะ shift นี้)</div>
+                <div class="fs-5 fw-bold" id="preview_productivity">—</div>
+                <div class="small text-muted">%</div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="col-12 col-lg-3 d-grid">
-            <button type="submit" class="btn btn-outline-primary btn-lg">โหลดข้อมูล</button>
+      </div>
+
+      <!-- ── Section 2: Patient Movements ──────────────────────────────── -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header">
+          <strong>การเคลื่อนไหวผู้ป่วย</strong>
         </div>
+        <div class="card-body">
+          <div class="row g-3 text-center">
+            <?php
+            $movements = [
+                'admissions'    => 'รับใหม่',
+                'discharges'    => 'จำหน่าย',
+                'transfers_in'  => 'ย้ายเข้า',
+                'transfers_out' => 'ย้ายออก',
+                'deaths'        => 'เสียชีวิต',
+            ];
+            foreach ($movements as $field => $label):
+            ?>
+            <div class="col">
+              <label class="form-label small"><?= $label ?></label>
+              <input type="number" name="<?= $field ?>" class="form-control text-center"
+                     min="0" value="<?= old($field, 0) ?>">
+            </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section 3: Nursing Staff ───────────────────────────────────── -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header">
+          <strong>บุคลากรพยาบาล</strong>
+          <small class="text-danger ms-2">* RN + TN + PN ใช้คำนวณ Productivity</small>
+        </div>
+        <div class="card-body">
+          <div class="row g-3 text-center">
+            <?php
+            $nurseTypes = [
+                'nurses_hw'   => ['label' => 'HW',  'desc' => 'หัวหน้าเวร',       'calc' => false],
+                'nurses_rn'   => ['label' => 'RN ★','desc' => 'พยาบาลวิชาชีพ',    'calc' => true],
+                'nurses_tn'   => ['label' => 'TN ★','desc' => 'พยาบาลเทคนิค',     'calc' => true],
+                'nurses_pn'   => ['label' => 'PN ★','desc' => 'จนท.ช่วยพยาบาล',   'calc' => true],
+                'nurses_aide' => ['label' => 'Aide','desc' => 'ผู้ช่วยเหลือคนไข้', 'calc' => false],
+                'nurses_ward' => ['label' => 'W',   'desc' => 'พนักงานผู้ป่วย',   'calc' => false],
+            ];
+            foreach ($nurseTypes as $field => $meta):
+            ?>
+            <div class="col">
+              <label class="form-label">
+                <strong class="<?= $meta['calc'] ? 'text-danger' : '' ?>"><?= $meta['label'] ?></strong>
+                <div class="small text-muted"><?= $meta['desc'] ?></div>
+              </label>
+              <input type="number"
+                     name="<?= $field ?>"
+                     id="<?= $field ?>"
+                     class="form-control text-center<?= $meta['calc'] ? ' nurse-calc' : '' ?>"
+                     min="0"
+                     value="<?= old($field, 0) ?>">
+            </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section 4: Quality Indicators ─────────────────────────────── -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <strong>ตัวชี้วัดคุณภาพ (Quality Indicators)</strong>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleQI">แสดง/ซ่อน</button>
+        </div>
+        <div class="card-body" id="qiSection" style="display:none">
+          <p class="fw-semibold text-danger mb-2 small">Hospital-Acquired Infections (HAI)</p>
+          <div class="row g-2 text-center mb-3">
+            <?php
+            $haiFields = [
+                'hai_vap'    => 'VAP',
+                'hai_hap'    => 'HAP',
+                'hai_uti'    => 'UTI',
+                'hai_cauti'  => 'CAUTI',
+                'hai_clabsi' => 'CLABSI',
+                'hai_ssi'    => 'SSI',
+                'hai_bsi'    => 'BSI',
+                'hai_mdr'    => 'MDR',
+            ];
+            foreach ($haiFields as $field => $label):
+            ?>
+            <div class="col">
+              <label class="form-label small fw-semibold"><?= $label ?></label>
+              <input type="number" name="qi[<?= $field ?>]"
+                     class="form-control form-control-sm text-center"
+                     min="0" value="<?= old("qi[$field]", 0) ?>">
+            </div>
+            <?php endforeach; ?>
+          </div>
+
+          <p class="fw-semibold text-primary mb-2 small">ภาวะพิเศษ</p>
+          <div class="row g-2 text-center">
+            <?php
+            $specialFields = [
+                'new_sepsis'            => 'New Sepsis',
+                'end_of_life'           => 'End of Life',
+                'palliative_care'       => 'Palliative Care',
+                'critical_care_support' => 'Critical Care',
+                'high_flow_oxygen'      => 'High Flow O₂',
+            ];
+            foreach ($specialFields as $field => $label):
+            ?>
+            <div class="col">
+              <label class="form-label small fw-semibold"><?= $label ?></label>
+              <input type="number" name="qi[<?= $field ?>]"
+                     class="form-control form-control-sm text-center"
+                     min="0" value="<?= old("qi[$field]", 0) ?>">
+            </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Notes & Submit ─────────────────────────────────────────────── -->
+      <div class="mb-3">
+        <label class="form-label small">หมายเหตุ</label>
+        <textarea name="notes" class="form-control form-control-sm" rows="2"><?= old('notes') ?></textarea>
+      </div>
+
+      <div id="autosave_status" class="text-muted small text-end mb-2" style="min-height:1.2em"></div>
+
+      <div class="d-flex gap-2 justify-content-end">
+        <button type="button" id="btnAutosave" class="btn btn-outline-secondary">
+          บันทึกชั่วคราว
+        </button>
+        <button type="submit" class="btn btn-primary px-4">บันทึกถาวร</button>
+      </div>
+
     </form>
-
-    <div id="census-history-error" class="alert alert-danger d-none mb-3" role="alert"></div>
-    <div id="census-history-loading" class="text-muted small mb-2 d-none">กำลังโหลดประวัติ...</div>
-    <div id="census-history-empty" class="alert alert-light border-0 d-none mb-0">ไม่พบข้อมูลในช่วงที่เลือก</div>
-
-    <div class="d-none d-lg-block rounded-4 overflow-hidden shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" id="census-history-table">
-                <thead class="table-light">
-                    <tr>
-                        <th>วันที่</th>
-                        <th>เวร</th>
-                        <th>แผนก</th>
-                        <th class="text-center">รับใหม่</th>
-                        <th class="text-center">จำหน่าย</th>
-                        <th class="text-center">เสียชีวิต</th>
-                        <th class="text-center">ย้ายเข้า</th>
-                        <th class="text-center">ย้ายออก</th>
-                        <th class="text-center">คงพยาบาล</th>
-                        <th>ผู้บันทึกล่าสุด</th>
-                        <th>อัปเดตล่าสุด</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="d-lg-none" id="census-history-cards" aria-live="polite"></div>
+  </div>
 </div>
 
-<script src="<?= base_url('app-asset/js/census_entry.js') ?>"></script>
+<script>
+const LEVEL_HOURS = { 5: 12, 4: 7.5, 3: 5.5, 2: 3.5, 1: 1.5 };
+const SHIFT_HOURS = 7;
+
+function getInt(id) { return parseInt(document.getElementById(id)?.value) || 0; }
+
+function updateTotals() {
+    let total = 0, care = 0;
+    [5,4,3,2,1].forEach(lvl => {
+        const n = getInt(`patients_level_${lvl}`);
+        total += n;
+        care  += n * LEVEL_HOURS[lvl];
+    });
+    document.getElementById('total_patients_display').value = total;
+    document.getElementById('total_patients').value = total;
+    document.getElementById('preview_care_hrs').textContent = care.toFixed(1);
+
+    const rn = getInt('nurses_rn'), tn = getInt('nurses_tn'), pn = getInt('nurses_pn');
+    const work = (rn + tn + pn) * SHIFT_HOURS;
+    document.getElementById('preview_work_hrs').textContent = work.toFixed(1);
+
+    const shift  = document.getElementById('shift').value;
+    const preEl  = document.getElementById('care_hours_preview');
+    if (shift === 'Afternoon') {
+        preEl.classList.remove('d-none');
+        const pEl  = document.getElementById('preview_productivity');
+        const prod = work > 0 ? (care * 100 / work) : 0;
+        pEl.textContent = work > 0 ? prod.toFixed(2) : '—';
+        pEl.className   = 'fs-5 fw-bold ' +
+            (prod > 100 ? 'text-danger' : prod >= 80 ? 'text-warning' : 'text-success');
+    } else {
+        preEl.classList.add('d-none');
+    }
+}
+
+document.querySelectorAll('.patient-level, .nurse-calc').forEach(el => {
+    el.addEventListener('input', updateTotals);
+});
+document.getElementById('shift').addEventListener('change', updateTotals);
+updateTotals();
+
+document.getElementById('toggleQI').addEventListener('click', () => {
+    const s = document.getElementById('qiSection');
+    s.style.display = s.style.display === 'none' ? '' : 'none';
+});
+
+// ── Auto-save ──────────────────────────────────────────────────────────────
+let saveTimer = null;
+const statusEl = document.getElementById('autosave_status');
+
+async function doAutosave() {
+    const wardId = document.getElementById('ward_id').value;
+    const date   = document.getElementById('record_date').value;
+    const shift  = document.getElementById('shift').value;
+    if (!wardId || !date || !shift) {
+        statusEl.textContent = 'กรุณาเลือก Ward / วันที่ / Shift ก่อน';
+        return;
+    }
+    statusEl.textContent = 'กำลังบันทึก…';
+    try {
+        const resp = await fetch('<?= base_url('census/autosave') ?>', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new FormData(document.getElementById('censusForm')),
+        });
+        const json = await resp.json();
+        statusEl.textContent = json.success
+            ? `บันทึกอัตโนมัติ ${new Date().toLocaleTimeString('th-TH')}`
+            : `ผิดพลาด: ${json.message ?? 'Unknown'}`;
+    } catch(e) {
+        statusEl.textContent = 'Auto-save ล้มเหลว';
+    }
+}
+
+document.getElementById('censusForm').addEventListener('input', () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(doAutosave, 1800);
+});
+document.getElementById('btnAutosave').addEventListener('click', doAutosave);
+</script>
+
 <?= $this->endSection() ?>

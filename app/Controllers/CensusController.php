@@ -4,108 +4,131 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\CensusModel;
+use App\Models\CensusQualityIndicatorModel;
 use App\Models\WardModel;
 
 class CensusController extends BaseController
 {
     protected $censusModel;
+    protected $qiModel;
     protected $wardModel;
 
     public function __construct()
     {
         $this->censusModel = new CensusModel();
-        $this->wardModel = new WardModel();
+        $this->qiModel     = new CensusQualityIndicatorModel();
+        $this->wardModel   = new WardModel();
     }
 
     public function index()
     {
-        // Redirect to create for now, or show history
         return redirect()->to('census/new');
     }
 
     public function create()
     {
         $data = [
-            'wards' => $this->wardModel->where('is_active', true)->findAll(),
-            'title' => 'Daily Census Entry',
+            'wards' => $this->wardModel->getActiveWithDepartment(),
+            'title' => 'บันทึกยอดผู้ป่วยรายวัน',
         ];
-
         return view('census/create', $data);
     }
 
     public function store()
     {
-        $rules = $this->censusModel->getValidationRules();
-
-        if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        $censusData = $this->buildCensusData($this->request->getPost());
+        if ($censusData === null) {
+            return redirect()->back()->withInput()->with('error', 'กรุณากรอกข้อมูล Ward / วันที่ / Shift ให้ครบ');
         }
 
-        $data = $this->request->getPost();
-        $data['created_by'] = auth()->id();
+        $existing = $this->censusModel->findByShift(
+            (int)$censusData['ward_id'],
+            $censusData['record_date'],
+            $censusData['shift']
+        );
 
-        $existing = $this->censusModel->where([
-            'ward_id'     => $data['ward_id'],
-            'record_date' => $data['record_date'],
-            'shift'       => $data['shift'],
-        ])->first();
-
+        $censusId = null;
         try {
             if ($existing) {
-                $this->censusModel->update($existing['id'], $data);
+                $this->censusModel->update($existing['id'], $censusData);
+                $censusId = $existing['id'];
             } else {
-                $this->censusModel->insert($data);
+                $censusId = $this->censusModel->insert($censusData, true);
             }
         } catch (\Exception $e) {
-            return redirect()->back()->withInput()->with('error', 'Failed to save record.');
+            return redirect()->back()->withInput()->with('error', 'บันทึกไม่สำเร็จ: ' . $e->getMessage());
         }
 
-        return redirect()->to('census/new')->with('message', 'Census record saved successfully.');
+        // Save quality indicators
+        $qi = $this->request->getPost('qi');
+        if ($qi && is_array($qi)) {
+            $this->qiModel->upsertForCensus((int)$censusId, $this->filterQiData($qi));
+        }
+
+        // Recalculate productivity when Afternoon shift is saved
+        if ($censusData['shift'] === 'Afternoon') {
+            $this->censusModel->recalculateProductivity(
+                (int)$censusData['ward_id'],
+                $censusData['record_date']
+            );
+        }
+
+        return redirect()->to('census/new')
+                         ->with('message', 'บันทึกข้อมูลเรียบร้อยแล้ว');
     }
 
     public function autosave()
     {
-        if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Invalid request type.']);
+        if (! $this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Invalid request']);
         }
 
-        $rules = $this->censusModel->getValidationRules();
-        // For autosave, we might only have partial data, but ward, date, and shift are required for identity
-        $identityRules = [
-            'ward_id'     => 'required|numeric',
-            'record_date' => 'required|valid_date',
-            'shift'       => 'required|in_list[Morning,Afternoon,Night]',
-        ];
+        $post = $this->request->getPost();
 
-        if (!$this->validate($identityRules)) {
-            return $this->response->setJSON(['success' => false, 'errors' => $this->validator->getErrors()]);
+        if (empty($post['ward_id']) || empty($post['record_date']) || empty($post['shift'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'ข้อมูลไม่ครบ']);
         }
 
-        $data = $this->request->getPost();
-        $data['created_by'] = auth()->id();
+        $censusData = $this->buildCensusData($post);
+        if ($censusData === null) {
+            return $this->response->setJSON(['success' => false, 'message' => 'ข้อมูลไม่ถูกต้อง']);
+        }
 
-        // Check if record exists
-        $existing = $this->censusModel->where([
-            'ward_id'     => $data['ward_id'],
-            'record_date' => $data['record_date'],
-            'shift'       => $data['shift'],
-        ])->first();
+        $existing = $this->censusModel->findByShift(
+            (int)$censusData['ward_id'],
+            $censusData['record_date'],
+            $censusData['shift']
+        );
 
+        $censusId = null;
         try {
             if ($existing) {
-                $this->censusModel->update($existing['id'], $data);
+                $this->censusModel->update($existing['id'], $censusData);
+                $censusId = $existing['id'];
             } else {
-                $this->censusModel->insert($data);
+                $censusId = $this->censusModel->insert($censusData, true);
             }
-            return $this->response->setJSON(['success' => true, 'message' => 'Auto-saved successfully.']);
+
+            // Save QI
+            $qi = $post['qi'] ?? [];
+            if ($censusId && is_array($qi) && array_filter($qi)) {
+                $this->qiModel->upsertForCensus((int)$censusId, $this->filterQiData($qi));
+            }
+
+            // Productivity (Afternoon only)
+            if ($censusData['shift'] === 'Afternoon') {
+                $this->censusModel->recalculateProductivity(
+                    (int)$censusData['ward_id'],
+                    $censusData['record_date']
+                );
+            }
+
+            return $this->response->setJSON(['success' => true, 'census_id' => $censusId]);
         } catch (\Exception $e) {
             return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 
-    /**
-     * JSON list of census history for nurses (ward, metrics, recorder, timestamps).
-     */
     public function history()
     {
         if (! auth()->loggedIn()) {
@@ -113,29 +136,19 @@ class CensusController extends BaseController
         }
 
         $wardId   = $this->request->getGet('ward_id');
-        $dateFrom = (string) ($this->request->getGet('date_from') ?? date('Y-m-d', strtotime('-30 days')));
-        $dateTo   = (string) ($this->request->getGet('date_to') ?? date('Y-m-d'));
-
-        if (strtotime($dateFrom) === false || strtotime($dateTo) === false) {
-            return $this->response->setStatusCode(400)->setJSON(['error' => 'วันที่ไม่ถูกต้อง']);
-        }
+        $dateFrom = (string)($this->request->getGet('date_from') ?? date('Y-m-d', strtotime('-30 days')));
+        $dateTo   = (string)($this->request->getGet('date_to')   ?? date('Y-m-d'));
 
         if ($dateFrom > $dateTo) {
             return $this->response->setStatusCode(400)->setJSON(['error' => 'ช่วงวันที่ไม่ถูกต้อง']);
         }
 
-        $wardIdInt = null;
-        if ($wardId !== null && $wardId !== '') {
-            $wardIdInt = (int) $wardId;
-            if ($wardIdInt < 1) {
-                return $this->response->setStatusCode(400)->setJSON(['error' => 'แผนกไม่ถูกต้อง']);
-            }
-        }
+        $wardIdInt = ($wardId !== null && $wardId !== '') ? max(1, (int)$wardId) : null;
 
         $shiftLabels = [
+            'Night'     => 'ดึก',
             'Morning'   => 'เช้า',
             'Afternoon' => 'บ่าย',
-            'Night'     => 'ดึก',
         ];
 
         $rows = $this->censusModel->getHistoryForList($wardIdInt, $dateFrom, $dateTo);
@@ -144,24 +157,89 @@ class CensusController extends BaseController
         foreach ($rows as $row) {
             $shift = $row['shift'] ?? '';
             $out[] = [
-                'id'                 => (int) $row['id'],
-                'ward_id'            => (int) $row['ward_id'],
-                'ward_name'          => $row['ward_name'] ?? '—',
-                'record_date'        => $row['record_date'],
-                'shift'              => $shift,
-                'shift_label'        => $shiftLabels[$shift] ?? $shift,
-                'admissions'         => (int) $row['admissions'],
-                'discharges'         => (int) $row['discharges'],
-                'transfers_in'       => (int) $row['transfers_in'],
-                'transfers_out'      => (int) $row['transfers_out'],
-                'deaths'             => (int) $row['deaths'],
-                'total_remaining'    => (int) $row['total_remaining'],
-                'recorder_username'  => $row['recorder_username'] ?? '—',
-                'created_at'         => $row['created_at'],
-                'updated_at'         => $row['updated_at'],
+                'id'                   => (int)$row['id'],
+                'ward_id'              => (int)$row['ward_id'],
+                'ward_name'            => ($row['ward_code'] ? $row['ward_code'] . ' ' : '') . ($row['ward_name'] ?? '—'),
+                'record_date'          => $row['record_date'],
+                'shift'                => $shift,
+                'shift_label'          => $shiftLabels[$shift] ?? $shift,
+                'patients_level_5'     => (int)$row['patients_level_5'],
+                'patients_level_4'     => (int)$row['patients_level_4'],
+                'patients_level_3'     => (int)$row['patients_level_3'],
+                'patients_level_2'     => (int)$row['patients_level_2'],
+                'patients_level_1'     => (int)$row['patients_level_1'],
+                'total_patients'       => (int)$row['total_patients'],
+                'admissions'           => (int)$row['admissions'],
+                'discharges'           => (int)$row['discharges'],
+                'transfers_in'         => (int)$row['transfers_in'],
+                'transfers_out'        => (int)$row['transfers_out'],
+                'deaths'               => (int)$row['deaths'],
+                'nurses_rn'            => (int)$row['nurses_rn'],
+                'nurses_tn'            => (int)$row['nurses_tn'],
+                'nurses_pn'            => (int)$row['nurses_pn'],
+                'working_hours'        => $row['working_hours'],
+                'required_care_hours'  => $row['required_care_hours'],
+                'productivity'         => $row['productivity'] !== null ? round((float)$row['productivity'], 2) : null,
+                'recorder_username'    => $row['recorder_username'] ?? '—',
+                'updated_at'           => $row['updated_at'],
             ];
         }
 
         return $this->response->setJSON(['rows' => $out]);
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────
+
+    private function buildCensusData(array $post): ?array
+    {
+        $wardId = $post['ward_id']     ?? '';
+        $date   = $post['record_date'] ?? '';
+        $shift  = $post['shift']       ?? '';
+
+        if (! $wardId || ! $date || ! $shift) {
+            return null;
+        }
+
+        $data = [
+            'ward_id'          => (int)$wardId,
+            'record_date'      => $date,
+            'shift'            => $shift,
+            'patients_level_5' => (int)($post['patients_level_5'] ?? 0),
+            'patients_level_4' => (int)($post['patients_level_4'] ?? 0),
+            'patients_level_3' => (int)($post['patients_level_3'] ?? 0),
+            'patients_level_2' => (int)($post['patients_level_2'] ?? 0),
+            'patients_level_1' => (int)($post['patients_level_1'] ?? 0),
+            'admissions'       => (int)($post['admissions']   ?? 0),
+            'discharges'       => (int)($post['discharges']   ?? 0),
+            'transfers_in'     => (int)($post['transfers_in'] ?? 0),
+            'transfers_out'    => (int)($post['transfers_out'] ?? 0),
+            'deaths'           => (int)($post['deaths']       ?? 0),
+            'nurses_hw'        => (int)($post['nurses_hw']   ?? 0),
+            'nurses_rn'        => (int)($post['nurses_rn']   ?? 0),
+            'nurses_tn'        => (int)($post['nurses_tn']   ?? 0),
+            'nurses_pn'        => (int)($post['nurses_pn']   ?? 0),
+            'nurses_aide'      => (int)($post['nurses_aide'] ?? 0),
+            'nurses_ward'      => (int)($post['nurses_ward'] ?? 0),
+            'notes'            => $post['notes'] ?? null,
+            'created_by'       => auth()->id(),
+        ];
+
+        $this->censusModel->computeDerived($data);
+        return $data;
+    }
+
+    private function filterQiData(array $qi): array
+    {
+        $allowed = [
+            'hai_vap', 'hai_hap', 'hai_uti', 'hai_cauti',
+            'hai_clabsi', 'hai_ssi', 'hai_bsi', 'hai_mdr',
+            'new_sepsis', 'end_of_life', 'palliative_care',
+            'critical_care_support', 'high_flow_oxygen',
+        ];
+        $out = [];
+        foreach ($allowed as $key) {
+            $out[$key] = (int)($qi[$key] ?? 0);
+        }
+        return $out;
     }
 }
