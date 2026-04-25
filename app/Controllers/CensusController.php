@@ -5,19 +5,32 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\CensusModel;
 use App\Models\CensusQualityIndicatorModel;
+use App\Models\CensusEditLogModel;
+use App\Models\UserWardModel;
 use App\Models\WardModel;
 
 class CensusController extends BaseController
 {
     protected $censusModel;
     protected $qiModel;
+    protected $editLogModel;
+    protected $userWardModel;
     protected $wardModel;
+
+    // Shift start hours (24h) — used for the 12-hour recording window.
+    private const SHIFT_START_HOUR = [
+        'Night'     => 0,
+        'Morning'   => 8,
+        'Afternoon' => 16,
+    ];
 
     public function __construct()
     {
-        $this->censusModel = new CensusModel();
-        $this->qiModel     = new CensusQualityIndicatorModel();
-        $this->wardModel   = new WardModel();
+        $this->censusModel   = new CensusModel();
+        $this->qiModel       = new CensusQualityIndicatorModel();
+        $this->editLogModel  = new CensusEditLogModel();
+        $this->userWardModel = new UserWardModel();
+        $this->wardModel     = new WardModel();
     }
 
     public function index()
@@ -27,18 +40,38 @@ class CensusController extends BaseController
 
     public function create()
     {
-        $data = [
-            'wards' => $this->wardModel->getActiveWithDepartment(),
-            'title' => 'บันทึกยอดผู้ป่วยรายวัน',
-        ];
-        return view('census/create', $data);
+        $wards = $this->wardModel->getActiveWithDepartment();
+
+        // Nurses see only their assigned wards
+        if ($this->isNurse()) {
+            $assignedIds = $this->userWardModel->getWardIdsForUser((int)auth()->id());
+            $wards = array_values(array_filter($wards, fn($w) => in_array((int)$w['id'], $assignedIds)));
+        }
+
+        return view('census/create', [
+            'wards'    => $wards,
+            'title'    => 'บันทึกยอดผู้ป่วยรายวัน',
+            'isNurse'  => $this->isNurse(),
+        ]);
     }
 
     public function store()
     {
-        $censusData = $this->buildCensusData($this->request->getPost());
+        $post = $this->request->getPost();
+        $censusData = $this->buildCensusData($post);
         if ($censusData === null) {
             return redirect()->back()->withInput()->with('error', 'กรุณากรอกข้อมูล Ward / วันที่ / Shift ให้ครบ');
+        }
+
+        // Permission: nurse may only record for assigned wards
+        if (! $this->canRecordForWard((int)$censusData['ward_id'])) {
+            return redirect()->back()->withInput()->with('error', 'คุณไม่มีสิทธิ์บันทึกข้อมูลสำหรับ Ward นี้');
+        }
+
+        // Time window: max 12 hours after shift start
+        if (! $this->isWithinRecordingWindow($censusData['record_date'], $censusData['shift'])) {
+            return redirect()->back()->withInput()
+                ->with('error', 'ไม่สามารถบันทึกย้อนหลังเกิน 12 ชั่วโมง สำหรับกะ ' . $censusData['shift'] . ' วันที่ ' . $censusData['record_date']);
         }
 
         $existing = $this->censusModel->findByShift(
@@ -50,22 +83,22 @@ class CensusController extends BaseController
         $censusId = null;
         try {
             if ($existing) {
+                $this->editLogModel->logAction($existing['id'], auth()->id(), 'update', $existing);
                 $this->censusModel->update($existing['id'], $censusData);
                 $censusId = $existing['id'];
             } else {
                 $censusId = $this->censusModel->insert($censusData, true);
+                $this->editLogModel->logAction((int)$censusId, auth()->id(), 'create', null);
             }
         } catch (\Exception $e) {
             return redirect()->back()->withInput()->with('error', 'บันทึกไม่สำเร็จ: ' . $e->getMessage());
         }
 
-        // Save quality indicators
         $qi = $this->request->getPost('qi');
         if ($qi && is_array($qi)) {
             $this->qiModel->upsertForCensus((int)$censusId, $this->filterQiData($qi));
         }
 
-        // Recalculate productivity when Afternoon shift is saved
         if ($censusData['shift'] === 'Afternoon') {
             $this->censusModel->recalculateProductivity(
                 (int)$censusData['ward_id'],
@@ -73,8 +106,9 @@ class CensusController extends BaseController
             );
         }
 
-        return redirect()->to('census/new')
-                         ->with('message', 'บันทึกข้อมูลเรียบร้อยแล้ว');
+        $msg = $existing ? 'อัปเดตข้อมูลเรียบร้อยแล้ว (มีการแก้ไขปรับปรุง)' : 'บันทึกข้อมูลเรียบร้อยแล้ว';
+
+        return redirect()->to('census/new')->with('message', $msg);
     }
 
     public function autosave()
@@ -89,6 +123,14 @@ class CensusController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'ข้อมูลไม่ครบ']);
         }
 
+        if (! $this->canRecordForWard((int)$post['ward_id'])) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'ไม่มีสิทธิ์บันทึก Ward นี้']);
+        }
+
+        if (! $this->isWithinRecordingWindow($post['record_date'], $post['shift'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'เกินระยะเวลาบันทึกย้อนหลัง 12 ชั่วโมง']);
+        }
+
         $censusData = $this->buildCensusData($post);
         if ($censusData === null) {
             return $this->response->setJSON(['success' => false, 'message' => 'ข้อมูลไม่ถูกต้อง']);
@@ -100,22 +142,24 @@ class CensusController extends BaseController
             $censusData['shift']
         );
 
-        $censusId = null;
+        $censusId  = null;
+        $isUpdate  = false;
         try {
             if ($existing) {
+                $this->editLogModel->logAction($existing['id'], auth()->id(), 'update', $existing);
                 $this->censusModel->update($existing['id'], $censusData);
                 $censusId = $existing['id'];
+                $isUpdate = true;
             } else {
                 $censusId = $this->censusModel->insert($censusData, true);
+                $this->editLogModel->logAction((int)$censusId, auth()->id(), 'create', null);
             }
 
-            // Save QI
             $qi = $post['qi'] ?? [];
             if ($censusId && is_array($qi) && array_filter($qi)) {
                 $this->qiModel->upsertForCensus((int)$censusId, $this->filterQiData($qi));
             }
 
-            // Productivity (Afternoon only)
             if ($censusData['shift'] === 'Afternoon') {
                 $this->censusModel->recalculateProductivity(
                     (int)$censusData['ward_id'],
@@ -123,7 +167,11 @@ class CensusController extends BaseController
                 );
             }
 
-            return $this->response->setJSON(['success' => true, 'census_id' => $censusId]);
+            return $this->response->setJSON([
+                'success'   => true,
+                'census_id' => $censusId,
+                'updated'   => $isUpdate,
+            ]);
         } catch (\Exception $e) {
             return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -145,11 +193,19 @@ class CensusController extends BaseController
 
         $wardIdInt = ($wardId !== null && $wardId !== '') ? max(1, (int)$wardId) : null;
 
-        $shiftLabels = [
-            'Night'     => 'ดึก',
-            'Morning'   => 'เช้า',
-            'Afternoon' => 'บ่าย',
-        ];
+        // Nurses: restrict to their assigned wards
+        if ($this->isNurse()) {
+            $assignedIds = $this->userWardModel->getWardIdsForUser((int)auth()->id());
+            if ($wardIdInt !== null && ! in_array($wardIdInt, $assignedIds)) {
+                return $this->response->setStatusCode(403)->setJSON(['error' => 'ไม่มีสิทธิ์ดู Ward นี้']);
+            }
+            if ($wardIdInt === null && ! empty($assignedIds)) {
+                // Default to first assigned ward so nurses don't see all records
+                $wardIdInt = $assignedIds[0];
+            }
+        }
+
+        $shiftLabels = ['Night' => 'ดึก', 'Morning' => 'เช้า', 'Afternoon' => 'บ่าย'];
 
         $rows = $this->censusModel->getHistoryForList($wardIdInt, $dateFrom, $dateTo);
 
@@ -188,7 +244,46 @@ class CensusController extends BaseController
         return $this->response->setJSON(['rows' => $out]);
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private function isNurse(): bool
+    {
+        $user = auth()->user();
+        return $user && $user->inGroup('nurse') && ! $user->inGroup('superadmin') && ! $user->inGroup('manager');
+    }
+
+    /**
+     * Returns true if the current user may record data for the given ward.
+     * Superadmin and Manager have unrestricted access.
+     */
+    private function canRecordForWard(int $wardId): bool
+    {
+        if (! $this->isNurse()) {
+            return true;
+        }
+        return $this->userWardModel->userCanAccessWard((int)auth()->id(), $wardId);
+    }
+
+    /**
+     * Nurses (and anyone, for consistency) may only record data within 12 hours
+     * of a shift's start. Superadmin and Manager are exempt.
+     *
+     * Shift starts: Night=00:00, Morning=08:00, Afternoon=16:00
+     * Deadline = shift_start + 12 hours
+     */
+    private function isWithinRecordingWindow(string $date, string $shift): bool
+    {
+        // Superadmin / Manager bypass the time restriction
+        if (! $this->isNurse()) {
+            return true;
+        }
+
+        $startHour = self::SHIFT_START_HOUR[$shift] ?? 0;
+        $shiftStart = strtotime($date . ' ' . sprintf('%02d:00:00', $startHour));
+        $deadline   = $shiftStart + (12 * 3600);
+
+        return time() <= $deadline;
+    }
 
     private function buildCensusData(array $post): ?array
     {

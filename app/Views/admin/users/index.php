@@ -8,6 +8,10 @@
                 <span class="material-symbols-outlined" style="color:var(--primary);font-size:2rem;">group</span>
                 <h1 class="mb-0"><?= esc($title) ?></h1>
             </div>
+            <a href="<?= base_url('admin/nurse-wards') ?>" class="btn btn-outline-success me-2">
+                <span class="material-symbols-outlined align-middle me-1">assignment_ind</span>
+                สิทธิ์ Ward ของ Nurse
+            </a>
             <a href="<?= base_url('admin/users/create') ?>" class="btn btn-primary">
                 <span class="material-symbols-outlined align-middle me-1">person_add</span>
                 เพิ่มผู้ใช้งาน
@@ -113,6 +117,15 @@
                                                         <span class="material-symbols-outlined" style="font-size:.9rem;">check_circle</span>
                                                     </button>
                                                 </form>
+                                            <?php endif; ?>
+
+                                            <!-- Ward assignment (nurses only) -->
+                                            <?php if (in_array('nurse', $user->getGroups())): ?>
+                                                <a href="<?= base_url('admin/nurse-wards/edit/' . $user->id) ?>"
+                                                   class="btn btn-sm btn-outline-teal" title="กำหนด Ward"
+                                                   style="color:#0f9b6a;border-color:#0f9b6a;">
+                                                    <span class="material-symbols-outlined" style="font-size:.9rem;">assignment_ind</span>
+                                                </a>
                                             <?php endif; ?>
 
                                             <!-- Edit -->

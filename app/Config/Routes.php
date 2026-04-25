@@ -76,6 +76,12 @@ $routes->group('admin', ['filter' => 'group:superadmin'], static function ($rout
         $routes->post('import', '\App\Controllers\Admin\ImportExportController::importCensus');
     });
 
+    $routes->group('nurse-wards', static function ($routes) {
+        $routes->get('/', '\App\Controllers\Admin\NurseWardController::index');
+        $routes->get('edit/(:num)', '\App\Controllers\Admin\NurseWardController::edit/$1');
+        $routes->post('update/(:num)', '\App\Controllers\Admin\NurseWardController::update/$1');
+    });
+
     $routes->group('backup', static function ($routes) {
         $routes->get('/', '\App\Controllers\Admin\BackupController::index');
         $routes->post('create', '\App\Controllers\Admin\BackupController::create');
