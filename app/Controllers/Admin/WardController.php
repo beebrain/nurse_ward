@@ -3,22 +3,25 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Models\DepartmentModel;
 use App\Models\WardModel;
 
 class WardController extends BaseController
 {
     protected $wardModel;
+    protected $departmentModel;
 
     public function __construct()
     {
-        $this->wardModel = new WardModel();
+        $this->wardModel       = new WardModel();
+        $this->departmentModel = new DepartmentModel();
     }
 
     public function index()
     {
         $data = [
-            'wards' => $this->wardModel->findAll(),
-            'title' => 'Manage Wards',
+            'wards' => $this->wardModel->getAllWithDepartment(),
+            'title' => 'จัดการ Ward',
         ];
 
         return view('admin/wards/index', $data);
@@ -27,7 +30,8 @@ class WardController extends BaseController
     public function create()
     {
         $data = [
-            'title' => 'Create New Ward',
+            'title'       => 'เพิ่ม Ward ใหม่',
+            'departments' => $this->departmentModel->getActiveOrdered(),
         ];
 
         return view('admin/wards/create', $data);
@@ -36,8 +40,10 @@ class WardController extends BaseController
     public function store()
     {
         $rules = [
-            'name'       => 'required|max_length[100]|min_length[3]',
-            'total_beds' => 'required|numeric|greater_than_equal_to[0]',
+            'name'          => 'required|max_length[200]|min_length[2]',
+            'code'          => 'permit_empty|max_length[30]',
+            'department_id' => 'permit_empty|numeric',
+            'total_beds'    => 'required|numeric|greater_than_equal_to[0]',
         ];
 
         if (!$this->validate($rules)) {
@@ -45,9 +51,11 @@ class WardController extends BaseController
         }
 
         $this->wardModel->save([
-            'name'       => $this->request->getPost('name'),
-            'total_beds' => $this->request->getPost('total_beds'),
-            'is_active'  => $this->request->getPost('is_active') ? true : false,
+            'name'          => $this->request->getPost('name'),
+            'code'          => $this->request->getPost('code') ?: null,
+            'department_id' => $this->request->getPost('department_id') ?: null,
+            'total_beds'    => $this->request->getPost('total_beds'),
+            'is_active'     => $this->request->getPost('is_active') ? true : false,
         ]);
 
         return redirect()->to('admin/wards')->with('message', 'Ward created successfully.');
@@ -62,8 +70,9 @@ class WardController extends BaseController
         }
 
         $data = [
-            'ward'  => $ward,
-            'title' => 'Edit Ward',
+            'ward'        => $ward,
+            'title'       => 'แก้ไข Ward',
+            'departments' => $this->departmentModel->getActiveOrdered(),
         ];
 
         return view('admin/wards/edit', $data);
@@ -72,8 +81,10 @@ class WardController extends BaseController
     public function update($id = null)
     {
         $rules = [
-            'name'       => 'required|max_length[100]|min_length[3]',
-            'total_beds' => 'required|numeric|greater_than_equal_to[0]',
+            'name'          => 'required|max_length[200]|min_length[2]',
+            'code'          => 'permit_empty|max_length[30]',
+            'department_id' => 'permit_empty|numeric',
+            'total_beds'    => 'required|numeric|greater_than_equal_to[0]',
         ];
 
         if (!$this->validate($rules)) {
@@ -81,9 +92,11 @@ class WardController extends BaseController
         }
 
         $this->wardModel->update($id, [
-            'name'       => $this->request->getPost('name'),
-            'total_beds' => $this->request->getPost('total_beds'),
-            'is_active'  => $this->request->getPost('is_active') ? true : false,
+            'name'          => $this->request->getPost('name'),
+            'code'          => $this->request->getPost('code') ?: null,
+            'department_id' => $this->request->getPost('department_id') ?: null,
+            'total_beds'    => $this->request->getPost('total_beds'),
+            'is_active'     => $this->request->getPost('is_active') ? true : false,
         ]);
 
         return redirect()->to('admin/wards')->with('message', 'Ward updated successfully.');
