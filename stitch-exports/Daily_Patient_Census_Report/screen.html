@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Clinical Sanctuary - Daily Patient Census</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#2d3037",
+                        "tertiary-fixed-dim": "#bac9d3",
+                        "secondary-fixed": "#98f994",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed": "#d6e5ef",
+                        "on-surface-variant": "#414752",
+                        "surface-bright": "#f9f9ff",
+                        "on-secondary-fixed-variant": "#005313",
+                        "on-primary": "#ffffff",
+                        "inverse-primary": "#a5c8ff",
+                        "primary": "#005dac",
+                        "outline-variant": "#c1c6d4",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface": "#f9f9ff",
+                        "secondary-container": "#98f994",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#3b4951",
+                        "surface-dim": "#d8dae2",
+                        "on-tertiary-fixed": "#0f1d25",
+                        "primary-container": "#1976d2",
+                        "on-error-container": "#93000a",
+                        "primary-fixed-dim": "#a5c8ff",
+                        "surface-container": "#ecedf6",
+                        "on-tertiary-container": "#fdfdff",
+                        "inverse-on-surface": "#eff0f9",
+                        "on-primary-fixed": "#001c3a",
+                        "surface-container-high": "#e6e8f0",
+                        "tertiary": "#505e68",
+                        "tertiary-container": "#697781",
+                        "on-secondary-container": "#0c7521",
+                        "on-primary-fixed-variant": "#004786",
+                        "on-primary-container": "#fffdff",
+                        "secondary-fixed-dim": "#7ddc7a",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#002204",
+                        "background": "#f9f9ff",
+                        "surface-variant": "#e0e2ea",
+                        "surface-tint": "#005faf",
+                        "primary-fixed": "#d4e3ff",
+                        "on-background": "#181c21",
+                        "on-surface": "#181c21",
+                        "outline": "#717783",
+                        "surface-container-low": "#f2f3fc",
+                        "surface-container-highest": "#e0e2ea",
+                        "secondary": "#006e1c",
+                        "error-container": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "display": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f9f9ff; }
+        .font-manrope { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .ambient-shadow { shadow-[0px_12px_32px_rgba(0,95,175,0.06)]; }
+    </style>
+</head>
+<body class="text-on-surface">
+<!-- Sidebar Navigation Shell -->
+<aside class="fixed left-0 top-0 h-full w-72 bg-slate-50 dark:bg-slate-950 border-r border-slate-200/15 flex flex-col p-6 gap-2 z-40">
+<div class="mb-8 px-4">
+<h1 class="font-manrope font-bold text-slate-900 dark:text-slate-100 text-xl">Surgical Unit</h1>
+<p class="text-xs text-slate-500 font-medium">North Wing - Floor 4</p>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 font-medium hover:text-blue-600 hover:bg-slate-100/50 transition-all scale-100 hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 font-medium hover:text-blue-600 hover:bg-slate-100/50 transition-all scale-100 hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span>Ward Census</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 rounded-xl shadow-sm font-bold scale-100 translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span>Reporting</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 font-medium hover:text-blue-600 hover:bg-slate-100/50 transition-all scale-100 hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="medical_services">medical_services</span>
+<span>Staffing</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 font-medium hover:text-blue-600 hover:bg-slate-100/50 transition-all scale-100 hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<div class="mt-auto px-4">
+<button class="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary py-3 rounded-full font-semibold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-transform active:scale-95">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                New Report
+            </button>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<main class="ml-72 min-h-screen">
+<!-- Top App Bar Shell -->
+<header class="sticky top-0 w-full z-50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-lg flex justify-between items-center px-8 h-16 shadow-[0px_12px_32px_rgba(0,95,175,0.06)]">
+<div class="flex items-center gap-4">
+<span class="text-blue-800 dark:text-blue-300 font-manrope font-extrabold text-xl">Clinical Sanctuary</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative hidden lg:block">
+<span class="absolute inset-y-0 left-3 flex items-center text-slate-400">
+<span class="material-symbols-outlined text-sm" data-icon="search">search</span>
+</span>
+<input class="bg-surface-container-high border-none rounded-full py-1.5 pl-10 pr-4 text-sm w-64 focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Search patient ID..." type="text"/>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-2 text-slate-500 hover:bg-blue-50 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-blue-50 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden border-2 border-primary/10">
+<img class="h-full w-full object-cover" data-alt="professional portrait of a medical doctor in a clinical setting with warm soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAelsMfAw9CuqfcFQlTBZWpxkKlvYlQfcygOP2P_2VYCBxh0DKgXUMzV3BWxdAXRQ_kh55BMa0S8Cg6guU0QZhqLStiFuzvuAX5H1XFTEIAFeMQN7NngsquuAXb_JCZx0yU7ibeQB_vCr9bgcPzuweA3jTUY14Y8V-jkUFZ8jU5LIoeljM0Afwb5OkxpkeqT2QxwTn_8rHswHhy4t74Esc5ZfYPdc_skCkbDkDj8ngfnznc74l8pra8fqc1E43DtE_r2aGA4fFEFU"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-12 max-w-7xl mx-auto space-y-8">
+<!-- Header & Filters -->
+<section class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div class="space-y-1">
+<h2 class="text-3xl font-manrope font-extrabold text-on-surface tracking-tight">Daily Patient Census</h2>
+<p class="text-on-surface-variant font-medium">Record and track patient volume and acuity distribution.</p>
+</div>
+<div class="flex flex-wrap items-center gap-4 bg-surface-container-low p-2 rounded-2xl shadow-sm">
+<div class="flex flex-col gap-1 px-3">
+<span class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Ward</span>
+<select class="bg-transparent border-none p-0 text-sm font-semibold text-primary focus:ring-0 cursor-pointer">
+<option>Surgical Unit - North</option>
+<option>Intensive Care - Floor 2</option>
+<option>Emergency - East</option>
+</select>
+</div>
+<div class="w-px h-10 bg-slate-200"></div>
+<div class="flex flex-col gap-1 px-3">
+<span class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Date</span>
+<input class="bg-transparent border-none p-0 text-sm font-semibold text-primary focus:ring-0 cursor-pointer" type="date" value="2023-11-24"/>
+</div>
+<div class="w-px h-10 bg-slate-200"></div>
+<div class="flex flex-col gap-1 px-3">
+<span class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Shift</span>
+<select class="bg-transparent border-none p-0 text-sm font-semibold text-primary focus:ring-0 cursor-pointer">
+<option>Day Shift (07:00 - 19:00)</option>
+<option>Night Shift (19:00 - 07:00)</option>
+</select>
+</div>
+<div class="w-px h-10 bg-slate-200"></div><div class="flex flex-col gap-1 px-3"><span class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Assigned Staff</span><input class="bg-transparent border-none p-0 text-sm font-semibold text-primary focus:ring-0 cursor-pointer w-20" min="0" type="number" value="12"/></div></div>
+</section>
+<!-- Patient Census by Nursing Level -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="font-manrope font-bold text-xl text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-fixed-dim" data-icon="clinical_notes">clinical_notes</span>
+                        Nursing Level Distribution
+                    </h3>
+<span class="text-xs font-bold px-3 py-1 bg-primary/10 text-primary rounded-full">TOTAL: 42</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-5 gap-6"><!-- Level 5 -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="text-[10px] font-extrabold uppercase tracking-widest text-error">Level 5</span>
+<span class="material-symbols-outlined text-error/60 text-lg" data-icon="emergency">emergency</span>
+</div>
+<div class="flex items-center justify-between gap-2"><input class="w-full bg-white border border-slate-200 rounded-lg text-2xl font-manrope font-extrabold py-2 px-3 focus:ring-2 focus:ring-error/20 text-center text-on-surface" type="number" value="8"/></div>
+</div>
+<!-- Level 4 -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="text-[10px] font-extrabold uppercase tracking-widest text-primary">Level 4</span>
+<span class="material-symbols-outlined text-primary/60 text-lg" data-icon="monitor_heart">monitor_heart</span>
+</div>
+<div class="flex items-center justify-between gap-2"><input class="w-full bg-white border border-slate-200 rounded-lg text-2xl font-manrope font-extrabold py-2 px-3 focus:ring-2 focus:ring-primary/20 text-center text-on-surface" type="number" value="12"/></div>
+</div>
+<!-- Level 3 -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="text-[10px] font-extrabold uppercase tracking-widest text-primary-container">Level 3</span>
+<span class="material-symbols-outlined text-primary-container/60 text-lg" data-icon="healing">healing</span>
+</div>
+<div class="flex items-center justify-between gap-2"><input class="w-full bg-white border border-slate-200 rounded-lg text-2xl font-manrope font-extrabold py-2 px-3 focus:ring-2 focus:ring-primary/20 text-center text-on-surface" type="number" value="15"/></div>
+</div>
+<!-- Level 2 -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="text-[10px] font-extrabold uppercase tracking-widest text-secondary">Level 2</span>
+<span class="material-symbols-outlined text-secondary/60 text-lg" data-icon="bed">bed</span>
+</div>
+<div class="flex items-center justify-between gap-2"><input class="w-full bg-white border border-slate-200 rounded-lg text-2xl font-manrope font-extrabold py-2 px-3 focus:ring-2 focus:ring-secondary/20 text-center text-on-surface" type="number" value="4"/></div>
+</div>
+<!-- Level 1 -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="text-[10px] font-extrabold uppercase tracking-widest text-secondary-fixed-dim">Level 1</span>
+<span class="material-symbols-outlined text-secondary-fixed-dim/80 text-lg" data-icon="accessibility_new">accessibility_new</span>
+</div>
+<div class="flex items-center justify-between gap-2"><input class="w-full bg-white border border-slate-200 rounded-lg text-2xl font-manrope font-extrabold py-2 px-3 focus:ring-2 focus:ring-primary/20 text-center text-on-surface" type="number" value="3"/></div>
+</div></div>
+</section>
+<!-- Patient Movement -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="font-manrope font-bold text-xl text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-fixed-dim" data-icon="swap_horiz">swap_horiz</span>
+                        Patient Movement Tracking
+                    </h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-5 gap-4"><!-- Admissions -->
+<div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-secondary flex flex-col gap-3"><div class="flex items-center gap-1.5 text-secondary"><span class="material-symbols-outlined text-xs" data-icon="login">login</span><span class="text-[9px] font-bold uppercase tracking-tight">Admissions</span></div><input class="w-full bg-white border border-slate-200 rounded-lg text-xl font-manrope font-bold py-1.5 px-3 focus:ring-2 focus:ring-secondary/20 text-center text-on-surface" type="number" value="4"/></div>
+<!-- Discharges -->
+<div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-primary flex flex-col gap-3"><div class="flex items-center gap-1.5 text-primary"><span class="material-symbols-outlined text-xs" data-icon="logout">logout</span><span class="text-[9px] font-bold uppercase tracking-tight">Discharges</span></div><input class="w-full bg-white border border-slate-200 rounded-lg text-xl font-manrope font-bold py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-center text-on-surface" type="number" value="6"/></div>
+<!-- Transfer In -->
+<div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-slate-400 flex flex-col gap-3"><div class="flex items-center gap-1.5 text-slate-500"><span class="material-symbols-outlined text-xs" data-icon="move_to_inbox">move_to_inbox</span><span class="text-[9px] font-bold uppercase tracking-tight">Transfer In</span></div><input class="w-full bg-white border border-slate-200 rounded-lg text-xl font-manrope font-bold py-1.5 px-3 focus:ring-2 focus:ring-slate-300 text-center text-on-surface" type="number" value="2"/></div>
+<!-- Transfer Out -->
+<div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-slate-400 flex flex-col gap-3"><div class="flex items-center gap-1.5 text-slate-500"><span class="material-symbols-outlined text-xs" data-icon="outbox">outbox</span><span class="text-[9px] font-bold uppercase tracking-tight">Transfer Out</span></div><input class="w-full bg-white border border-slate-200 rounded-lg text-xl font-manrope font-bold py-1.5 px-3 focus:ring-2 focus:ring-slate-300 text-center text-on-surface" type="number" value="1"/></div>
+<!-- Death -->
+<div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-error flex flex-col gap-3"><div class="flex items-center gap-1.5 text-error"><span class="material-symbols-outlined text-xs" data-icon="close">close</span><span class="text-[9px] font-bold uppercase tracking-tight">Death</span></div><input class="w-full bg-white border border-slate-200 rounded-lg text-xl font-manrope font-bold py-1.5 px-3 focus:ring-2 focus:ring-error/20 text-center text-on-surface" type="number" value="0"/></div></div>
+</section>
+<!-- Bottom Actions -->
+<div class="pt-10 flex items-center justify-end gap-4">
+<button class="px-8 py-3 rounded-full text-sm font-bold text-slate-500 hover:bg-slate-100 transition-colors">Discard Draft</button>
+<button class="px-10 py-3 rounded-full text-sm font-bold bg-gradient-to-r from-primary to-primary-container text-white shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+                    Finalize &amp; Submit Report
+                </button>
+</div>
+</div>
+</main>
+<!-- Floating Action for Quick Add (Contextual FAB Suppression would normally hide this, but as this is a dashboard screen it aligns) -->
+<div class="fixed bottom-8 right-8 flex flex-col gap-3 items-end">
+<button class="bg-secondary text-on-secondary w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-transform group">
+<span class="material-symbols-outlined text-2xl" data-icon="save">save</span>
+<span class="absolute right-16 bg-white text-on-surface px-3 py-1 rounded-lg text-xs font-bold shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">Save Progress</span>
+</button>
+</div>
+</body></html>

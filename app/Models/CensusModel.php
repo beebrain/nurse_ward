@@ -14,13 +14,20 @@ class CensusModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'ward_id', 'record_date', 'shift',
-        // Patient levels (ปกติ + พิเศษ รวมกัน)
+        // Patient levels by patient type, plus combined totals.
+        'patients_general_level_5', 'patients_general_level_4', 'patients_general_level_3',
+        'patients_general_level_2', 'patients_general_level_1',
+        'patients_special_level_5', 'patients_special_level_4', 'patients_special_level_3',
+        'patients_special_level_2', 'patients_special_level_1',
         'patients_level_5', 'patients_level_4', 'patients_level_3',
         'patients_level_2', 'patients_level_1', 'total_patients',
+        'carried_forward_patients', 'movement_expected_patients', 'movement_variance',
         // Movements
         'admissions', 'discharges', 'transfers_in', 'transfers_out', 'deaths',
         // Nursing staff
         'nurses_hw', 'nurses_rn', 'nurses_tn', 'nurses_pn', 'nurses_aide', 'nurses_ward',
+        // Ward equipment
+        'equipment_ventilator', 'equipment_hfnc',
         // Calculated (stored)
         'working_hours', 'required_care_hours', 'productivity',
         'notes', 'created_by',
@@ -38,11 +45,23 @@ class CensusModel extends Model
         'ward_id'     => 'required|numeric|is_not_unique[wards.id]',
         'record_date' => 'required|valid_date',
         'shift'       => 'required|in_list[Night,Morning,Afternoon]',
+        'patients_general_level_5' => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'patients_general_level_4' => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'patients_general_level_3' => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'patients_general_level_2' => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'patients_general_level_1' => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'patients_special_level_5' => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'patients_special_level_4' => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'patients_special_level_3' => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'patients_special_level_2' => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'patients_special_level_1' => 'permit_empty|numeric|greater_than_equal_to[0]',
         'patients_level_5' => 'permit_empty|numeric|greater_than_equal_to[0]',
         'patients_level_4' => 'permit_empty|numeric|greater_than_equal_to[0]',
         'patients_level_3' => 'permit_empty|numeric|greater_than_equal_to[0]',
         'patients_level_2' => 'permit_empty|numeric|greater_than_equal_to[0]',
         'patients_level_1' => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'carried_forward_patients'  => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'movement_expected_patients' => 'permit_empty|numeric|greater_than_equal_to[0]',
         'admissions'    => 'permit_empty|numeric|greater_than_equal_to[0]',
         'discharges'    => 'permit_empty|numeric|greater_than_equal_to[0]',
         'transfers_in'  => 'permit_empty|numeric|greater_than_equal_to[0]',
@@ -51,6 +70,8 @@ class CensusModel extends Model
         'nurses_rn'     => 'permit_empty|numeric|greater_than_equal_to[0]',
         'nurses_tn'     => 'permit_empty|numeric|greater_than_equal_to[0]',
         'nurses_pn'     => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'equipment_ventilator'       => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'equipment_hfnc'             => 'permit_empty|numeric|greater_than_equal_to[0]',
     ];
 
     protected $validationMessages   = [];
@@ -74,12 +95,35 @@ class CensusModel extends Model
      */
     public function computeDerived(array &$data): void
     {
+        foreach ([5, 4, 3, 2, 1] as $level) {
+            $general = (int)($data["patients_general_level_{$level}"] ?? 0);
+            $special = (int)($data["patients_special_level_{$level}"] ?? 0);
+
+            if ($general > 0 || $special > 0) {
+                $data["patients_level_{$level}"] = $general + $special;
+            } else {
+                $data["patients_level_{$level}"] = (int)($data["patients_level_{$level}"] ?? 0);
+                $data["patients_general_level_{$level}"] = $data["patients_level_{$level}"];
+                $data["patients_special_level_{$level}"] = 0;
+            }
+        }
+
         // Total patients
         $data['total_patients'] = (int)($data['patients_level_5'] ?? 0)
             + (int)($data['patients_level_4'] ?? 0)
             + (int)($data['patients_level_3'] ?? 0)
             + (int)($data['patients_level_2'] ?? 0)
             + (int)($data['patients_level_1'] ?? 0);
+
+        $carriedForward = (int)($data['carried_forward_patients'] ?? 0);
+        $expected = $carriedForward
+            + (int)($data['admissions'] ?? 0)
+            + (int)($data['transfers_in'] ?? 0)
+            - (int)($data['discharges'] ?? 0)
+            - (int)($data['transfers_out'] ?? 0)
+            - (int)($data['deaths'] ?? 0);
+        $data['movement_expected_patients'] = max(0, $expected);
+        $data['movement_variance'] = $data['total_patients'] - $data['movement_expected_patients'];
 
         // Working hours = (RN + TN + PN) × 7 for THIS shift only
         // Stored per shift; productivity is calculated separately for Afternoon
@@ -148,12 +192,25 @@ class CensusModel extends Model
             'daily_census.ward_id',
             'daily_census.record_date',
             'daily_census.shift',
+            'daily_census.patients_general_level_5',
+            'daily_census.patients_general_level_4',
+            'daily_census.patients_general_level_3',
+            'daily_census.patients_general_level_2',
+            'daily_census.patients_general_level_1',
+            'daily_census.patients_special_level_5',
+            'daily_census.patients_special_level_4',
+            'daily_census.patients_special_level_3',
+            'daily_census.patients_special_level_2',
+            'daily_census.patients_special_level_1',
             'daily_census.patients_level_5',
             'daily_census.patients_level_4',
             'daily_census.patients_level_3',
             'daily_census.patients_level_2',
             'daily_census.patients_level_1',
             'daily_census.total_patients',
+            'daily_census.carried_forward_patients',
+            'daily_census.movement_expected_patients',
+            'daily_census.movement_variance',
             'daily_census.admissions',
             'daily_census.discharges',
             'daily_census.transfers_in',
@@ -165,6 +222,8 @@ class CensusModel extends Model
             'daily_census.nurses_pn',
             'daily_census.nurses_aide',
             'daily_census.nurses_ward',
+            'daily_census.equipment_ventilator',
+            'daily_census.equipment_hfnc',
             'daily_census.working_hours',
             'daily_census.required_care_hours',
             'daily_census.productivity',
@@ -182,7 +241,7 @@ class CensusModel extends Model
             $builder->where('daily_census.ward_id', $wardId);
         }
         $builder->orderBy('daily_census.record_date', 'DESC');
-        $builder->orderBy('FIELD(daily_census.shift, "Night", "Morning", "Afternoon")', null, false);
+        $builder->orderBy('FIELD(daily_census.shift, "Night", "Morning", "Afternoon")', '', false);
 
         return $builder->get($limit)->getResultArray();
     }
@@ -196,5 +255,45 @@ class CensusModel extends Model
                     ->where('record_date', $date)
                     ->where('shift', $shift)
                     ->first();
+    }
+
+    public function getPreviousShiftRecord(int $wardId, string $date, string $shift): ?array
+    {
+        [$previousDate, $previousShift] = $this->previousShiftKey($date, $shift);
+
+        return $this->findByShift($wardId, $previousDate, $previousShift);
+    }
+
+    public function getNextShiftRecord(int $wardId, string $date, string $shift): ?array
+    {
+        [$nextDate, $nextShift] = $this->nextShiftKey($date, $shift);
+
+        return $this->findByShift($wardId, $nextDate, $nextShift);
+    }
+
+    public function previousShiftKey(string $date, string $shift): array
+    {
+        if ($shift === 'Morning') {
+            return [$date, 'Night'];
+        }
+
+        if ($shift === 'Afternoon') {
+            return [$date, 'Morning'];
+        }
+
+        return [date('Y-m-d', strtotime($date . ' -1 day')), 'Afternoon'];
+    }
+
+    public function nextShiftKey(string $date, string $shift): array
+    {
+        if ($shift === 'Night') {
+            return [$date, 'Morning'];
+        }
+
+        if ($shift === 'Morning') {
+            return [$date, 'Afternoon'];
+        }
+
+        return [date('Y-m-d', strtotime($date . ' +1 day')), 'Night'];
     }
 }

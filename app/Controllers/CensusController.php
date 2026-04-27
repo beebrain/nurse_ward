@@ -80,6 +80,10 @@ class CensusController extends BaseController
             $censusData['shift']
         );
 
+        if ($this->censusModel->getNextShiftRecord((int)$censusData['ward_id'], $censusData['record_date'], $censusData['shift'])) {
+            return redirect()->back()->withInput()->with('error', 'ไม่สามารถแก้ไข/เพิ่มเวรนี้ได้ เนื่องจากมีการบันทึกเวรถัดไปแล้ว');
+        }
+
         $censusId = null;
         try {
             if ($existing) {
@@ -142,6 +146,13 @@ class CensusController extends BaseController
             $censusData['shift']
         );
 
+        if ($this->censusModel->getNextShiftRecord((int)$censusData['ward_id'], $censusData['record_date'], $censusData['shift'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'ไม่สามารถแก้ไข/เพิ่มเวรนี้ได้ เนื่องจากมีการบันทึกเวรถัดไปแล้ว',
+            ]);
+        }
+
         $censusId  = null;
         $isUpdate  = false;
         try {
@@ -175,6 +186,63 @@ class CensusController extends BaseController
         } catch (\Exception $e) {
             return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
+    }
+
+    public function movementContext()
+    {
+        if (! $this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Invalid request']);
+        }
+
+        $wardId = (int)($this->request->getGet('ward_id') ?? 0);
+        $date   = (string)($this->request->getGet('record_date') ?? '');
+        $shift  = (string)($this->request->getGet('shift') ?? '');
+
+        if ($wardId <= 0 || $date === '' || $shift === '') {
+            return $this->response->setJSON(['success' => false, 'message' => 'ข้อมูลไม่ครบ']);
+        }
+
+        if (! $this->canRecordForWard($wardId)) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'ไม่มีสิทธิ์ดู Ward นี้']);
+        }
+
+        [$previousDate, $previousShift] = $this->censusModel->previousShiftKey($date, $shift);
+        [$nextDate, $nextShift] = $this->censusModel->nextShiftKey($date, $shift);
+        $current = $this->censusModel->findByShift($wardId, $date, $shift);
+        $previous = $this->censusModel->getPreviousShiftRecord($wardId, $date, $shift);
+        $next = $this->censusModel->getNextShiftRecord($wardId, $date, $shift);
+        $qi = $current ? $this->qiModel->findByCensusId((int)$current['id']) : null;
+
+        return $this->response->setJSON([
+            'success'        => true,
+            'previous_date'  => $previousDate,
+            'previous_shift' => $previousShift,
+            'next_date'      => $nextDate,
+            'next_shift'     => $nextShift,
+            'has_previous'   => $previous !== null,
+            'has_current'    => $current !== null,
+            'is_locked'      => $next !== null,
+            'locked_by'      => $next ? [
+                'record_date' => $next['record_date'],
+                'shift'       => $next['shift'],
+            ] : null,
+            'carried_forward_patients' => (int)($previous['total_patients'] ?? 0),
+            'current_record' => $current ? $this->formatCensusSnapshot($current, $qi) : null,
+            'previous_snapshot' => [
+                'patients_general_level_5' => (int)($previous['patients_general_level_5'] ?? 0),
+                'patients_general_level_4' => (int)($previous['patients_general_level_4'] ?? 0),
+                'patients_general_level_3' => (int)($previous['patients_general_level_3'] ?? 0),
+                'patients_general_level_2' => (int)($previous['patients_general_level_2'] ?? 0),
+                'patients_general_level_1' => (int)($previous['patients_general_level_1'] ?? 0),
+                'patients_special_level_5' => (int)($previous['patients_special_level_5'] ?? 0),
+                'patients_special_level_4' => (int)($previous['patients_special_level_4'] ?? 0),
+                'patients_special_level_3' => (int)($previous['patients_special_level_3'] ?? 0),
+                'patients_special_level_2' => (int)($previous['patients_special_level_2'] ?? 0),
+                'patients_special_level_1' => (int)($previous['patients_special_level_1'] ?? 0),
+                'equipment_ventilator'     => (int)($previous['equipment_ventilator'] ?? 0),
+                'equipment_hfnc'           => (int)($previous['equipment_hfnc'] ?? 0),
+            ],
+        ]);
     }
 
     public function history()
@@ -219,12 +287,25 @@ class CensusController extends BaseController
                 'record_date'          => $row['record_date'],
                 'shift'                => $shift,
                 'shift_label'          => $shiftLabels[$shift] ?? $shift,
+                'patients_general_level_5' => (int)($row['patients_general_level_5'] ?? 0),
+                'patients_general_level_4' => (int)($row['patients_general_level_4'] ?? 0),
+                'patients_general_level_3' => (int)($row['patients_general_level_3'] ?? 0),
+                'patients_general_level_2' => (int)($row['patients_general_level_2'] ?? 0),
+                'patients_general_level_1' => (int)($row['patients_general_level_1'] ?? 0),
+                'patients_special_level_5' => (int)($row['patients_special_level_5'] ?? 0),
+                'patients_special_level_4' => (int)($row['patients_special_level_4'] ?? 0),
+                'patients_special_level_3' => (int)($row['patients_special_level_3'] ?? 0),
+                'patients_special_level_2' => (int)($row['patients_special_level_2'] ?? 0),
+                'patients_special_level_1' => (int)($row['patients_special_level_1'] ?? 0),
                 'patients_level_5'     => (int)$row['patients_level_5'],
                 'patients_level_4'     => (int)$row['patients_level_4'],
                 'patients_level_3'     => (int)$row['patients_level_3'],
                 'patients_level_2'     => (int)$row['patients_level_2'],
                 'patients_level_1'     => (int)$row['patients_level_1'],
                 'total_patients'       => (int)$row['total_patients'],
+                'carried_forward_patients'  => (int)($row['carried_forward_patients'] ?? 0),
+                'movement_expected_patients' => (int)($row['movement_expected_patients'] ?? 0),
+                'movement_variance'          => (int)($row['movement_variance'] ?? 0),
                 'admissions'           => (int)$row['admissions'],
                 'discharges'           => (int)$row['discharges'],
                 'transfers_in'         => (int)$row['transfers_in'],
@@ -233,6 +314,8 @@ class CensusController extends BaseController
                 'nurses_rn'            => (int)$row['nurses_rn'],
                 'nurses_tn'            => (int)$row['nurses_tn'],
                 'nurses_pn'            => (int)$row['nurses_pn'],
+                'equipment_ventilator'       => (int)($row['equipment_ventilator'] ?? 0),
+                'equipment_hfnc'             => (int)($row['equipment_hfnc'] ?? 0),
                 'working_hours'        => $row['working_hours'],
                 'required_care_hours'  => $row['required_care_hours'],
                 'productivity'         => $row['productivity'] !== null ? round((float)$row['productivity'], 2) : null,
@@ -299,11 +382,22 @@ class CensusController extends BaseController
             'ward_id'          => (int)$wardId,
             'record_date'      => $date,
             'shift'            => $shift,
+            'patients_general_level_5' => (int)($post['patients_general_level_5'] ?? 0),
+            'patients_general_level_4' => (int)($post['patients_general_level_4'] ?? 0),
+            'patients_general_level_3' => (int)($post['patients_general_level_3'] ?? 0),
+            'patients_general_level_2' => (int)($post['patients_general_level_2'] ?? 0),
+            'patients_general_level_1' => (int)($post['patients_general_level_1'] ?? 0),
+            'patients_special_level_5' => (int)($post['patients_special_level_5'] ?? 0),
+            'patients_special_level_4' => (int)($post['patients_special_level_4'] ?? 0),
+            'patients_special_level_3' => (int)($post['patients_special_level_3'] ?? 0),
+            'patients_special_level_2' => (int)($post['patients_special_level_2'] ?? 0),
+            'patients_special_level_1' => (int)($post['patients_special_level_1'] ?? 0),
             'patients_level_5' => (int)($post['patients_level_5'] ?? 0),
             'patients_level_4' => (int)($post['patients_level_4'] ?? 0),
             'patients_level_3' => (int)($post['patients_level_3'] ?? 0),
             'patients_level_2' => (int)($post['patients_level_2'] ?? 0),
             'patients_level_1' => (int)($post['patients_level_1'] ?? 0),
+            'carried_forward_patients' => $this->getCarriedForwardTotal((int)$wardId, $date, $shift),
             'admissions'       => (int)($post['admissions']   ?? 0),
             'discharges'       => (int)($post['discharges']   ?? 0),
             'transfers_in'     => (int)($post['transfers_in'] ?? 0),
@@ -315,12 +409,47 @@ class CensusController extends BaseController
             'nurses_pn'        => (int)($post['nurses_pn']   ?? 0),
             'nurses_aide'      => (int)($post['nurses_aide'] ?? 0),
             'nurses_ward'      => (int)($post['nurses_ward'] ?? 0),
+            'equipment_ventilator'       => (int)($post['equipment_ventilator'] ?? 0),
+            'equipment_hfnc'             => (int)($post['equipment_hfnc'] ?? 0),
             'notes'            => $post['notes'] ?? null,
             'created_by'       => auth()->id(),
         ];
 
         $this->censusModel->computeDerived($data);
         return $data;
+    }
+
+    private function getCarriedForwardTotal(int $wardId, string $date, string $shift): int
+    {
+        $previous = $this->censusModel->getPreviousShiftRecord($wardId, $date, $shift);
+
+        return (int)($previous['total_patients'] ?? 0);
+    }
+
+    private function formatCensusSnapshot(array $record, ?array $qi = null): array
+    {
+        $fields = [
+            'patients_general_level_5', 'patients_general_level_4', 'patients_general_level_3',
+            'patients_general_level_2', 'patients_general_level_1',
+            'patients_special_level_5', 'patients_special_level_4', 'patients_special_level_3',
+            'patients_special_level_2', 'patients_special_level_1',
+            'admissions', 'discharges', 'transfers_in', 'transfers_out', 'deaths',
+            'nurses_hw', 'nurses_rn', 'nurses_tn', 'nurses_pn', 'nurses_aide', 'nurses_ward',
+            'equipment_ventilator', 'equipment_hfnc',
+        ];
+
+        $snapshot = [];
+        foreach ($fields as $field) {
+            $snapshot[$field] = (int)($record[$field] ?? 0);
+        }
+
+        $snapshot['notes'] = (string)($record['notes'] ?? '');
+        $snapshot['qi'] = [];
+        foreach ($this->filterQiData($qi ?? []) as $field => $value) {
+            $snapshot['qi'][$field] = $value;
+        }
+
+        return $snapshot;
     }
 
     private function filterQiData(array $qi): array
