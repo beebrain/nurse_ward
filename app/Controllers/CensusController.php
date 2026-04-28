@@ -40,17 +40,7 @@ class CensusController extends BaseController
 
     public function create()
     {
-        $wards = $this->wardModel->getActiveWithDepartment();
-        $defaultWardId = null;
-
-        // Nurses see only their assigned wards
-        if ($this->isNurse()) {
-            $assignedIds = $this->userWardModel->getWardIdsForUser((int)auth()->id());
-            $wards = array_values(array_filter($wards, fn($w) => in_array((int)$w['id'], $assignedIds)));
-            if (count($assignedIds) === 1) {
-                $defaultWardId = (int)$assignedIds[0];
-            }
-        }
+        [$wards, $defaultWardId] = $this->getAvailableWardsForCurrentUser();
 
         return view('census/create', [
             'wards'    => $wards,
@@ -255,87 +245,410 @@ class CensusController extends BaseController
 
     public function history()
     {
+        [$wards, $defaultWardId] = $this->getAvailableWardsForCurrentUser();
+
+        return view('census/history', [
+            'title' => 'ประวัติการบันทึกย้อนหลัง',
+            'wards' => $wards,
+            'defaultWardId' => $defaultWardId,
+            'currentMonth' => (int) date('n'),
+            'currentYear' => (int) date('Y'),
+            'isNurse' => $this->isNurse(),
+        ]);
+    }
+
+    public function historyData()
+    {
         if (! auth()->loggedIn()) {
             return $this->response->setStatusCode(401)->setJSON(['error' => 'Unauthorized']);
         }
 
-        $wardId   = $this->request->getGet('ward_id');
-        $dateFrom = (string)($this->request->getGet('date_from') ?? date('Y-m-d', strtotime('-30 days')));
-        $dateTo   = (string)($this->request->getGet('date_to')   ?? date('Y-m-d'));
+        $year = (int)($this->request->getGet('year') ?? date('Y'));
+        $month = (int)($this->request->getGet('month') ?? date('n'));
 
-        if ($dateFrom > $dateTo) {
-            return $this->response->setStatusCode(400)->setJSON(['error' => 'ช่วงวันที่ไม่ถูกต้อง']);
+        if ($year < 2000 || $year > 2100 || $month < 1 || $month > 12) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'ตัวกรองไม่ถูกต้อง']);
         }
 
-        $wardIdInt = ($wardId !== null && $wardId !== '') ? max(1, (int)$wardId) : null;
-
-        // Nurses: restrict to their assigned wards
-        if ($this->isNurse()) {
-            $assignedIds = $this->userWardModel->getWardIdsForUser((int)auth()->id());
-            if ($wardIdInt !== null && ! in_array($wardIdInt, $assignedIds)) {
-                return $this->response->setStatusCode(403)->setJSON(['error' => 'ไม่มีสิทธิ์ดู Ward นี้']);
-            }
-            if ($wardIdInt === null && ! empty($assignedIds)) {
-                // Default to first assigned ward so nurses don't see all records
-                $wardIdInt = $assignedIds[0];
-            }
+        $wardId = $this->resolveHistoryWardId($this->request->getGet('ward_id'));
+        if ($wardId === null) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'ไม่มี Ward ที่สามารถดูข้อมูลได้']);
         }
 
-        $shiftLabels = ['Night' => 'ดึก', 'Morning' => 'เช้า', 'Afternoon' => 'บ่าย'];
+        return $this->response->setJSON($this->buildMonthHistoryPayload($wardId, $month, $year));
+    }
 
-        $rows = $this->censusModel->getHistoryForList($wardIdInt, $dateFrom, $dateTo);
+    public function productivity()
+    {
+        [$wards, $defaultWardId] = $this->getAvailableWardsForCurrentUser();
 
-        $out = [];
-        foreach ($rows as $row) {
-            $shift = $row['shift'] ?? '';
-            $out[] = [
-                'id'                   => (int)$row['id'],
-                'ward_id'              => (int)$row['ward_id'],
-                'ward_name'            => ($row['ward_code'] ? $row['ward_code'] . ' ' : '') . ($row['ward_name'] ?? '—'),
-                'record_date'          => $row['record_date'],
-                'shift'                => $shift,
-                'shift_label'          => $shiftLabels[$shift] ?? $shift,
-                'patients_general_level_5' => (int)($row['patients_general_level_5'] ?? 0),
-                'patients_general_level_4' => (int)($row['patients_general_level_4'] ?? 0),
-                'patients_general_level_3' => (int)($row['patients_general_level_3'] ?? 0),
-                'patients_general_level_2' => (int)($row['patients_general_level_2'] ?? 0),
-                'patients_general_level_1' => (int)($row['patients_general_level_1'] ?? 0),
-                'patients_special_level_5' => (int)($row['patients_special_level_5'] ?? 0),
-                'patients_special_level_4' => (int)($row['patients_special_level_4'] ?? 0),
-                'patients_special_level_3' => (int)($row['patients_special_level_3'] ?? 0),
-                'patients_special_level_2' => (int)($row['patients_special_level_2'] ?? 0),
-                'patients_special_level_1' => (int)($row['patients_special_level_1'] ?? 0),
-                'patients_level_5'     => (int)$row['patients_level_5'],
-                'patients_level_4'     => (int)$row['patients_level_4'],
-                'patients_level_3'     => (int)$row['patients_level_3'],
-                'patients_level_2'     => (int)$row['patients_level_2'],
-                'patients_level_1'     => (int)$row['patients_level_1'],
-                'total_patients'       => (int)$row['total_patients'],
-                'carried_forward_patients'  => (int)($row['carried_forward_patients'] ?? 0),
-                'movement_expected_patients' => (int)($row['movement_expected_patients'] ?? 0),
-                'movement_variance'          => (int)($row['movement_variance'] ?? 0),
-                'admissions'           => (int)$row['admissions'],
-                'discharges'           => (int)$row['discharges'],
-                'transfers_in'         => (int)$row['transfers_in'],
-                'transfers_out'        => (int)$row['transfers_out'],
-                'deaths'               => (int)$row['deaths'],
-                'nurses_rn'            => (int)$row['nurses_rn'],
-                'nurses_tn'            => (int)$row['nurses_tn'],
-                'nurses_pn'            => (int)$row['nurses_pn'],
-                'equipment_ventilator'       => (int)($row['equipment_ventilator'] ?? 0),
-                'equipment_hfnc'             => (int)($row['equipment_hfnc'] ?? 0),
-                'working_hours'        => $row['working_hours'],
-                'required_care_hours'  => $row['required_care_hours'],
-                'productivity'         => $row['productivity'] !== null ? round((float)$row['productivity'], 2) : null,
-                'recorder_username'    => $row['recorder_username'] ?? '—',
-                'updated_at'           => $row['updated_at'],
-            ];
+        return view('census/productivity', [
+            'title' => 'Productivity',
+            'wards' => $wards,
+            'defaultWardId' => $defaultWardId,
+            'currentMonth' => (int) date('n'),
+            'currentYear' => (int) date('Y'),
+            'isNurse' => $this->isNurse(),
+        ]);
+    }
+
+    public function productivityData()
+    {
+        if (! auth()->loggedIn()) {
+            return $this->response->setStatusCode(401)->setJSON(['error' => 'Unauthorized']);
         }
 
-        return $this->response->setJSON(['rows' => $out]);
+        $mode = (string)($this->request->getGet('mode') ?? 'month');
+        $year = (int)($this->request->getGet('year') ?? date('Y'));
+        $month = (int)($this->request->getGet('month') ?? date('n'));
+
+        if (! in_array($mode, ['month', 'year'], true) || $year < 2000 || $year > 2100) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'ตัวกรองไม่ถูกต้อง']);
+        }
+        if ($mode === 'month' && ($month < 1 || $month > 12)) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'เดือนไม่ถูกต้อง']);
+        }
+
+        $wardId = $this->resolveHistoryWardId($this->request->getGet('ward_id'));
+        if ($wardId === null) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'ไม่มี Ward ที่สามารถดูข้อมูลได้']);
+        }
+
+        if ($mode === 'year') {
+            return $this->response->setJSON($this->buildYearProductivityPayload($wardId, $year));
+        }
+
+        return $this->response->setJSON($this->buildMonthProductivityPayload($wardId, $month, $year));
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    private function getAvailableWardsForCurrentUser(): array
+    {
+        $wards = $this->wardModel->getActiveWithDepartment();
+        $defaultWardId = null;
+
+        if ($this->isNurse()) {
+            $assignedIds = array_map('intval', $this->userWardModel->getWardIdsForUser((int)auth()->id()));
+            $wards = array_values(array_filter($wards, fn($w) => in_array((int)$w['id'], $assignedIds, true)));
+            if (count($assignedIds) === 1) {
+                $defaultWardId = (int)$assignedIds[0];
+            }
+        }
+
+        if ($defaultWardId === null && ! empty($wards)) {
+            $defaultWardId = (int)$wards[0]['id'];
+        }
+
+        return [$wards, $defaultWardId];
+    }
+
+    private function resolveHistoryWardId($wardIdRaw): ?int
+    {
+        [$wards, $defaultWardId] = $this->getAvailableWardsForCurrentUser();
+        $allowedIds = array_map(static fn($ward) => (int)$ward['id'], $wards);
+        $wardId = ($wardIdRaw !== null && $wardIdRaw !== '') ? (int)$wardIdRaw : $defaultWardId;
+
+        if ($wardId === null || $wardId <= 0 || ! in_array($wardId, $allowedIds, true)) {
+            return null;
+        }
+
+        return $wardId;
+    }
+
+    private function buildMonthHistoryPayload(int $wardId, int $month, int $year): array
+    {
+        $dateFrom = sprintf('%04d-%02d-01', $year, $month);
+        $dateTo = date('Y-m-t', strtotime($dateFrom));
+        $rows = $this->censusModel->getHistoryForList($wardId, $dateFrom, $dateTo, 120);
+
+        $days = [];
+        $lastDay = (int)date('t', strtotime($dateFrom));
+        for ($day = 1; $day <= $lastDay; $day++) {
+            $date = sprintf('%04d-%02d-%02d', $year, $month, $day);
+            $days[$date] = [
+                'date' => $date,
+                'day_label' => date('d/m/Y', strtotime($date)),
+                'weekday_label' => $this->thaiWeekdayLabel($date),
+                'shifts' => [
+                    'Night' => null,
+                    'Morning' => null,
+                    'Afternoon' => null,
+                ],
+            ];
+        }
+
+        foreach ($rows as $row) {
+            $date = $row['record_date'];
+            $shift = $row['shift'];
+            if (isset($days[$date]['shifts'][$shift])) {
+                $days[$date]['shifts'][$shift] = $this->formatHistoryShift($row);
+            }
+        }
+
+        return [
+            'mode' => 'month',
+            'ward_id' => $wardId,
+            'month' => $month,
+            'year' => $year,
+            'days' => array_values($days),
+            'summary' => $this->summarizeRows($rows),
+        ];
+    }
+
+    private function buildMonthProductivityPayload(int $wardId, int $month, int $year): array
+    {
+        $dateFrom = sprintf('%04d-%02d-01', $year, $month);
+        $dateTo = date('Y-m-t', strtotime($dateFrom));
+        $rows = $this->censusModel->getHistoryForList($wardId, $dateFrom, $dateTo, 120);
+        $daily = $this->buildDailyProductivityRows($rows);
+
+        return [
+            'mode' => 'month',
+            'ward_id' => $wardId,
+            'month' => $month,
+            'year' => $year,
+            'days' => array_values($daily),
+            'summary' => $this->summarizeProductivityRows(array_values($daily)),
+        ];
+    }
+
+    private function buildYearProductivityPayload(int $wardId, int $year): array
+    {
+        $rows = $this->censusModel->getHistoryForList($wardId, "{$year}-01-01", "{$year}-12-31", 1200);
+        $daily = $this->buildDailyProductivityRows($rows);
+        $months = [];
+
+        for ($month = 1; $month <= 12; $month++) {
+            $months[$month] = [
+                'month' => $month,
+                'month_label' => $this->thaiMonthLabel($month),
+                'recorded_days' => 0,
+                'recorded_shifts' => 0,
+                'patient_days' => 0,
+                'required_care_hours' => 0.0,
+                'working_hours' => 0.0,
+                'productivity' => null,
+                'admissions' => 0,
+                'discharges' => 0,
+                'transfers_in' => 0,
+                'transfers_out' => 0,
+                'deaths' => 0,
+            ];
+        }
+
+        foreach ($daily as $day) {
+            $month = (int)date('n', strtotime($day['date']));
+            $months[$month]['recorded_days']++;
+            $months[$month]['recorded_shifts'] += $day['recorded_shifts'];
+            $months[$month]['patient_days'] += $day['patient_days'];
+            $months[$month]['required_care_hours'] += $day['required_care_hours'];
+            $months[$month]['working_hours'] += $day['working_hours'];
+            $months[$month]['admissions'] += $day['admissions'];
+            $months[$month]['discharges'] += $day['discharges'];
+            $months[$month]['transfers_in'] += $day['transfers_in'];
+            $months[$month]['transfers_out'] += $day['transfers_out'];
+            $months[$month]['deaths'] += $day['deaths'];
+        }
+
+        foreach ($months as &$monthRow) {
+            $monthRow['required_care_hours'] = round($monthRow['required_care_hours'], 2);
+            $monthRow['working_hours'] = round($monthRow['working_hours'], 2);
+            $monthRow['productivity'] = $monthRow['working_hours'] > 0 && $monthRow['required_care_hours'] > 0
+                ? round(($monthRow['required_care_hours'] * 100) / $monthRow['working_hours'], 2)
+                : null;
+        }
+        unset($monthRow);
+
+        return [
+            'mode' => 'year',
+            'ward_id' => $wardId,
+            'year' => $year,
+            'months' => array_values($months),
+            'summary' => $this->summarizeProductivityRows(array_values($daily)),
+        ];
+    }
+
+    private function buildDailyProductivityRows(array $rows): array
+    {
+        $byDate = [];
+        foreach ($rows as $row) {
+            $byDate[$row['record_date']][$row['shift']] = $row;
+        }
+
+        ksort($byDate);
+        $daily = [];
+        foreach ($byDate as $date => $shifts) {
+            $patientDayRow = $this->pickShiftRow($shifts, ['Night', 'Afternoon', 'Morning']);
+            $careRow = $this->pickShiftRow($shifts, ['Afternoon', 'Night', 'Morning']);
+            $requiredCareHours = $careRow ? $this->requiredCareHoursFromRow($careRow) : 0.0;
+            $workingHours = 0.0;
+            $admissions = 0;
+            $discharges = 0;
+            $transfersIn = 0;
+            $transfersOut = 0;
+            $deaths = 0;
+
+            foreach ($shifts as $shiftRow) {
+                $workingHours += (float)($shiftRow['working_hours'] ?? 0);
+                $admissions += (int)$shiftRow['admissions'];
+                $discharges += (int)$shiftRow['discharges'];
+                $transfersIn += (int)$shiftRow['transfers_in'];
+                $transfersOut += (int)$shiftRow['transfers_out'];
+                $deaths += (int)$shiftRow['deaths'];
+            }
+
+            $daily[$date] = [
+                'date' => $date,
+                'day_label' => date('d/m/Y', strtotime($date)),
+                'weekday_label' => $this->thaiWeekdayLabel($date),
+                'patient_days' => (int)($patientDayRow['total_patients'] ?? 0),
+                'patient_day_shift' => $patientDayRow['shift'] ?? null,
+                'care_shift' => $careRow['shift'] ?? null,
+                'recorded_shifts' => count($shifts),
+                'required_care_hours' => round($requiredCareHours, 2),
+                'working_hours' => round($workingHours, 2),
+                'productivity' => $workingHours > 0 && $requiredCareHours > 0
+                    ? round(($requiredCareHours * 100) / $workingHours, 2)
+                    : null,
+                'admissions' => $admissions,
+                'discharges' => $discharges,
+                'transfers_in' => $transfersIn,
+                'transfers_out' => $transfersOut,
+                'deaths' => $deaths,
+            ];
+        }
+
+        return $daily;
+    }
+
+    private function pickShiftRow(array $shifts, array $priority): ?array
+    {
+        foreach ($priority as $shift) {
+            if (isset($shifts[$shift])) {
+                return $shifts[$shift];
+            }
+        }
+
+        return null;
+    }
+
+    private function requiredCareHoursFromRow(array $row): float
+    {
+        if ((float)($row['required_care_hours'] ?? 0) > 0) {
+            return (float)$row['required_care_hours'];
+        }
+
+        $hours = 0.0;
+        foreach (CensusModel::LEVEL_HOURS as $level => $hourPerPatient) {
+            $hours += (int)($row["patients_level_{$level}"] ?? 0) * $hourPerPatient;
+        }
+
+        return $hours;
+    }
+
+    private function summarizeProductivityRows(array $rows): array
+    {
+        $summary = [
+            'recorded_days' => count($rows),
+            'recorded_shifts' => 0,
+            'patient_days' => 0,
+            'required_care_hours' => 0.0,
+            'working_hours' => 0.0,
+            'productivity' => null,
+            'admissions' => 0,
+            'discharges' => 0,
+            'transfers_in' => 0,
+            'transfers_out' => 0,
+            'deaths' => 0,
+        ];
+
+        foreach ($rows as $row) {
+            $summary['recorded_shifts'] += $row['recorded_shifts'];
+            $summary['patient_days'] += $row['patient_days'];
+            $summary['required_care_hours'] += $row['required_care_hours'];
+            $summary['working_hours'] += $row['working_hours'];
+            $summary['admissions'] += $row['admissions'];
+            $summary['discharges'] += $row['discharges'];
+            $summary['transfers_in'] += $row['transfers_in'];
+            $summary['transfers_out'] += $row['transfers_out'];
+            $summary['deaths'] += $row['deaths'];
+        }
+
+        $summary['required_care_hours'] = round($summary['required_care_hours'], 2);
+        $summary['working_hours'] = round($summary['working_hours'], 2);
+        $summary['productivity'] = $summary['working_hours'] > 0 && $summary['required_care_hours'] > 0
+            ? round(($summary['required_care_hours'] * 100) / $summary['working_hours'], 2)
+            : null;
+
+        return $summary;
+    }
+
+    private function formatHistoryShift(array $row): array
+    {
+        $shiftLabels = ['Night' => 'ดึก', 'Morning' => 'เช้า', 'Afternoon' => 'บ่าย'];
+        $shift = $row['shift'] ?? '';
+
+        return [
+            'id' => (int)$row['id'],
+            'shift' => $shift,
+            'shift_label' => $shiftLabels[$shift] ?? $shift,
+            'total_patients' => (int)$row['total_patients'],
+            'admissions' => (int)$row['admissions'],
+            'discharges' => (int)$row['discharges'],
+            'transfers_in' => (int)$row['transfers_in'],
+            'transfers_out' => (int)$row['transfers_out'],
+            'deaths' => (int)$row['deaths'],
+            'nurses_rn' => (int)$row['nurses_rn'],
+            'nurses_tn' => (int)$row['nurses_tn'],
+            'nurses_pn' => (int)$row['nurses_pn'],
+            'working_hours' => (float)($row['working_hours'] ?? 0),
+            'productivity' => $row['productivity'] !== null ? round((float)$row['productivity'], 2) : null,
+            'recorder_username' => $row['recorder_username'] ?? '—',
+            'updated_at' => $row['updated_at'],
+        ];
+    }
+
+    private function summarizeRows(array $rows): array
+    {
+        $summary = [
+            'recorded_shifts' => count($rows),
+            'total_patients_sum' => 0,
+            'admissions' => 0,
+            'discharges' => 0,
+            'transfers_in' => 0,
+            'transfers_out' => 0,
+            'deaths' => 0,
+        ];
+
+        foreach ($rows as $row) {
+            $summary['total_patients_sum'] += (int)$row['total_patients'];
+            $summary['admissions'] += (int)$row['admissions'];
+            $summary['discharges'] += (int)$row['discharges'];
+            $summary['transfers_in'] += (int)$row['transfers_in'];
+            $summary['transfers_out'] += (int)$row['transfers_out'];
+            $summary['deaths'] += (int)$row['deaths'];
+        }
+
+        return $summary;
+    }
+
+    private function thaiWeekdayLabel(string $date): string
+    {
+        $labels = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+        return $labels[(int)date('w', strtotime($date))] ?? '';
+    }
+
+    private function thaiMonthLabel(int $month): string
+    {
+        $labels = [
+            1 => 'มกราคม', 2 => 'กุมภาพันธ์', 3 => 'มีนาคม', 4 => 'เมษายน',
+            5 => 'พฤษภาคม', 6 => 'มิถุนายน', 7 => 'กรกฎาคม', 8 => 'สิงหาคม',
+            9 => 'กันยายน', 10 => 'ตุลาคม', 11 => 'พฤศจิกายน', 12 => 'ธันวาคม',
+        ];
+
+        return $labels[$month] ?? (string)$month;
+    }
 
     private function isNurse(): bool
     {

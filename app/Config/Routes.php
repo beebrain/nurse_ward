@@ -34,6 +34,9 @@ $routes->group('census', ['filter' => 'permission:census.record'], static functi
     $routes->get('/', '\App\Controllers\CensusController::index');
     $routes->get('new', '\App\Controllers\CensusController::create');
     $routes->get('history', '\App\Controllers\CensusController::history');
+    $routes->get('history-data', '\App\Controllers\CensusController::historyData');
+    $routes->get('productivity', '\App\Controllers\CensusController::productivity');
+    $routes->get('productivity-data', '\App\Controllers\CensusController::productivityData');
     $routes->get('movement-context', '\App\Controllers\CensusController::movementContext');
     $routes->post('store', '\App\Controllers\CensusController::store');
     $routes->post('autosave', '\App\Controllers\CensusController::autosave');

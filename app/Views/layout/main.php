@@ -383,6 +383,10 @@ $currentUrl = current_url();
 $navItems = [];
 if (auth()->loggedIn()) {
     $navItems[] = ['label' => 'บันทึกยอดรายวัน', 'icon' => 'clinical_notes', 'url' => base_url('census')];
+    if (auth()->user()->can('census.record')) {
+        $navItems[] = ['label' => 'ประวัติย้อนหลัง', 'icon' => 'history', 'url' => base_url('census/history')];
+        $navItems[] = ['label' => 'Productivity', 'icon' => 'monitoring', 'url' => base_url('census/productivity')];
+    }
     if (auth()->user()->can('reports.view')) {
         $navItems[] = ['label' => 'สรุปรายเดือน', 'icon' => 'summarize', 'url' => base_url('reports/monthly')];
         $navItems[] = ['label' => 'ตารางรายวัน', 'icon' => 'table_chart', 'url' => base_url('reports/daily-summary')];
