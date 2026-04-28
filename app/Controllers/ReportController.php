@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Models\UserWardModel;
 use App\Models\WardModel;
 use App\Services\ReportService;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -11,11 +12,13 @@ class ReportController extends BaseController
 {
     protected $reportService;
     protected $wardModel;
+    protected $userWardModel;
 
     public function __construct()
     {
         $this->reportService = new ReportService();
         $this->wardModel = new WardModel();
+        $this->userWardModel = new UserWardModel();
     }
 
     /**
@@ -31,6 +34,17 @@ class ReportController extends BaseController
         ];
         
         return view('reports/monthly_summary', $data);
+    }
+
+    /**
+     * Display read-only nurse ward assignment report.
+     */
+    public function userWards()
+    {
+        return view('reports/user_wards', [
+            'title' => 'รายงานผู้รับผิดชอบแผนก',
+            'assignments' => $this->userWardModel->getNurseAssignmentReport(),
+        ]);
     }
 
     /**

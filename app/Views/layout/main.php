@@ -386,6 +386,7 @@ if (auth()->loggedIn()) {
     if (auth()->user()->can('reports.view')) {
         $navItems[] = ['label' => 'สรุปรายเดือน', 'icon' => 'summarize', 'url' => base_url('reports/monthly')];
         $navItems[] = ['label' => 'ตารางรายวัน', 'icon' => 'table_chart', 'url' => base_url('reports/daily-summary')];
+        $navItems[] = ['label' => 'ผู้รับผิดชอบแผนก', 'icon' => 'assignment_ind', 'url' => base_url('reports/user-wards')];
         $navItems[] = ['label' => 'แดชบอร์ด', 'icon' => 'dashboard', 'url' => base_url('reports/dashboard')];
     }
     if (auth()->user()->can('wards.manage')) {

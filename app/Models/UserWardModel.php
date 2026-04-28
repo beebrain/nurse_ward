@@ -102,4 +102,29 @@ class UserWardModel extends Model
 
         return $rows;
     }
+
+    /**
+     * Returns nurse-to-ward assignment rows for read-only reporting.
+     */
+    public function getNurseAssignmentReport(): array
+    {
+        return $this->db->query("
+            SELECT
+                u.id,
+                u.username,
+                ai.secret AS email,
+                u.approval_status,
+                d.short_name AS department_name,
+                w.code AS ward_code,
+                w.name AS ward_name,
+                uwa.created_at AS assigned_at
+            FROM users u
+            JOIN auth_groups_users agu ON agu.user_id = u.id AND agu.group = 'nurse'
+            LEFT JOIN auth_identities ai ON ai.user_id = u.id AND ai.type = 'email_password'
+            LEFT JOIN user_ward_assignments uwa ON uwa.user_id = u.id
+            LEFT JOIN wards w ON w.id = uwa.ward_id
+            LEFT JOIN departments d ON d.id = w.department_id
+            ORDER BY u.username, d.sort_order, w.code
+        ")->getResultArray();
+    }
 }

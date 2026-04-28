@@ -41,6 +41,7 @@ $routes->group('census', ['filter' => 'permission:census.record'], static functi
 
 $routes->group('reports', ['filter' => 'permission:reports.view'], static function ($routes) {
     $routes->get('monthly', '\App\Controllers\ReportController::monthly');
+    $routes->get('user-wards', '\App\Controllers\ReportController::userWards');
     $routes->get('daily-summary', '\App\Controllers\ReportController::dailySummary');
     $routes->get('getData', '\App\Controllers\ReportController::getData');
     $routes->get('export', '\App\Controllers\ReportController::export');
