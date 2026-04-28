@@ -105,7 +105,7 @@ class ImportExportController extends BaseController
             $sheet->setCellValue('F' . $rowNum, $row['transfers_in']);
             $sheet->setCellValue('G' . $rowNum, $row['transfers_out']);
             $sheet->setCellValue('H' . $rowNum, $row['deaths']);
-            $sheet->setCellValue('I' . $rowNum, $row['total_remaining']);
+            $sheet->setCellValue('I' . $rowNum, $row['total_patients'] ?? $row['total_remaining'] ?? 0);
 
             $dataStyle = ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]];
             $sheet->getStyle('A' . $rowNum . ':I' . $rowNum)->applyFromArray($dataStyle);
@@ -307,7 +307,7 @@ class ImportExportController extends BaseController
                     'transfers_in'    => $transfersIn,
                     'transfers_out'   => $transfersOut,
                     'deaths'          => $deaths,
-                    'total_remaining' => $totalRemain,
+                    'total_patients'  => $totalRemain,
                 ]);
             } else {
                 $this->censusModel->insert([
@@ -319,7 +319,7 @@ class ImportExportController extends BaseController
                     'transfers_in'    => $transfersIn,
                     'transfers_out'   => $transfersOut,
                     'deaths'          => $deaths,
-                    'total_remaining' => $totalRemain,
+                    'total_patients'  => $totalRemain,
                     'created_by'      => auth()->id(),
                 ]);
             }

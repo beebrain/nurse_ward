@@ -82,7 +82,7 @@ class ReportService
             $dailyData[$date]['transfers_in'] += (int)$row['transfers_in'];
             $dailyData[$date]['transfers_out'] += (int)$row['transfers_out'];
             $dailyData[$date]['deaths'] += (int)$row['deaths'];
-            $dailyData[$date]['shifts'][$row['shift']] = (int)$row['total_remaining'];
+            $dailyData[$date]['shifts'][$row['shift']] = $this->censusTotalPatients($row);
         }
 
         foreach ($dailyData as $date => $data) {
@@ -387,7 +387,7 @@ class ReportService
             $daily[$date]['transfers_in'] += (int) $row['transfers_in'];
             $daily[$date]['transfers_out'] += (int) $row['transfers_out'];
             $daily[$date]['deaths'] += (int) $row['deaths'];
-            $daily[$date]['shifts'][$row['shift']] = (int) $row['total_remaining'];
+            $daily[$date]['shifts'][$row['shift']] = $this->censusTotalPatients($row);
         }
 
         foreach ($daily as &$day) {
@@ -458,7 +458,7 @@ class ReportService
 
         $shifts = [];
         foreach ($rows as $r) {
-            $shifts[$r['shift']] = (int) $r['total_remaining'];
+            $shifts[$r['shift']] = $this->censusTotalPatients($r);
         }
 
         $occupancy  = 0;
@@ -518,5 +518,10 @@ class ReportService
         }
 
         return $out;
+    }
+
+    private function censusTotalPatients(array $row): int
+    {
+        return (int)($row['total_patients'] ?? $row['total_remaining'] ?? 0);
     }
 }
