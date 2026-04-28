@@ -63,11 +63,11 @@
                         <div class="form-text">อย่างน้อย 8 ตัวอักษร</div>
                     </div>
 
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label class="form-label fw-semibold">บทบาท (Role) <span class="text-danger">*</span></label>
-                        <select name="role" class="form-select" required>
+                        <select name="role" id="roleSelect" class="form-select" required>
                             <option value="nurse" <?= old('role') === 'nurse' ? 'selected' : '' ?>>
-                                Nurse — บันทึกยอดรายวัน
+                                ผู้กรอกข้อมูลประจำ Ward
                             </option>
                             <option value="manager" <?= old('role') === 'manager' ? 'selected' : '' ?>>
                                 Manager — ดูรายงานและแดชบอร์ด
@@ -76,6 +76,29 @@
                                 Super Admin — ควบคุมระบบทั้งหมด
                             </option>
                         </select>
+                    </div>
+
+                    <div class="mb-4" id="wardSelectWrap">
+                        <label class="form-label fw-semibold">Ward ที่รับผิดชอบ <span class="text-danger">*</span></label>
+                        <select name="ward_id" id="wardSelect" class="form-select">
+                            <option value="">— เลือก Ward —</option>
+                            <?php
+                            $currentDept = '';
+                            foreach ($wards as $ward):
+                                $dept = $ward['department_name'] ?? 'ไม่ระบุกลุ่มงาน';
+                                if ($dept !== $currentDept):
+                                    if ($currentDept !== '') echo '</optgroup>';
+                                    echo '<optgroup label="' . esc($dept) . '">';
+                                    $currentDept = $dept;
+                                endif;
+                            ?>
+                                <option value="<?= $ward['id'] ?>" <?= old('ward_id') == $ward['id'] ? 'selected' : '' ?>>
+                                    <?= esc(($ward['code'] ? $ward['code'] . ' — ' : '') . $ward['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                            <?php if ($currentDept !== '') echo '</optgroup>'; ?>
+                        </select>
+                        <div class="form-text">ผู้กรอกข้อมูล 1 คนจะเห็นและบันทึกได้เฉพาะ Ward นี้เท่านั้น</div>
                     </div>
 
                     <div class="d-flex gap-2">
@@ -103,6 +126,20 @@ document.getElementById('togglePwd').addEventListener('click', function() {
         icon.textContent = 'visibility';
     }
 });
+
+const roleSelect = document.getElementById('roleSelect');
+const wardSelectWrap = document.getElementById('wardSelectWrap');
+const wardSelect = document.getElementById('wardSelect');
+function syncWardSelect() {
+    const isNurse = roleSelect.value === 'nurse';
+    wardSelectWrap.style.display = isNurse ? '' : 'none';
+    wardSelect.required = isNurse;
+    if (!isNurse) {
+        wardSelect.value = '';
+    }
+}
+roleSelect.addEventListener('change', syncWardSelect);
+syncWardSelect();
 </script>
 
 <?= $this->endSection() ?>

@@ -46,6 +46,26 @@ class UserWardModel extends Model
         return $this->where('user_id', $userId)->where('ward_id', $wardId)->countAllResults() > 0;
     }
 
+    public function getAssignedUserForWard(int $wardId, ?int $excludeUserId = null): ?array
+    {
+        $builder = $this->db->table('user_ward_assignments uwa')
+            ->select('u.id, u.username')
+            ->join('users u', 'u.id = uwa.user_id')
+            ->join('auth_groups_users agu', "agu.user_id = u.id AND agu.group = 'nurse'")
+            ->where('uwa.ward_id', $wardId);
+
+        if ($excludeUserId !== null) {
+            $builder->where('u.id !=', $excludeUserId);
+        }
+
+        return $builder->get(1)->getRowArray() ?: null;
+    }
+
+    public function wardIsAssignedToAnotherUser(int $wardId, int $userId): bool
+    {
+        return $this->getAssignedUserForWard($wardId, $userId) !== null;
+    }
+
     /** Replace all ward assignments for a user atomically. */
     public function syncUserWards(int $userId, array $wardIds): void
     {

@@ -32,7 +32,7 @@
 
     <div class="alert alert-info mb-3">
       <span class="material-symbols-outlined align-middle me-1">info</span>
-      Nurse สามารถบันทึกข้อมูลได้เฉพาะ Ward ที่กำหนดเท่านั้น | Manager และ Superadmin บันทึกได้ทุก Ward
+      ผู้กรอกข้อมูล 1 คนกำหนดได้ 1 Ward เท่านั้น และจะเห็น/บันทึกได้เฉพาะ Ward ที่รับผิดชอบ
     </div>
 
     <div class="card shadow-sm">
@@ -84,7 +84,7 @@
                       <?php if ((int)$nurse['ward_count'] === 0): ?>
                         <span class="text-danger small"><span class="material-symbols-outlined align-middle" style="font-size:.9rem;">warning</span> ยังไม่ได้กำหนด Ward</span>
                       <?php else: ?>
-                        <span class="badge bg-primary me-1"><?= (int)$nurse['ward_count'] ?> Ward</span>
+                        <span class="badge bg-primary me-1">Default Ward</span>
                         <span class="text-muted small"><?= esc($nurse['wards_list']) ?></span>
                       <?php endif; ?>
                     </td>

@@ -727,6 +727,19 @@
     font-weight: 800;
   }
 
+  .carry-forward-note {
+    align-items: center;
+    background: rgba(0, 93, 172, .08);
+    border: 1px solid rgba(0, 93, 172, .12);
+    border-radius: 999px;
+    color: var(--template-primary);
+    display: inline-flex;
+    font-size: .82rem;
+    font-weight: 700;
+    gap: .35rem;
+    padding: .45rem .8rem;
+  }
+
   .daily-census-template .stat-input,
   .daily-census-template .qi-input {
     background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%) !important;
@@ -884,7 +897,7 @@
               $currentDept = $dept;
             endif;
           ?>
-            <option value="<?= $w['id'] ?>" <?= old('ward_id') == $w['id'] ? 'selected' : '' ?>>
+            <option value="<?= $w['id'] ?>" <?= (int)old('ward_id', $defaultWardId ?? 0) === (int)$w['id'] ? 'selected' : '' ?>>
               <?= esc($w['code'] ? $w['code'] . ' — ' . $w['name'] : $w['name']) ?>
             </option>
           <?php endforeach; ?>
@@ -907,6 +920,11 @@
           <option value="Afternoon" <?= old('shift') === 'Afternoon' ? 'selected' : '' ?>>บ่าย (Afternoon)</option>
         </select>
       </div>
+    </div>
+
+    <div id="carry_forward_note" class="carry-forward-note mb-3 d-none">
+      <span class="material-symbols-outlined" style="font-size:1rem;">update</span>
+      <span id="carry_forward_note_text">ยอดยกมาจากเวรก่อนหน้า 0 คน</span>
     </div>
 
     <!-- ── Section 1: Patient Levels ────────────────────────────────── -->
@@ -1391,11 +1409,31 @@
     status.className = 'small mt-2 ' + (variance === 0 ? 'text-success' : 'text-warning');
     if (!hasCarryForwardSource) {
       status.className = 'small text-muted mt-2';
-      status.textContent = 'ยังไม่พบเวรก่อนหน้า ระบบใช้ยอดยกมา 0';
+      status.textContent = 'ยังไม่พบเวรก่อนหน้า ระบบใช้ยอดยกมา 0 และถือเป็นข้อมูลตั้งต้น';
     } else if (variance === 0) {
       status.textContent = 'ยอดคงอยู่สัมพันธ์กับยอดยกมาและการเคลื่อนไหวผู้ป่วย';
     } else {
       status.textContent = `ยอดคงอยู่ต่างจากยอดคาดการณ์ ${variance > 0 ? '+' : ''}${variance} คน กรุณาตรวจสอบ movement หรือยอด Level`;
+    }
+  }
+
+  function updateCarryForwardNote(context = null) {
+    const note = document.getElementById('carry_forward_note');
+    const text = document.getElementById('carry_forward_note_text');
+    if (!note || !text) {
+      return;
+    }
+
+    if (!context || !context.success) {
+      note.classList.add('d-none');
+      return;
+    }
+
+    note.classList.remove('d-none');
+    if (context.has_previous) {
+      text.textContent = `ยกยอดมาจากเวร ${context.previous_shift} วันที่ ${context.previous_date} จำนวน ${carriedForwardPatients} คน`;
+    } else {
+      text.textContent = 'ยังไม่มีเวรก่อนหน้า เวรนี้เริ่มต้นด้วยยอดยกมา 0 คน';
     }
   }
 
@@ -1409,6 +1447,7 @@
       carriedForwardPatients = 0;
       hasCarryForwardSource = false;
       setShiftLock(false);
+      updateCarryForwardNote(null);
       status.className = 'small text-muted mt-2';
       status.textContent = 'เลือก Ward / วันที่ / Shift เพื่อดึงยอดยกมาจากเวรก่อนหน้า';
       updateMovementBalance();
@@ -1425,6 +1464,7 @@
       const json = await resp.json();
       carriedForwardPatients = json.success ? parseInt(json.carried_forward_patients, 10) || 0 : 0;
       hasCarryForwardSource = Boolean(json.success && json.has_previous);
+      updateCarryForwardNote(json);
 
       if (json.success && json.has_current) {
         applyCurrentRecord(json.current_record);
@@ -1443,6 +1483,7 @@
       carriedForwardPatients = 0;
       hasCarryForwardSource = false;
       setShiftLock(false);
+      updateCarryForwardNote(null);
       status.className = 'small text-danger mt-2';
       status.textContent = 'ดึงยอดยกมาไม่สำเร็จ';
       return;
@@ -1527,11 +1568,26 @@
   }
 
   function checkWindowWarning() {
-    if (!IS_NURSE) return;
     const dateStr = document.getElementById('record_date').value;
     const shift = document.getElementById('shift').value;
     const warn = document.getElementById('window_warning');
     if (!warn) return;
+    if (!dateStr || !shift) {
+      warn.classList.add('d-none');
+      return;
+    }
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const shiftStart = new Date(y, m - 1, d, SHIFT_START_HOUR[shift] ?? 0, 0, 0);
+    if (new Date() < shiftStart) {
+      const fmt = shiftStart.toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+      warn.textContent = `ยังไม่ถึงเวลาเริ่มเวรนี้ (เริ่ม ${fmt}) จึงยังไม่สามารถบันทึกได้`;
+      warn.classList.remove('d-none');
+      return;
+    }
+    if (!IS_NURSE) {
+      warn.classList.add('d-none');
+      return;
+    }
     const deadline = getShiftDeadline(dateStr, shift);
     if (!deadline) {
       warn.classList.add('d-none');
@@ -1573,6 +1629,13 @@
     if (!IS_NURSE) return;
     const dateStr = document.getElementById('record_date').value;
     const shift = document.getElementById('shift').value;
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const shiftStart = new Date(y, m - 1, d, SHIFT_START_HOUR[shift] ?? 0, 0, 0);
+    if (new Date() < shiftStart) {
+      e.preventDefault();
+      alert('ยังไม่ถึงเวลาเริ่มเวรนี้ จึงยังไม่สามารถบันทึกได้');
+      return;
+    }
     const deadline = getShiftDeadline(dateStr, shift);
     if (deadline && new Date() > deadline) {
       e.preventDefault();

@@ -8,10 +8,6 @@
                 <span class="material-symbols-outlined" style="color:var(--primary);font-size:2rem;">group</span>
                 <h1 class="mb-0"><?= esc($title) ?></h1>
             </div>
-            <a href="<?= base_url('admin/nurse-wards') ?>" class="btn btn-outline-success me-2">
-                <span class="material-symbols-outlined align-middle me-1">assignment_ind</span>
-                สิทธิ์ Ward ของ Nurse
-            </a>
             <a href="<?= base_url('admin/users/create') ?>" class="btn btn-primary">
                 <span class="material-symbols-outlined align-middle me-1">person_add</span>
                 เพิ่มผู้ใช้งาน
@@ -42,7 +38,7 @@
                             <tr>
                                 <th class="ps-3">ผู้ใช้งาน</th>
                                 <th>อีเมล</th>
-                                <th>บทบาท</th>
+                                <th style="min-width: 360px;">สิทธิ์การเข้าถึง</th>
                                 <th>สถานะ</th>
                                 <th class="text-end pe-3">การจัดการ</th>
                             </tr>
@@ -58,22 +54,53 @@
                                     </td>
                                     <td class="text-muted small"><?= esc($user->email) ?></td>
                                     <td>
-                                        <?php $groups = $user->getGroups(); ?>
-                                        <?php foreach ($groups as $group): ?>
-                                            <?php
-                                            $badgeClass = match($group) {
-                                                'superadmin' => 'bg-primary',
-                                                'manager'    => 'bg-info text-dark',
-                                                default      => 'bg-secondary',
-                                            };
-                                            $groupLabel = match($group) {
-                                                'superadmin' => 'Super Admin',
-                                                'manager'    => 'Manager',
-                                                default      => 'Nurse',
-                                            };
-                                            ?>
-                                            <span class="badge <?= $badgeClass ?>"><?= $groupLabel ?></span>
-                                        <?php endforeach; ?>
+                                        <?php
+                                        $groups = $user->getGroups();
+                                        $currentRole = $groups[0] ?? 'nurse';
+                                        $assignedWardId = (int)($assignedWardIds[(int)$user->id] ?? 0);
+                                        ?>
+                                        <form action="<?= base_url('admin/users/access/' . $user->id) ?>" method="post" class="user-access-form">
+                                            <?= csrf_field() ?>
+                                            <div class="row g-2 align-items-center">
+                                                <div class="col-lg-5">
+                                                    <select name="role" class="form-select form-select-sm access-role-select" data-user-id="<?= $user->id ?>">
+                                                        <option value="superadmin" <?= $currentRole === 'superadmin' ? 'selected' : '' ?>>Super Admin</option>
+                                                        <option value="manager" <?= $currentRole === 'manager' ? 'selected' : '' ?>>Manager</option>
+                                                        <option value="nurse" <?= $currentRole === 'nurse' ? 'selected' : '' ?>>ผู้กรอกข้อมูลประจำ Ward</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-lg-5">
+                                                    <select name="ward_id" class="form-select form-select-sm access-ward-select" data-user-id="<?= $user->id ?>">
+                                                        <option value="">— เลือก Ward —</option>
+                                                        <?php
+                                                        $currentDept = '';
+                                                        foreach ($wards as $ward):
+                                                            $dept = $ward['department_name'] ?? 'ไม่ระบุกลุ่มงาน';
+                                                            if ($dept !== $currentDept):
+                                                                if ($currentDept !== '') echo '</optgroup>';
+                                                                echo '<optgroup label="' . esc($dept) . '">';
+                                                                $currentDept = $dept;
+                                                            endif;
+                                                            $wardOwner = (int)($wardOwners[(int)$ward['id']] ?? 0);
+                                                            $disabled = $wardOwner !== 0 && $wardOwner !== (int)$user->id;
+                                                        ?>
+                                                            <option value="<?= $ward['id'] ?>"
+                                                                <?= $assignedWardId === (int)$ward['id'] ? 'selected' : '' ?>
+                                                                <?= $disabled ? 'disabled' : '' ?>>
+                                                                <?= esc(($ward['code'] ? $ward['code'] . ' — ' : '') . $ward['name']) ?><?= $disabled ? ' (ถูกใช้แล้ว)' : '' ?>
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                        <?php if ($currentDept !== '') echo '</optgroup>'; ?>
+                                                    </select>
+                                                    <div class="form-text small access-help">Super Admin/Manager เข้าถึงได้ทุก Ward</div>
+                                                </div>
+                                                <div class="col-lg-2 d-grid">
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                        บันทึก
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
                                     </td>
                                     <td>
                                         <?php
@@ -119,15 +146,6 @@
                                                 </form>
                                             <?php endif; ?>
 
-                                            <!-- Ward assignment (nurses only) -->
-                                            <?php if (in_array('nurse', $user->getGroups())): ?>
-                                                <a href="<?= base_url('admin/nurse-wards/edit/' . $user->id) ?>"
-                                                   class="btn btn-sm btn-outline-teal" title="กำหนด Ward"
-                                                   style="color:#0f9b6a;border-color:#0f9b6a;">
-                                                    <span class="material-symbols-outlined" style="font-size:.9rem;">assignment_ind</span>
-                                                </a>
-                                            <?php endif; ?>
-
                                             <!-- Edit -->
                                             <a href="<?= base_url('admin/users/edit/' . $user->id) ?>"
                                                class="btn btn-sm btn-outline-primary" title="แก้ไข">
@@ -155,4 +173,32 @@
         </div>
     </div>
 </div>
+<script>
+function syncAccessRow(roleSelect) {
+    const userId = roleSelect.dataset.userId;
+    const wardSelect = document.querySelector(`.access-ward-select[data-user-id="${userId}"]`);
+    const help = wardSelect?.closest('.col-lg-5')?.querySelector('.access-help');
+    const isNurse = roleSelect.value === 'nurse';
+
+    if (!wardSelect) {
+        return;
+    }
+
+    wardSelect.disabled = !isNurse;
+    wardSelect.required = isNurse;
+    if (!isNurse) {
+        wardSelect.value = '';
+    }
+    if (help) {
+        help.textContent = isNurse
+            ? 'เลือกได้ 1 Ward และจะเห็นเฉพาะ Ward นี้'
+            : 'Super Admin/Manager เข้าถึงได้ทุก Ward';
+    }
+}
+
+document.querySelectorAll('.access-role-select').forEach(select => {
+    select.addEventListener('change', () => syncAccessRow(select));
+    syncAccessRow(select);
+});
+</script>
 <?= $this->endSection() ?>

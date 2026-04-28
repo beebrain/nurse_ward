@@ -64,6 +64,7 @@ $routes->group('admin', ['filter' => 'group:superadmin'], static function ($rout
         $routes->post('store', '\App\Controllers\Admin\UserController::store');
         $routes->get('edit/(:num)', '\App\Controllers\Admin\UserController::edit/$1');
         $routes->post('update/(:num)', '\App\Controllers\Admin\UserController::update/$1');
+        $routes->post('access/(:num)', '\App\Controllers\Admin\UserController::updateAccess/$1');
         $routes->post('delete/(:num)', '\App\Controllers\Admin\UserController::delete/$1');
         $routes->post('approve/(:num)', '\App\Controllers\Admin\UserController::approve/$1');
         $routes->post('deactivate/(:num)', '\App\Controllers\Admin\UserController::deactivate/$1');

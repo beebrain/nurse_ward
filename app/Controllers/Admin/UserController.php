@@ -4,22 +4,42 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\UserModel;
+use App\Models\UserWardModel;
+use App\Models\WardModel;
 use CodeIgniter\Shield\Entities\User;
 
 class UserController extends BaseController
 {
     protected $userModel;
+    protected $userWardModel;
+    protected $wardModel;
 
     public function __construct()
     {
-        $this->userModel = new UserModel();
+        $this->userModel     = new UserModel();
+        $this->userWardModel = new UserWardModel();
+        $this->wardModel     = new WardModel();
     }
 
     public function index()
     {
+        $users = $this->userModel->findAll();
+        $assignedWardIds = [];
+        $wardOwners = [];
+        foreach ($users as $user) {
+            $wardIds = $this->userWardModel->getWardIdsForUser((int)$user->id);
+            $assignedWardIds[(int)$user->id] = $wardIds[0] ?? null;
+            foreach ($wardIds as $wardId) {
+                $wardOwners[(int)$wardId] = (int)$user->id;
+            }
+        }
+
         $data = [
-            'users' => $this->userModel->findAll(),
-            'title' => 'จัดการผู้ใช้งาน',
+            'users'           => $users,
+            'wards'           => $this->wardModel->getActiveWithDepartment(),
+            'assignedWardIds' => $assignedWardIds,
+            'wardOwners'      => $wardOwners,
+            'title'           => 'จัดการผู้ใช้งาน',
         ];
 
         return view('admin/users/index', $data);
@@ -31,6 +51,7 @@ class UserController extends BaseController
     {
         return view('admin/users/create', [
             'title' => 'เพิ่มผู้ใช้งานใหม่',
+            'wards' => $this->wardModel->getActiveWithDepartment(),
         ]);
     }
 
@@ -45,6 +66,18 @@ class UserController extends BaseController
 
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $role = (string)$this->request->getPost('role');
+        $wardId = (int)($this->request->getPost('ward_id') ?? 0);
+        if ($role === 'nurse') {
+            if ($wardId <= 0) {
+                return redirect()->back()->withInput()->with('errors', ['กรุณาเลือก Ward สำหรับผู้กรอกข้อมูล']);
+            }
+            $owner = $this->userWardModel->getAssignedUserForWard($wardId);
+            if ($owner) {
+                return redirect()->back()->withInput()->with('errors', ['Ward นี้ถูกกำหนดให้ผู้ใช้ "' . $owner['username'] . '" แล้ว']);
+            }
         }
 
         $users = auth()->getProvider();
@@ -62,7 +95,10 @@ class UserController extends BaseController
         }
 
         $newUser = $users->findById($users->getInsertID());
-        $newUser->addGroup($this->request->getPost('role'));
+        $newUser->addGroup($role);
+        if ($role === 'nurse') {
+            $this->userWardModel->syncUserWards((int)$newUser->id, [$wardId]);
+        }
 
         // Auto-approve since superadmin is creating
         $this->userModel->update($newUser->id, ['approval_status' => 'approved']);
@@ -83,6 +119,8 @@ class UserController extends BaseController
         return view('admin/users/edit', [
             'title'    => 'แก้ไขผู้ใช้งาน',
             'editUser' => $user,
+            'wards'    => $this->wardModel->getActiveWithDepartment(),
+            'assignedWardId' => $this->userWardModel->getWardIdsForUser((int)$id)[0] ?? null,
         ]);
     }
 
@@ -108,6 +146,17 @@ class UserController extends BaseController
             return redirect()->back()->with('error', 'Role ไม่ถูกต้อง');
         }
 
+        $wardId = (int)($this->request->getPost('ward_id') ?? 0);
+        if ($newRole === 'nurse') {
+            if ($wardId <= 0) {
+                return redirect()->back()->with('error', 'กรุณาเลือก Ward สำหรับผู้กรอกข้อมูล');
+            }
+            $owner = $this->userWardModel->getAssignedUserForWard($wardId, (int)$id);
+            if ($owner) {
+                return redirect()->back()->with('error', 'Ward นี้ถูกกำหนดให้ผู้ใช้ "' . $owner['username'] . '" แล้ว');
+            }
+        }
+
         // Replace all groups with new role
         $currentGroups = $user->getGroups();
         foreach ($currentGroups as $group) {
@@ -121,7 +170,56 @@ class UserController extends BaseController
             $this->userModel->update($id, ['approval_status' => $status]);
         }
 
+        if ($newRole === 'nurse') {
+            $this->userWardModel->syncUserWards((int)$id, [$wardId]);
+        } else {
+            $this->userWardModel->syncUserWards((int)$id, []);
+        }
+
         return redirect()->to('admin/users')->with('message', 'อัปเดตข้อมูลผู้ใช้งาน "' . $user->username . '" สำเร็จ');
+    }
+
+    public function updateAccess($id = null)
+    {
+        $user = $this->userModel->find($id);
+
+        if (!$user) {
+            return redirect()->to('admin/users')->with('error', 'ไม่พบผู้ใช้งาน');
+        }
+
+        $newRole = (string)$this->request->getPost('role');
+        if (!in_array($newRole, ['superadmin', 'manager', 'nurse'], true)) {
+            return redirect()->back()->with('error', 'Role ไม่ถูกต้อง');
+        }
+
+        if ($user->inGroup('superadmin') && auth()->id() === $user->id && $newRole !== 'superadmin') {
+            return redirect()->back()->with('error', 'ไม่สามารถเปลี่ยน Role ของบัญชี Superadmin ของตัวเองได้');
+        }
+
+        $wardId = (int)($this->request->getPost('ward_id') ?? 0);
+        if ($newRole === 'nurse') {
+            if ($wardId <= 0) {
+                return redirect()->back()->with('error', 'กรุณาเลือก Ward สำหรับผู้กรอกข้อมูล');
+            }
+
+            $owner = $this->userWardModel->getAssignedUserForWard($wardId, (int)$id);
+            if ($owner) {
+                return redirect()->back()->with('error', 'Ward นี้ถูกกำหนดให้ผู้ใช้ "' . $owner['username'] . '" แล้ว');
+            }
+        }
+
+        foreach ($user->getGroups() as $group) {
+            $user->removeGroup($group);
+        }
+        $user->addGroup($newRole);
+
+        if ($newRole === 'nurse') {
+            $this->userWardModel->syncUserWards((int)$id, [$wardId]);
+        } else {
+            $this->userWardModel->syncUserWards((int)$id, []);
+        }
+
+        return redirect()->to('admin/users')->with('message', 'อัปเดตสิทธิ์ของ "' . $user->username . '" สำเร็จ');
     }
 
     // ─── DELETE ──────────────────────────────────────────────────────────────

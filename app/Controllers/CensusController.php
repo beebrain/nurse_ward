@@ -41,17 +41,22 @@ class CensusController extends BaseController
     public function create()
     {
         $wards = $this->wardModel->getActiveWithDepartment();
+        $defaultWardId = null;
 
         // Nurses see only their assigned wards
         if ($this->isNurse()) {
             $assignedIds = $this->userWardModel->getWardIdsForUser((int)auth()->id());
             $wards = array_values(array_filter($wards, fn($w) => in_array((int)$w['id'], $assignedIds)));
+            if (count($assignedIds) === 1) {
+                $defaultWardId = (int)$assignedIds[0];
+            }
         }
 
         return view('census/create', [
             'wards'    => $wards,
             'title'    => 'บันทึกยอดผู้ป่วยรายวัน',
             'isNurse'  => $this->isNurse(),
+            'defaultWardId' => $defaultWardId,
         ]);
     }
 
@@ -68,10 +73,10 @@ class CensusController extends BaseController
             return redirect()->back()->withInput()->with('error', 'คุณไม่มีสิทธิ์บันทึกข้อมูลสำหรับ Ward นี้');
         }
 
-        // Time window: max 12 hours after shift start
+        // Time window: shift must have started; nurses have max 12 hours after shift start.
         if (! $this->isWithinRecordingWindow($censusData['record_date'], $censusData['shift'])) {
             return redirect()->back()->withInput()
-                ->with('error', 'ไม่สามารถบันทึกย้อนหลังเกิน 12 ชั่วโมง สำหรับกะ ' . $censusData['shift'] . ' วันที่ ' . $censusData['record_date']);
+                ->with('error', $this->recordingWindowError($censusData['record_date'], $censusData['shift']));
         }
 
         $existing = $this->censusModel->findByShift(
@@ -132,7 +137,10 @@ class CensusController extends BaseController
         }
 
         if (! $this->isWithinRecordingWindow($post['record_date'], $post['shift'])) {
-            return $this->response->setJSON(['success' => false, 'message' => 'เกินระยะเวลาบันทึกย้อนหลัง 12 ชั่วโมง']);
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $this->recordingWindowError($post['record_date'], $post['shift']),
+            ]);
         }
 
         $censusData = $this->buildCensusData($post);
@@ -356,16 +364,33 @@ class CensusController extends BaseController
      */
     private function isWithinRecordingWindow(string $date, string $shift): bool
     {
-        // Superadmin / Manager bypass the time restriction
+        $startHour = self::SHIFT_START_HOUR[$shift] ?? 0;
+        $shiftStart = strtotime($date . ' ' . sprintf('%02d:00:00', $startHour));
+
+        if (time() < $shiftStart) {
+            return false;
+        }
+
+        // Superadmin / Manager bypass the late-entry restriction, but not future shifts.
         if (! $this->isNurse()) {
             return true;
         }
 
-        $startHour = self::SHIFT_START_HOUR[$shift] ?? 0;
-        $shiftStart = strtotime($date . ' ' . sprintf('%02d:00:00', $startHour));
         $deadline   = $shiftStart + (12 * 3600);
 
         return time() <= $deadline;
+    }
+
+    private function recordingWindowError(string $date, string $shift): string
+    {
+        $startHour = self::SHIFT_START_HOUR[$shift] ?? 0;
+        $shiftStart = strtotime($date . ' ' . sprintf('%02d:00:00', $startHour));
+
+        if (time() < $shiftStart) {
+            return 'ยังไม่ถึงเวลาเริ่มเวร ' . $shift . ' วันที่ ' . $date . ' จึงยังไม่สามารถบันทึกได้';
+        }
+
+        return 'ไม่สามารถบันทึกย้อนหลังเกิน 12 ชั่วโมง สำหรับกะ ' . $shift . ' วันที่ ' . $date;
     }
 
     private function buildCensusData(array $post): ?array

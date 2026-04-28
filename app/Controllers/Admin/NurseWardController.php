@@ -56,10 +56,19 @@ class NurseWardController extends BaseController
             return redirect()->to('admin/nurse-wards')->with('error', 'ไม่พบ Nurse ที่ระบุ');
         }
 
-        $wardIds = array_map('intval', (array)($this->request->getPost('ward_ids') ?? []));
-        $this->userWardModel->syncUserWards($userId, $wardIds);
+        $wardId = (int)($this->request->getPost('ward_id') ?? 0);
+        if ($wardId <= 0) {
+            return redirect()->back()->with('error', 'กรุณาเลือก Ward สำหรับผู้กรอกข้อมูล');
+        }
+
+        $owner = $this->userWardModel->getAssignedUserForWard($wardId, $userId);
+        if ($owner) {
+            return redirect()->back()->with('error', 'Ward นี้ถูกกำหนดให้ผู้ใช้ "' . $owner['username'] . '" แล้ว');
+        }
+
+        $this->userWardModel->syncUserWards($userId, [$wardId]);
 
         return redirect()->to('admin/nurse-wards')
-            ->with('message', 'บันทึกสิทธิ์ Ward ของ "' . $user->username . '" สำเร็จ (' . count($wardIds) . ' Ward)');
+            ->with('message', 'บันทึกสิทธิ์ Ward ของ "' . $user->username . '" สำเร็จ');
     }
 }

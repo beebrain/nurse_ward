@@ -23,7 +23,7 @@
     <?php endif; ?>
 
     <div class="alert alert-info mb-3">
-      <strong><?= esc($nurseUser->username) ?></strong> จะบันทึกข้อมูลได้เฉพาะ Ward ที่ติ๊กเลือกด้านล่างนี้
+      <strong><?= esc($nurseUser->username) ?></strong> จะเห็นและบันทึกข้อมูลได้เฉพาะ Ward เดียวที่เลือกด้านล่างนี้
     </div>
 
     <form action="<?= base_url('admin/nurse-wards/update/' . $nurseUser->id) ?>" method="post">
@@ -48,8 +48,8 @@
 
           <div class="col-md-4 col-sm-6">
             <div class="form-check border rounded p-2 <?= in_array($ward['id'], $assignedIds) ? 'border-primary bg-primary bg-opacity-10' : '' ?>">
-              <input class="form-check-input ward-check" type="checkbox"
-                     name="ward_ids[]"
+              <input class="form-check-input ward-check" type="radio"
+                     name="ward_id"
                      value="<?= $ward['id'] ?>"
                      id="ward_<?= $ward['id'] ?>"
                      <?= in_array($ward['id'], $assignedIds) ? 'checked' : '' ?>>
@@ -66,10 +66,7 @@
       <?php if ($currentDept !== '') echo '</div></div></div>'; ?>
 
       <div class="d-flex gap-2 justify-content-between mt-3">
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-outline-secondary btn-sm" id="btnSelectAll">เลือกทั้งหมด</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" id="btnClearAll">ยกเลิกทั้งหมด</button>
-        </div>
+        <div class="text-muted small">เลือกได้ 1 Ward ต่อผู้กรอกข้อมูล 1 คน</div>
         <button type="submit" class="btn btn-primary px-4">บันทึกสิทธิ์</button>
       </div>
     </form>
@@ -78,13 +75,6 @@
 </div>
 
 <script>
-document.getElementById('btnSelectAll').addEventListener('click', () => {
-    document.querySelectorAll('.ward-check').forEach(cb => { cb.checked = true; updateStyle(cb); });
-});
-document.getElementById('btnClearAll').addEventListener('click', () => {
-    document.querySelectorAll('.ward-check').forEach(cb => { cb.checked = false; updateStyle(cb); });
-});
-
 function updateStyle(cb) {
     const card = cb.closest('.form-check');
     if (cb.checked) {
@@ -95,7 +85,10 @@ function updateStyle(cb) {
 }
 
 document.querySelectorAll('.ward-check').forEach(cb => {
-    cb.addEventListener('change', () => updateStyle(cb));
+    cb.addEventListener('change', () => {
+        document.querySelectorAll('.ward-check').forEach(updateStyle);
+    });
+    updateStyle(cb);
 });
 </script>
 <?= $this->endSection() ?>
