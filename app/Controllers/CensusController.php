@@ -381,7 +381,7 @@ class CensusController extends BaseController
         foreach ($rows as $row) {
             $date = $row['record_date'];
             $shift = $row['shift'];
-            if (isset($days[$date]['shifts'][$shift])) {
+            if (isset($days[$date]) && array_key_exists($shift, $days[$date]['shifts'])) {
                 $days[$date]['shifts'][$shift] = $this->formatHistoryShift($row);
             }
         }
@@ -593,16 +593,41 @@ class CensusController extends BaseController
             'id' => (int)$row['id'],
             'shift' => $shift,
             'shift_label' => $shiftLabels[$shift] ?? $shift,
+            'record_date' => $row['record_date'],
             'total_patients' => (int)$row['total_patients'],
+            'patients_general_level_5' => (int)($row['patients_general_level_5'] ?? 0),
+            'patients_general_level_4' => (int)($row['patients_general_level_4'] ?? 0),
+            'patients_general_level_3' => (int)($row['patients_general_level_3'] ?? 0),
+            'patients_general_level_2' => (int)($row['patients_general_level_2'] ?? 0),
+            'patients_general_level_1' => (int)($row['patients_general_level_1'] ?? 0),
+            'patients_special_level_5' => (int)($row['patients_special_level_5'] ?? 0),
+            'patients_special_level_4' => (int)($row['patients_special_level_4'] ?? 0),
+            'patients_special_level_3' => (int)($row['patients_special_level_3'] ?? 0),
+            'patients_special_level_2' => (int)($row['patients_special_level_2'] ?? 0),
+            'patients_special_level_1' => (int)($row['patients_special_level_1'] ?? 0),
+            'patients_level_5' => (int)($row['patients_level_5'] ?? 0),
+            'patients_level_4' => (int)($row['patients_level_4'] ?? 0),
+            'patients_level_3' => (int)($row['patients_level_3'] ?? 0),
+            'patients_level_2' => (int)($row['patients_level_2'] ?? 0),
+            'patients_level_1' => (int)($row['patients_level_1'] ?? 0),
+            'carried_forward_patients' => (int)($row['carried_forward_patients'] ?? 0),
+            'movement_expected_patients' => (int)($row['movement_expected_patients'] ?? 0),
+            'movement_variance' => (int)($row['movement_variance'] ?? 0),
             'admissions' => (int)$row['admissions'],
             'discharges' => (int)$row['discharges'],
             'transfers_in' => (int)$row['transfers_in'],
             'transfers_out' => (int)$row['transfers_out'],
             'deaths' => (int)$row['deaths'],
+            'nurses_hw' => (int)($row['nurses_hw'] ?? 0),
             'nurses_rn' => (int)$row['nurses_rn'],
             'nurses_tn' => (int)$row['nurses_tn'],
             'nurses_pn' => (int)$row['nurses_pn'],
+            'nurses_aide' => (int)($row['nurses_aide'] ?? 0),
+            'nurses_ward' => (int)($row['nurses_ward'] ?? 0),
+            'equipment_ventilator' => (int)($row['equipment_ventilator'] ?? 0),
+            'equipment_hfnc' => (int)($row['equipment_hfnc'] ?? 0),
             'working_hours' => (float)($row['working_hours'] ?? 0),
+            'required_care_hours' => (float)($row['required_care_hours'] ?? 0),
             'productivity' => $row['productivity'] !== null ? round((float)$row['productivity'], 2) : null,
             'recorder_username' => $row['recorder_username'] ?? '—',
             'updated_at' => $row['updated_at'],

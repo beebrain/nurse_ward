@@ -7,6 +7,38 @@
         padding: .75rem;
         min-width: 180px;
         border: 1px solid transparent;
+        cursor: pointer;
+        transition: transform .12s ease, box-shadow .12s ease;
+    }
+
+    .history-shift-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(15, 23, 42, .12);
+    }
+
+    .history-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: .75rem;
+    }
+
+    .history-detail-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: .75rem;
+        background: #f8fafc;
+    }
+
+    .history-detail-label {
+        color: #64748b;
+        font-size: .78rem;
+        font-weight: 700;
+    }
+
+    .history-detail-value {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #1e293b;
     }
 
     .history-shift-night {
@@ -182,9 +214,28 @@
     </div>
 </div>
 
+<div class="modal fade" id="shiftDetailModal" tabindex="-1" aria-labelledby="shiftDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="shiftDetailModalLabel">รายละเอียดกะ</h5>
+                    <div class="text-muted small" id="shiftDetailSubtitle"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="shiftDetailBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     $(function() {
         const endpoint = '<?= base_url('census/history-data') ?>';
+        const shiftDetails = {};
         const shiftClasses = {
             Night: 'history-shift-night',
             Morning: 'history-shift-morning',
@@ -197,6 +248,46 @@
 
         function numberValue(value) {
             return Number(value || 0).toLocaleString();
+        }
+
+        function decimalValue(value) {
+            return Number(value || 0).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function detailCard(label, value, suffix = '') {
+            return `
+                <div class="history-detail-card">
+                    <div class="history-detail-label">${escapeHtml(label)}</div>
+                    <div class="history-detail-value">${escapeHtml(value)}${suffix}</div>
+                </div>
+            `;
+        }
+
+        function detailTable(title, rows) {
+            return `
+                <h6 class="fw-bold mt-4 mb-2">${escapeHtml(title)}</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>รายการ</th>
+                                <th class="text-end">จำนวน</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map(row => `
+                                <tr>
+                                    <td>${escapeHtml(row[0])}</td>
+                                    <td class="text-end fw-semibold">${numberValue(row[1])}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
         }
 
         function updateSummary(summary) {
@@ -213,9 +304,11 @@
 
             const productivity = shift.productivity === null ? '-' : `${numberValue(shift.productivity)}%`;
             const staff = Number(shift.nurses_rn || 0) + Number(shift.nurses_tn || 0) + Number(shift.nurses_pn || 0);
+            const detailKey = `shift-${shift.id}`;
+            shiftDetails[detailKey] = shift;
 
             return `
-                <div class="history-shift-card ${shiftClasses[shift.shift] || ''}">
+                <div class="history-shift-card ${shiftClasses[shift.shift] || ''}" data-shift-key="${detailKey}" role="button" tabindex="0" title="คลิกเพื่อดูรายละเอียด">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <strong>${escapeHtml(shift.shift_label)}</strong>
                         <span class="badge bg-light text-dark">รวม ${numberValue(shift.total_patients)}</span>
@@ -227,9 +320,89 @@
                     <hr class="my-2">
                     <div class="small">RN+TN+PN: ${numberValue(staff)} คน</div>
                     <div class="small">Productivity: ${productivity}</div>
+                    <div class="small fw-semibold mt-1">คลิกเพื่อดูรายละเอียด</div>
                     <div class="small text-muted mt-1">ผู้บันทึก: ${escapeHtml(shift.recorder_username)}</div>
                 </div>
             `;
+        }
+
+        function showShiftDetail(shift) {
+            const productivity = shift.productivity === null ? '-' : `${decimalValue(shift.productivity)}%`;
+            const updatedAt = shift.updated_at || '-';
+
+            $('#shiftDetailModalLabel').text(`รายละเอียด ${shift.shift_label}`);
+            $('#shiftDetailSubtitle').text(`วันที่ ${shift.record_date || '-'} · ผู้บันทึก ${shift.recorder_username || '-'}`);
+            $('#shiftDetailBody').html(`
+                <div class="history-detail-grid mb-3">
+                    ${detailCard('ผู้ป่วยรวม', numberValue(shift.total_patients))}
+                    ${detailCard('ยอดยกมา', numberValue(shift.carried_forward_patients))}
+                    ${detailCard('คาดการณ์จาก movement', numberValue(shift.movement_expected_patients))}
+                    ${detailCard('Variance', numberValue(shift.movement_variance))}
+                    ${detailCard('Working Hours', decimalValue(shift.working_hours))}
+                    ${detailCard('Required Hours', decimalValue(shift.required_care_hours))}
+                    ${detailCard('Productivity', productivity)}
+                    ${detailCard('แก้ไขล่าสุด', updatedAt)}
+                </div>
+
+                ${detailTable('ผู้ป่วยตามระดับความรุนแรง', [
+                    ['Level 5', shift.patients_level_5],
+                    ['Level 4', shift.patients_level_4],
+                    ['Level 3', shift.patients_level_3],
+                    ['Level 2', shift.patients_level_2],
+                    ['Level 1', shift.patients_level_1],
+                ])}
+
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        ${detailTable('ผู้ป่วยสามัญ', [
+                            ['Level 5', shift.patients_general_level_5],
+                            ['Level 4', shift.patients_general_level_4],
+                            ['Level 3', shift.patients_general_level_3],
+                            ['Level 2', shift.patients_general_level_2],
+                            ['Level 1', shift.patients_general_level_1],
+                        ])}
+                    </div>
+                    <div class="col-lg-6">
+                        ${detailTable('ผู้ป่วยพิเศษ', [
+                            ['Level 5', shift.patients_special_level_5],
+                            ['Level 4', shift.patients_special_level_4],
+                            ['Level 3', shift.patients_special_level_3],
+                            ['Level 2', shift.patients_special_level_2],
+                            ['Level 1', shift.patients_special_level_1],
+                        ])}
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-lg-4">
+                        ${detailTable('Movement', [
+                            ['รับใหม่', shift.admissions],
+                            ['จำหน่าย', shift.discharges],
+                            ['ย้ายเข้า', shift.transfers_in],
+                            ['ย้ายออก', shift.transfers_out],
+                            ['เสียชีวิต', shift.deaths],
+                        ])}
+                    </div>
+                    <div class="col-lg-4">
+                        ${detailTable('บุคลากร', [
+                            ['HW', shift.nurses_hw],
+                            ['RN', shift.nurses_rn],
+                            ['TN', shift.nurses_tn],
+                            ['PN', shift.nurses_pn],
+                            ['Aide', shift.nurses_aide],
+                            ['Ward', shift.nurses_ward],
+                        ])}
+                    </div>
+                    <div class="col-lg-4">
+                        ${detailTable('อุปกรณ์', [
+                            ['เครื่องช่วยหายใจ', shift.equipment_ventilator],
+                            ['High Flow', shift.equipment_hfnc],
+                        ])}
+                    </div>
+                </div>
+            `);
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('shiftDetailModal')).show();
         }
 
         function renderMonth(payload) {
@@ -291,6 +464,16 @@
         $('#history-filter').on('submit', function(event) {
             event.preventDefault();
             loadHistory();
+        });
+        $('#history-result').on('click keydown', '.history-shift-card', function(event) {
+            if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) {
+                return;
+            }
+            event.preventDefault();
+            const shift = shiftDetails[$(this).data('shift-key')];
+            if (shift) {
+                showShiftDetail(shift);
+            }
         });
 
         if ($('#ward_id').val() || $('#ward_id:disabled').val()) {
