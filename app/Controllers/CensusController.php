@@ -368,7 +368,7 @@ class CensusController extends BaseController
             $date = sprintf('%04d-%02d-%02d', $year, $month, $day);
             $days[$date] = [
                 'date' => $date,
-                'day_label' => date('d/m/Y', strtotime($date)),
+                'day_label' => $this->thaiDateShort($date),
                 'weekday_label' => $this->thaiWeekdayLabel($date),
                 'shifts' => [
                     'Night' => null,
@@ -500,7 +500,7 @@ class CensusController extends BaseController
 
             $daily[$date] = [
                 'date' => $date,
-                'day_label' => date('d/m/Y', strtotime($date)),
+                'day_label' => $this->thaiDateShort($date),
                 'weekday_label' => $this->thaiWeekdayLabel($date),
                 'patient_days' => (int)($patientDayRow['total_patients'] ?? 0),
                 'patient_day_shift' => $patientDayRow['shift'] ?? null,
@@ -594,6 +594,7 @@ class CensusController extends BaseController
             'shift' => $shift,
             'shift_label' => $shiftLabels[$shift] ?? $shift,
             'record_date' => $row['record_date'],
+            'record_date_label' => $this->thaiDateShort((string)$row['record_date']),
             'total_patients' => (int)$row['total_patients'],
             'patients_general_level_5' => (int)($row['patients_general_level_5'] ?? 0),
             'patients_general_level_4' => (int)($row['patients_general_level_4'] ?? 0),
@@ -662,6 +663,26 @@ class CensusController extends BaseController
     {
         $labels = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
         return $labels[(int)date('w', strtotime($date))] ?? '';
+    }
+
+    private function thaiDateShort(string $date): string
+    {
+        $timestamp = strtotime($date);
+        if ($timestamp === false) {
+            return $date;
+        }
+
+        $months = [
+            1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.',
+            5 => 'พ.ค.', 6 => 'มิ.ย.', 7 => 'ก.ค.', 8 => 'ส.ค.',
+            9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.',
+        ];
+
+        $day = (int)date('j', $timestamp);
+        $month = $months[(int)date('n', $timestamp)] ?? date('m', $timestamp);
+        $thaiYearShort = ((int)date('Y', $timestamp) + 543) % 100;
+
+        return sprintf('%d %s %02d', $day, $month, $thaiYearShort);
     }
 
     private function thaiMonthLabel(int $month): string

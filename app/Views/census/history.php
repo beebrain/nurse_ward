@@ -84,6 +84,14 @@
     .history-table td {
         vertical-align: middle;
     }
+
+    #shiftDetailModal {
+        z-index: 2000;
+    }
+
+    .modal-backdrop {
+        z-index: 1990;
+    }
 </style>
 
 <div class="row">
@@ -331,7 +339,7 @@
             const updatedAt = shift.updated_at || '-';
 
             $('#shiftDetailModalLabel').text(`รายละเอียด ${shift.shift_label}`);
-            $('#shiftDetailSubtitle').text(`วันที่ ${shift.record_date || '-'} · ผู้บันทึก ${shift.recorder_username || '-'}`);
+            $('#shiftDetailSubtitle').text(`วันที่ ${shift.record_date_label || shift.record_date || '-'} · ผู้บันทึก ${shift.recorder_username || '-'}`);
             $('#shiftDetailBody').html(`
                 <div class="history-detail-grid mb-3">
                     ${detailCard('ผู้ป่วยรวม', numberValue(shift.total_patients))}
@@ -402,7 +410,9 @@
                 </div>
             `);
 
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('shiftDetailModal')).show();
+            const modalEl = document.getElementById('shiftDetailModal');
+            document.body.appendChild(modalEl);
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
         }
 
         function renderMonth(payload) {
