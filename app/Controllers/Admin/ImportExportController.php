@@ -255,7 +255,13 @@ class ImportExportController extends BaseController
 
         for ($r = 2; $r <= $highRow; $r++) {
             $wardName      = trim((string) $sheet->getCell('A' . $r)->getValue());
-            $recordDate    = trim((string) $sheet->getCell('B' . $r)->getValue());
+            $dateCell      = $sheet->getCell('B' . $r);
+            $dateVal       = $dateCell->getValue();
+            if (is_numeric($dateVal) && $dateVal > 0) {
+                $recordDate = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $dateVal)->format('Y-m-d');
+            } else {
+                $recordDate = trim((string) $dateVal);
+            }
             $shift         = trim((string) $sheet->getCell('C' . $r)->getValue());
             $admissions    = (int) $sheet->getCell('D' . $r)->getValue();
             $discharges    = (int) $sheet->getCell('E' . $r)->getValue();
@@ -329,6 +335,227 @@ class ImportExportController extends BaseController
         unlink($tmpPath);
 
         $message = "นำเข้าสำเร็จ {$imported} รายการ";
+        if ($skipped > 0) {
+            $message .= ", ข้าม {$skipped} รายการ";
+        }
+
+        return redirect()->back()
+            ->with('message', $message)
+            ->with('import_errors', $errors);
+    }
+
+    // ─── CSV EXPORT (ทั้งโรงพยาบาล) ─────────────────────────────────────────
+
+    private const CSV_COLUMNS = [
+        'ward_name', 'record_date', 'shift',
+        'patients_general_level_5', 'patients_general_level_4', 'patients_general_level_3',
+        'patients_general_level_2', 'patients_general_level_1',
+        'patients_special_level_5', 'patients_special_level_4', 'patients_special_level_3',
+        'patients_special_level_2', 'patients_special_level_1',
+        'total_patients', 'carried_forward_patients',
+        'admissions', 'discharges', 'transfers_in', 'transfers_out', 'deaths',
+        'nurses_hw', 'nurses_rn', 'nurses_tn', 'nurses_pn', 'nurses_aide', 'nurses_ward',
+        'equipment_ventilator', 'equipment_hfnc',
+        'notes',
+    ];
+
+    /**
+     * Export ALL wards for a given month/year to CSV.
+     * GET admin/import-export/export-csv?month=&year=
+     */
+    public function exportCsv()
+    {
+        $month = (int) $this->request->getGet('month');
+        $year  = (int) $this->request->getGet('year');
+
+        if (!$month || $month < 1 || $month > 12 || !$year) {
+            return redirect()->back()->with('error', 'กรุณาเลือกเดือนและปีที่ต้องการส่งออก');
+        }
+
+        $db      = \Config\Database::connect();
+        $builder = $db->table('daily_census dc');
+
+        $selectFields = array_map(
+            fn($col) => $col === 'ward_name' ? 'wards.name AS ward_name' : "dc.{$col}",
+            self::CSV_COLUMNS
+        );
+
+        $builder->select(implode(', ', $selectFields));
+        $builder->join('wards', 'wards.id = dc.ward_id', 'left');
+        $builder->where('MONTH(dc.record_date)', $month);
+        $builder->where('YEAR(dc.record_date)', $year);
+        $builder->orderBy('dc.record_date', 'ASC');
+        $builder->orderBy('wards.name', 'ASC');
+        $builder->orderBy('FIELD(dc.shift,"Night","Morning","Afternoon")', '', false);
+
+        $rows = $builder->get()->getResultArray();
+
+        $mm       = str_pad($month, 2, '0', STR_PAD_LEFT);
+        $filename = "Hospital_Census_{$year}_{$mm}.csv";
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $out = fopen('php://output', 'w');
+
+        // UTF-8 BOM for correct Thai display in Excel
+        fwrite($out, "\xEF\xBB\xBF");
+
+        fputcsv($out, self::CSV_COLUMNS);
+
+        foreach ($rows as $row) {
+            $line = [];
+            foreach (self::CSV_COLUMNS as $col) {
+                $line[] = $row[$col] ?? '';
+            }
+            fputcsv($out, $line);
+        }
+
+        fclose($out);
+        exit;
+    }
+
+    // ─── CSV IMPORT (ทั้งโรงพยาบาล) ─────────────────────────────────────────
+
+    /**
+     * Import CSV file (hospital-wide census).
+     * POST admin/import-export/import-csv
+     */
+    public function importCsv()
+    {
+        $file = $this->request->getFile('csv_file');
+
+        if (!$file || !$file->isValid() || $file->hasMoved()) {
+            return redirect()->back()->with('error', 'กรุณาเลือกไฟล์ CSV ที่ถูกต้อง');
+        }
+
+        if (strtolower($file->getClientExtension()) !== 'csv') {
+            return redirect()->back()->with('error', 'รองรับเฉพาะไฟล์ .csv เท่านั้น');
+        }
+
+        $tmpPath = WRITEPATH . 'uploads/' . $file->getRandomName();
+        $file->move(WRITEPATH . 'uploads/', basename($tmpPath));
+
+        $handle = fopen($tmpPath, 'r');
+        if (!$handle) {
+            unlink($tmpPath);
+            return redirect()->back()->with('error', 'ไม่สามารถเปิดไฟล์ได้');
+        }
+
+        // Strip UTF-8 BOM if present
+        $bom = fread($handle, 3);
+        if ($bom !== "\xEF\xBB\xBF") {
+            rewind($handle);
+        }
+
+        // Map header → column index
+        $headerRow = fgetcsv($handle);
+        if (!$headerRow) {
+            fclose($handle);
+            unlink($tmpPath);
+            return redirect()->back()->with('error', 'ไฟล์ CSV ว่างเปล่าหรือไม่มี header');
+        }
+        $headerMap = array_flip(array_map('trim', $headerRow));
+
+        $required = ['ward_name', 'record_date', 'shift'];
+        foreach ($required as $col) {
+            if (!isset($headerMap[$col])) {
+                fclose($handle);
+                unlink($tmpPath);
+                return redirect()->back()->with('error', "ไม่พบคอลัมน์ที่จำเป็น: '{$col}' ในไฟล์ CSV");
+            }
+        }
+
+        $allWards = $this->wardModel->findAll();
+        $wardMap  = [];
+        foreach ($allWards as $w) {
+            $wardMap[trim($w['name'])] = (int) $w['id'];
+        }
+
+        $validShifts = ['Morning', 'Afternoon', 'Night'];
+        $imported    = 0;
+        $skipped     = 0;
+        $errors      = [];
+        $lineNum     = 1;
+
+        $numericFields = [
+            'patients_general_level_5', 'patients_general_level_4', 'patients_general_level_3',
+            'patients_general_level_2', 'patients_general_level_1',
+            'patients_special_level_5', 'patients_special_level_4', 'patients_special_level_3',
+            'patients_special_level_2', 'patients_special_level_1',
+            'total_patients', 'carried_forward_patients',
+            'admissions', 'discharges', 'transfers_in', 'transfers_out', 'deaths',
+            'nurses_hw', 'nurses_rn', 'nurses_tn', 'nurses_pn', 'nurses_aide', 'nurses_ward',
+            'equipment_ventilator', 'equipment_hfnc',
+        ];
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $lineNum++;
+
+            $get = fn(string $col) => isset($headerMap[$col]) ? trim((string)($row[$headerMap[$col]] ?? '')) : '';
+
+            $wardName   = $get('ward_name');
+            $recordDate = $get('record_date');
+            $shift      = $get('shift');
+
+            if ($wardName === '' && $recordDate === '') {
+                continue;
+            }
+
+            if (!isset($wardMap[$wardName])) {
+                $errors[] = "แถว {$lineNum}: ไม่พบแผนก '{$wardName}' ในระบบ";
+                $skipped++;
+                continue;
+            }
+
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $recordDate)) {
+                $errors[] = "แถว {$lineNum}: รูปแบบวันที่ไม่ถูกต้อง '{$recordDate}'";
+                $skipped++;
+                continue;
+            }
+
+            if (!in_array($shift, $validShifts, true)) {
+                $errors[] = "แถว {$lineNum}: กะไม่ถูกต้อง '{$shift}'";
+                $skipped++;
+                continue;
+            }
+
+            $wardId = $wardMap[$wardName];
+            $data   = [
+                'ward_id'     => $wardId,
+                'record_date' => $recordDate,
+                'shift'       => $shift,
+                'notes'       => $get('notes'),
+            ];
+
+            foreach ($numericFields as $field) {
+                $val = $get($field);
+                $data[$field] = ($val !== '') ? (int) $val : 0;
+            }
+
+            $this->censusModel->computeDerived($data);
+
+            $existing = $this->censusModel
+                ->where('ward_id', $wardId)
+                ->where('record_date', $recordDate)
+                ->where('shift', $shift)
+                ->first();
+
+            if ($existing) {
+                unset($data['ward_id'], $data['record_date'], $data['shift']);
+                $this->censusModel->update($existing['id'], $data);
+            } else {
+                $data['created_by'] = auth()->id();
+                $this->censusModel->insert($data);
+            }
+            $imported++;
+        }
+
+        fclose($handle);
+        unlink($tmpPath);
+
+        $message = "นำเข้า CSV สำเร็จ {$imported} รายการ";
         if ($skipped > 0) {
             $message .= ", ข้าม {$skipped} รายการ";
         }

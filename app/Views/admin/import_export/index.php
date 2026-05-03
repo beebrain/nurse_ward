@@ -192,10 +192,120 @@
     </div>
 </div>
 
+    <!-- CSV Section Divider -->
+    <div class="col-12 mt-2">
+        <hr class="my-1">
+        <div class="d-flex align-items-center gap-2 mt-3 mb-1">
+            <span class="material-symbols-outlined" style="color:var(--primary);font-size:1.6rem;">table_rows</span>
+            <h5 class="mb-0 fw-bold">ข้อมูลทั้งโรงพยาบาล (CSV)</h5>
+        </div>
+        <p class="text-muted small mb-3">ส่งออกหรือนำเข้าข้อมูลยอดผู้ป่วยครบทุกแผนก แยกตามเดือน ในรูปแบบ CSV</p>
+    </div>
+
+    <!-- CSV Export -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex align-items-center gap-2" style="background:#1565C0;color:#fff;border-radius:.75rem .75rem 0 0;">
+                <span class="material-symbols-outlined">download</span>
+                <strong>ส่งออก CSV (ทั้งโรงพยาบาล)</strong>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">เลือกเดือนและปีเพื่อดาวน์โหลดข้อมูลทุกแผนกในเดือนนั้นเป็น CSV</p>
+                <form action="<?= base_url('admin/import-export/export-csv') ?>" method="get">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">เดือน</label>
+                            <select name="month" class="form-select" required>
+                                <?php
+                                $thaiMonths = ['1' => 'มกราคม', '2' => 'กุมภาพันธ์', '3' => 'มีนาคม',
+                                    '4' => 'เมษายน', '5' => 'พฤษภาคม', '6' => 'มิถุนายน',
+                                    '7' => 'กรกฎาคม', '8' => 'สิงหาคม', '9' => 'กันยายน',
+                                    '10' => 'ตุลาคม', '11' => 'พฤศจิกายน', '12' => 'ธันวาคม'];
+                                foreach ($thaiMonths as $num => $name):
+                                ?>
+                                    <option value="<?= $num ?>" <?= $num == date('n') ? 'selected' : '' ?>><?= $name ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">ปี (พ.ศ.)</label>
+                            <select name="year" class="form-select" required>
+                                <?php for ($y = date('Y'); $y >= date('Y') - 5; $y--): ?>
+                                    <option value="<?= $y ?>" <?= $y == date('Y') ? 'selected' : '' ?>><?= $y + 543 ?></option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn w-100" style="background:#1565C0;color:#fff;">
+                        <span class="material-symbols-outlined align-middle me-1">download</span>
+                        ดาวน์โหลด CSV
+                    </button>
+                </form>
+                <div class="mt-3 p-2 rounded small text-muted" style="background:var(--surface-low);">
+                    <span class="material-symbols-outlined align-middle" style="font-size:1rem;">info</span>
+                    ไฟล์จะชื่อ <code>Hospital_Census_YYYY_MM.csv</code> ครอบคลุมทุกแผนก <?= count($wards) ?> แผนก
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSV Import -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex align-items-center gap-2" style="background:#2E7D32;color:#fff;border-radius:.75rem .75rem 0 0;">
+                <span class="material-symbols-outlined">upload</span>
+                <strong>นำเข้าข้อมูล CSV (ทั้งโรงพยาบาล)</strong>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">
+                    อัปโหลดไฟล์ CSV ที่ได้จากการส่งออกระบบนี้ หากมีข้อมูลซ้ำจะทำการอัปเดตแทน
+                </p>
+                <div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-3">
+                    <span class="material-symbols-outlined flex-shrink-0">warning</span>
+                    <span class="small">ใช้เฉพาะไฟล์ที่ <strong>Export จากระบบนี้</strong> เท่านั้น</span>
+                </div>
+                <form action="<?= base_url('admin/import-export/import-csv') ?>" method="post" enctype="multipart/form-data">
+                    <?= csrf_field() ?>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">เลือกไฟล์ CSV</label>
+                        <input type="file"
+                               name="csv_file"
+                               class="form-control"
+                               accept=".csv"
+                               required
+                               id="csvImportFile">
+                        <div class="form-text">ขนาดไฟล์ไม่เกิน 10 MB</div>
+                    </div>
+                    <div id="csvFilePreview" class="mb-3 d-none">
+                        <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:var(--surface-low);">
+                            <span class="material-symbols-outlined text-success">description</span>
+                            <span id="csvFileName" class="small fw-semibold"></span>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn w-100" style="background:#2E7D32;color:#fff;">
+                        <span class="material-symbols-outlined align-middle me-1">upload</span>
+                        นำเข้า CSV
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
 <script>
 document.getElementById('importFile').addEventListener('change', function() {
     const preview = document.getElementById('filePreview');
     const nameEl  = document.getElementById('fileName');
+    if (this.files.length > 0) {
+        nameEl.textContent = this.files[0].name;
+        preview.classList.remove('d-none');
+    } else {
+        preview.classList.add('d-none');
+    }
+});
+
+document.getElementById('csvImportFile').addEventListener('change', function() {
+    const preview = document.getElementById('csvFilePreview');
+    const nameEl  = document.getElementById('csvFileName');
     if (this.files.length > 0) {
         nameEl.textContent = this.files[0].name;
         preview.classList.remove('d-none');

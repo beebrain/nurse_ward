@@ -80,6 +80,8 @@ $routes->group('admin', ['filter' => 'group:superadmin'], static function ($rout
         $routes->get('export', '\App\Controllers\Admin\ImportExportController::exportCensus');
         $routes->get('template', '\App\Controllers\Admin\ImportExportController::downloadTemplate');
         $routes->post('import', '\App\Controllers\Admin\ImportExportController::importCensus');
+        $routes->get('export-csv', '\App\Controllers\Admin\ImportExportController::exportCsv');
+        $routes->post('import-csv', '\App\Controllers\Admin\ImportExportController::importCsv');
     });
 
     $routes->group('nurse-wards', static function ($routes) {
