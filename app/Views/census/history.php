@@ -2,20 +2,6 @@
 
 <?= $this->section('content') ?>
 <style>
-    .history-shift-card {
-        border-radius: 10px;
-        padding: .75rem;
-        min-width: 180px;
-        border: 1px solid transparent;
-        cursor: pointer;
-        transition: transform .12s ease, box-shadow .12s ease;
-    }
-
-    .history-shift-card:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(15, 23, 42, .12);
-    }
-
     .history-detail-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -41,48 +27,27 @@
         color: #1e293b;
     }
 
-    .history-shift-night {
-        background: #eef2ff;
-        border-color: #6366f1;
-        color: #312e81;
-    }
-
-    .history-shift-morning {
-        background: #ecfdf5;
-        border-color: #10b981;
-        color: #065f46;
-    }
-
-    .history-shift-afternoon {
-        background: #fff7ed;
-        border-color: #f97316;
-        color: #9a3412;
-    }
-
-    .history-empty-shift {
-        border: 1px dashed #cbd5e1;
-        border-radius: 10px;
-        padding: .75rem;
-        min-width: 180px;
-        color: #94a3b8;
-        background: #f8fafc;
-    }
-
-    .history-metric {
-        display: flex;
-        justify-content: space-between;
-        gap: .75rem;
-        font-size: .82rem;
-        line-height: 1.35;
-    }
-
-    .history-metric strong {
-        font-size: 1rem;
-    }
-
     .history-table th,
     .history-table td {
         vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .history-table tr[data-shift-key] {
+        cursor: pointer;
+    }
+
+    .history-table tr[data-shift-key]:hover td {
+        filter: brightness(.95);
+    }
+
+    .history-row-night td   { background: #eef2ff; }
+    .history-row-morning td { background: #ecfdf5; }
+    .history-row-afternoon td { background: #fff7ed; }
+    .history-row-empty td   { background: #f8fafc; color: #94a3b8; }
+
+    .history-date-group-start td {
+        border-top: 2px solid #dee2e6 !important;
     }
 
     #shiftDetailModal {
@@ -227,7 +192,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title" id="shiftDetailModalLabel">รายละเอียดกะ</h5>
+                    <h5 class="modal-title" id="shiftDetailModalLabel">รายละเอียดเวร</h5>
                     <div class="text-muted small" id="shiftDetailSubtitle"></div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -244,11 +209,6 @@
     $(function() {
         const endpoint = '<?= base_url('census/history-data') ?>';
         const shiftDetails = {};
-        const shiftClasses = {
-            Night: 'history-shift-night',
-            Morning: 'history-shift-morning',
-            Afternoon: 'history-shift-afternoon'
-        };
 
         function escapeHtml(value) {
             return $('<div>').text(value ?? '').html();
@@ -305,33 +265,56 @@
             $('#sum-deaths').text(numberValue(summary?.deaths));
         }
 
-        function renderShiftCard(shift) {
+        function renderShiftRow(day, shift, shiftKey, isFirst) {
+            const rowClass = isFirst ? 'history-date-group-start' : '';
+            const shiftRowClass = {
+                Night: 'history-row-night',
+                Morning: 'history-row-morning',
+                Afternoon: 'history-row-afternoon',
+            };
+            const shiftLabel = {
+                Night: 'เวรดึก',
+                Morning: 'เวรเช้า',
+                Afternoon: 'เวรบ่าย',
+            };
+            const badgeClass = {
+                Night: 'bg-primary',
+                Morning: 'bg-success',
+                Afternoon: 'bg-warning text-dark',
+            };
+
+            const dateCell = isFirst
+                ? `<td class="ps-3 fw-semibold" rowspan="3" style="vertical-align:middle;min-width:90px;">
+                        <div>${escapeHtml(day.day_label)}</div>
+                        <div class="text-muted fw-normal small">${escapeHtml(day.weekday_label)}</div>
+                   </td>`
+                : '';
+
             if (!shift) {
-                return '<div class="history-empty-shift text-center">ยังไม่บันทึก</div>';
+                return `<tr class="${rowClass} history-row-empty">
+                    ${dateCell}
+                    <td><span class="badge bg-secondary">${escapeHtml(shiftLabel[shiftKey])}</span></td>
+                    <td colspan="8" class="text-muted small fst-italic">ยังไม่บันทึก</td>
+                </tr>`;
             }
 
-            const productivity = shift.productivity === null ? '-' : `${numberValue(shift.productivity)}%`;
-            const staff = Number(shift.nurses_rn || 0) + Number(shift.nurses_tn || 0) + Number(shift.nurses_pn || 0);
             const detailKey = `shift-${shift.id}`;
             shiftDetails[detailKey] = shift;
+            const staff = Number(shift.nurses_rn || 0) + Number(shift.nurses_tn || 0) + Number(shift.nurses_pn || 0);
+            const productivity = shift.productivity === null ? '-' : `${numberValue(shift.productivity)}%`;
 
-            return `
-                <div class="history-shift-card ${shiftClasses[shift.shift] || ''}" data-shift-key="${detailKey}" role="button" tabindex="0" title="คลิกเพื่อดูรายละเอียด">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <strong>${escapeHtml(shift.shift_label)}</strong>
-                        <span class="badge bg-light text-dark">รวม ${numberValue(shift.total_patients)}</span>
-                    </div>
-                    <div class="history-metric"><span>รับใหม่</span><strong>${numberValue(shift.admissions)}</strong></div>
-                    <div class="history-metric"><span>จำหน่าย/ย้ายออก</span><strong>${numberValue(Number(shift.discharges || 0) + Number(shift.transfers_out || 0))}</strong></div>
-                    <div class="history-metric"><span>ย้ายเข้า</span><strong>${numberValue(shift.transfers_in)}</strong></div>
-                    <div class="history-metric"><span>เสียชีวิต</span><strong>${numberValue(shift.deaths)}</strong></div>
-                    <hr class="my-2">
-                    <div class="small">RN+TN+PN: ${numberValue(staff)} คน</div>
-                    <div class="small">Productivity: ${productivity}</div>
-                    <div class="small fw-semibold mt-1">คลิกเพื่อดูรายละเอียด</div>
-                    <div class="small text-muted mt-1">ผู้บันทึก: ${escapeHtml(shift.recorder_username)}</div>
-                </div>
-            `;
+            return `<tr class="${rowClass} ${shiftRowClass[shiftKey] || ''}" data-shift-key="${detailKey}" title="คลิกเพื่อดูรายละเอียด">
+                ${dateCell}
+                <td><span class="badge ${badgeClass[shiftKey] || 'bg-secondary'}">${escapeHtml(shift.shift_label)}</span></td>
+                <td class="text-end fw-bold">${numberValue(shift.total_patients)}</td>
+                <td class="text-end text-success">${numberValue(shift.admissions)}</td>
+                <td class="text-end">${numberValue(shift.discharges)}</td>
+                <td class="text-end">${numberValue(shift.transfers_in)}</td>
+                <td class="text-end">${numberValue(shift.transfers_out)}</td>
+                <td class="text-end text-danger">${numberValue(shift.deaths)}</td>
+                <td class="text-end small">${numberValue(staff)}</td>
+                <td class="small text-muted pe-3">${escapeHtml(shift.recorder_username || '-')}</td>
+            </tr>`;
         }
 
         function showShiftDetail(shift) {
@@ -416,29 +399,29 @@
         }
 
         function renderMonth(payload) {
-            const rows = payload.days.map(day => `
-                <tr>
-                    <td class="ps-3">
-                        <div class="fw-semibold">${escapeHtml(day.day_label)}</div>
-                        <div class="text-muted small">${escapeHtml(day.weekday_label)}</div>
-                    </td>
-                    <td>${renderShiftCard(day.shifts.Night)}</td>
-                    <td>${renderShiftCard(day.shifts.Morning)}</td>
-                    <td class="pe-3">${renderShiftCard(day.shifts.Afternoon)}</td>
-                </tr>
-            `).join('');
+            const rows = payload.days.map(day =>
+                ['Night', 'Morning', 'Afternoon']
+                    .map((key, i) => renderShiftRow(day, day.shifts[key], key, i === 0))
+                    .join('')
+            ).join('');
 
-            $('#history-title').text('รายเดือน: แสดงรายวันแยก 3 กะ');
+            $('#history-title').text('รายเดือน: แสดงรายวันแยก 3 เวร');
             $('#history-subtitle').text(`${payload.month}/${payload.year}`);
             $('#history-result').html(`
                 <div class="table-responsive">
                     <table class="table history-table table-hover mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th class="ps-3" style="width:140px;">วันที่</th>
-                                <th>กะดึก</th>
-                                <th>กะเช้า</th>
-                                <th class="pe-3">กะบ่าย</th>
+                                <th class="ps-3" style="width:90px;">วันที่</th>
+                                <th style="width:90px;">เวร</th>
+                                <th class="text-end">คงเหลือ</th>
+                                <th class="text-end">รับใหม่</th>
+                                <th class="text-end">จำหน่าย</th>
+                                <th class="text-end">ย้ายเข้า</th>
+                                <th class="text-end">ย้ายออก</th>
+                                <th class="text-end">เสียชีวิต</th>
+                                <th class="text-end">RN+TN+PN</th>
+                                <th class="pe-3">บันทึกโดย</th>
                             </tr>
                         </thead>
                         <tbody>${rows}</tbody>
@@ -475,15 +458,9 @@
             event.preventDefault();
             loadHistory();
         });
-        $('#history-result').on('click keydown', '.history-shift-card', function(event) {
-            if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) {
-                return;
-            }
-            event.preventDefault();
+        $('#history-result').on('click', 'tr[data-shift-key]', function() {
             const shift = shiftDetails[$(this).data('shift-key')];
-            if (shift) {
-                showShiftDetail(shift);
-            }
+            if (shift) showShiftDetail(shift);
         });
 
         if ($('#ward_id').val() || $('#ward_id:disabled').val()) {

@@ -95,13 +95,13 @@
     <!-- Import Section -->
     <div class="col-lg-6">
         <div class="card shadow-sm h-100">
-            <div class="card-header d-flex align-items-center gap-2" style="background:#0c7521;color:#fff;border-radius:.75rem .75rem 0 0;">
+            <div class="card-header d-flex align-items-center gap-2" style="background:var(--primary);color:#fff;border-radius:.75rem .75rem 0 0;">
                 <span class="material-symbols-outlined">upload</span>
                 <strong>นำเข้าข้อมูล (Import)</strong>
             </div>
             <div class="card-body">
                 <p class="text-muted small">
-                    อัปโหลดไฟล์ Excel ที่มีข้อมูลยอดผู้ป่วย หากมีข้อมูลซ้ำ (แผนก + วันที่ + กะ) จะทำการอัปเดตแทน
+                    อัปโหลดไฟล์ Excel ที่มีข้อมูลยอดผู้ป่วย หากมีข้อมูลซ้ำ (แผนก + วันที่ + เวร) จะทำการอัปเดตแทน
                 </p>
 
                 <div class="alert alert-info d-flex align-items-center gap-2 py-2 mb-3">
@@ -134,7 +134,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn w-100" style="background:#0c7521;color:#fff;">
+                    <button type="submit" class="btn btn-primary w-100">
                         <span class="material-symbols-outlined align-middle me-1">upload</span>
                         นำเข้าข้อมูล
                     </button>
@@ -157,7 +157,7 @@
                             <tr>
                                 <th>A: ชื่อแผนก</th>
                                 <th>B: วันที่</th>
-                                <th>C: กะ</th>
+                                <th>C: เวร</th>
                                 <th>D: รับใหม่</th>
                                 <th>E: จำหน่าย</th>
                                 <th>F: รับย้าย</th>
@@ -184,7 +184,7 @@
                 <ul class="small text-muted mb-0 mt-2">
                     <li>แถวแรก (Row 1) คือหัวตาราง ไม่ต้องกรอกข้อมูล</li>
                     <li>ชื่อแผนกต้องตรงกับที่มีในระบบ: <strong><?= implode(', ', array_column($wards, 'name')) ?></strong></li>
-                    <li>กะ (Shift) รับเฉพาะ: <code>Morning</code>, <code>Afternoon</code>, <code>Night</code></li>
+                    <li>เวร (Shift) รับเฉพาะ: <code>Morning</code>, <code>Afternoon</code>, <code>Night</code></li>
                     <li>วันที่ต้องเป็นรูปแบบ <code>YYYY-MM-DD</code> เช่น <code>2025-03-15</code></li>
                 </ul>
             </div>
@@ -205,7 +205,7 @@
     <!-- CSV Export -->
     <div class="col-lg-6">
         <div class="card shadow-sm h-100">
-            <div class="card-header d-flex align-items-center gap-2" style="background:#1565C0;color:#fff;border-radius:.75rem .75rem 0 0;">
+            <div class="card-header d-flex align-items-center gap-2" style="background:var(--primary);color:#fff;border-radius:.75rem .75rem 0 0;">
                 <span class="material-symbols-outlined">download</span>
                 <strong>ส่งออก CSV (ทั้งโรงพยาบาล)</strong>
             </div>
@@ -236,7 +236,7 @@
                             </select>
                         </div>
                     </div>
-                    <button type="submit" class="btn w-100" style="background:#1565C0;color:#fff;">
+                    <button type="submit" class="btn btn-primary w-100">
                         <span class="material-symbols-outlined align-middle me-1">download</span>
                         ดาวน์โหลด CSV
                     </button>
@@ -252,7 +252,7 @@
     <!-- CSV Import -->
     <div class="col-lg-6">
         <div class="card shadow-sm h-100">
-            <div class="card-header d-flex align-items-center gap-2" style="background:#2E7D32;color:#fff;border-radius:.75rem .75rem 0 0;">
+            <div class="card-header d-flex align-items-center gap-2" style="background:var(--primary);color:#fff;border-radius:.75rem .75rem 0 0;">
                 <span class="material-symbols-outlined">upload</span>
                 <strong>นำเข้าข้อมูล CSV (ทั้งโรงพยาบาล)</strong>
             </div>
@@ -282,7 +282,7 @@
                             <span id="csvFileName" class="small fw-semibold"></span>
                         </div>
                     </div>
-                    <button type="submit" class="btn w-100" style="background:#2E7D32;color:#fff;">
+                    <button type="submit" class="btn btn-primary w-100">
                         <span class="material-symbols-outlined align-middle me-1">upload</span>
                         นำเข้า CSV
                     </button>

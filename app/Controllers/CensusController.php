@@ -586,7 +586,7 @@ class CensusController extends BaseController
 
     private function formatHistoryShift(array $row): array
     {
-        $shiftLabels = ['Night' => 'ดึก', 'Morning' => 'เช้า', 'Afternoon' => 'บ่าย'];
+        $shiftLabels = ['Night' => 'เวรดึก', 'Morning' => 'เวรเช้า', 'Afternoon' => 'เวรบ่าย'];
         $shift = $row['shift'] ?? '';
 
         return [
