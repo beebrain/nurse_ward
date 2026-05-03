@@ -71,7 +71,7 @@
     font-weight: 700 !important;
     letter-spacing: .2px;
     border-bottom: none !important;
-    color: #fff !important;
+    color: #7388ff !important;
   }
 
   .card-header .material-symbols-outlined,
@@ -566,10 +566,10 @@
     font-family: 'Inter', sans-serif !important;
   }
 
-.daily-census-template .material-symbols-outlined {
+  .daily-census-template .material-symbols-outlined {
     font-family: 'Material Symbols Outlined' !important;
     font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
-}
+  }
 
   .daily-page-title {
     font-size: clamp(1.65rem, 2.4vw, 2.3rem);
@@ -1356,9 +1356,9 @@
     const lockedLabel = lockedBy ? `${lockedBy.record_date} / ${lockedBy.shift}` : 'เวรถัดไป';
 
     warning.classList.toggle('d-none', !locked);
-    warning.textContent = locked
-      ? `เวรนี้ถูกล็อกแล้ว เนื่องจากมีการบันทึก${lockedLabel} แล้ว ไม่สามารถ${hasCurrent ? 'แก้ไข' : 'เพิ่ม'}ข้อมูลเวรนี้ได้`
-      : '';
+    warning.textContent = locked ?
+      `เวรนี้ถูกล็อกแล้ว เนื่องจากมีการบันทึก${lockedLabel} แล้ว ไม่สามารถ${hasCurrent ? 'แก้ไข' : 'เพิ่ม'}ข้อมูลเวรนี้ได้` :
+      '';
 
     document.querySelectorAll('#censusForm input, #censusForm select, #censusForm textarea, #censusForm button').forEach(el => {
       if (['ward_id', 'record_date', 'shift'].includes(el.id)) {
@@ -1457,9 +1457,15 @@
     status.className = 'small text-muted mt-2';
     status.textContent = 'กำลังดึงยอดยกมา...';
     try {
-      const params = new URLSearchParams({ ward_id: wardId, record_date: date, shift });
+      const params = new URLSearchParams({
+        ward_id: wardId,
+        record_date: date,
+        shift
+      });
       const resp = await fetch(`<?= base_url('census/movement-context') ?>?${params.toString()}`, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        },
       });
       const json = await resp.json();
       carriedForwardPatients = json.success ? parseInt(json.carried_forward_patients, 10) || 0 : 0;
@@ -1579,7 +1585,12 @@
     const [y, m, d] = dateStr.split('-').map(Number);
     const shiftStart = new Date(y, m - 1, d, SHIFT_START_HOUR[shift] ?? 0, 0, 0);
     if (new Date() < shiftStart) {
-      const fmt = shiftStart.toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+      const fmt = shiftStart.toLocaleString('th-TH', {
+        hour: '2-digit',
+        minute: '2-digit',
+        day: 'numeric',
+        month: 'short'
+      });
       warn.textContent = `ยังไม่ถึงเวลาเริ่มเวรนี้ (เริ่ม ${fmt}) จึงยังไม่สามารถบันทึกได้`;
       warn.classList.remove('d-none');
       return;
