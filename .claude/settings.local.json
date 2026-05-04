@@ -12,7 +12,32 @@
       "Bash(ssh -p 1112 -o StrictHostKeyChecking=no beebrain@beebrain.duckdns.org \"cat ~/caddy-docker/Dockerfile.php\")",
       "Bash(ssh -p 1112 -o StrictHostKeyChecking=no beebrain@beebrain.duckdns.org \"cat ~/caddy-docker/site/nurse_ward/.env\")",
       "Bash(ssh -p 1112 -o StrictHostKeyChecking=no beebrain@beebrain.duckdns.org \"docker exec php-fpm php -m 2>/dev/null | grep -iE ''mysql|intl|zip|pdo''\")",
-      "Bash(ssh -p:*)"
+      "Bash(ssh -p:*)",
+      "Bash(cd /d \"C:\\\\xampp\\\\mysql\\\\bin\")",
+      "Bash(mysql -u root -e \"USE nurse_ward; SELECT id, name FROM wards ORDER BY name;\")",
+      "Bash(\"C:\\\\xampp\\\\mysql\\\\bin\\\\mysql.exe\" -u root -e \"USE nurse_ward; SELECT id, name FROM wards ORDER BY id;\")",
+      "Bash('C:\\\\xampp\\\\mysql\\\\bin\\\\mysql.exe' -u root --default-character-set=utf8mb4 nurse_ward -e ' *)",
+      "Bash(python -c ' *)",
+      "PowerShell(python \"C:\\\\Users\\\\brand\\\\Downloads\\\\extract_april.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\brand\\\\Downloads\\\\verify_csv.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\brand\\\\Downloads\\\\analyze_errors.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\brand\\\\Downloads\\\\deep_analyze.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\brand\\\\Downloads\\\\error_chart.py\")",
+      "PowerShell(Start-Process \"C:\\\\Users\\\\brand\\\\Downloads\\\\csv_error_report.html\")",
+      "PowerShell(python \"C:\\\\Users\\\\brand\\\\Downloads\\\\case_detail.py\")",
+      "PowerShell(Start-Process \"C:\\\\Users\\\\brand\\\\Downloads\\\\error_detail_report.html\")",
+      "PowerShell(& \"C:\\\\xampp\\\\mysql\\\\bin\\\\mysql.exe\" -u root --default-character-set=utf8mb4 nurse_ward -e \"SELECT id, name FROM wards ORDER BY id;\" > \"C:\\\\Users\\\\brand\\\\Downloads\\\\db_wards_now.txt\"; echo \"done\")",
+      "PowerShell(python \"C:\\\\Users\\\\brand\\\\Downloads\\\\compare_wards.py\")",
+      "Bash(mysql --default-character-set=utf8mb4 -u root nurse_ward -e \"UPDATE wards SET name = 'หอผู้ป่วยศัลยกรรมชาย 2 และห้องพิเศษ' WHERE id = 32; UPDATE wards SET name = 'หอผู้ป่วยศัลยกรรมหญิง 2 และห้องพิเศษ' WHERE id = 33; UPDATE wards SET name = 'หอผู้ป่วยอายุรกรรมชาย 2 และห้องพิเศษ' WHERE id = 34; UPDATE wards SET name = 'หอผู้ป่วยอายุรกรรมหญิง 2 และห้องพิเศษ' WHERE id = 35;\")",
+      "Bash(C:\\\\xampp\\\\mysql\\\\bin\\\\mysql.exe --default-character-set=utf8mb4 -u root nurse_ward -e \"UPDATE wards SET name = 'หอผู้ป่วยศัลยกรรมชาย 2 และห้องพิเศษ' WHERE id = 32; UPDATE wards SET name = 'หอผู้ป่วยศัลยกรรมหญิง 2 และห้องพิเศษ' WHERE id = 33; UPDATE wards SET name = 'หอผู้ป่วยอายุรกรรมชาย 2 และห้องพิเศษ' WHERE id = 34; UPDATE wards SET name = 'หอผู้ป่วยอายุรกรรมหญิง 2 และห้องพิเศษ' WHERE id = 35;\")",
+      "PowerShell(& \"C:\\\\xampp\\\\mysql\\\\bin\\\\mysql.exe\" --default-character-set=utf8mb4 -u root nurse_ward -e \"UPDATE wards SET name = '�ͼ��������¡������ 2 �����ͧ�����' WHERE id = 32; UPDATE wards SET name = '�ͼ��������¡���˭ԧ 2 �����ͧ�����' WHERE id = 33; UPDATE wards SET name = '�ͼ���������á������ 2 �����ͧ�����' WHERE id = 34; UPDATE wards SET name = '�ͼ���������á���˭ԧ 2 �����ͧ�����' WHERE id = 35;\")",
+      "PowerShell(& \"C:\\\\xampp\\\\mysql\\\\bin\\\\mysql.exe\" --default-character-set=utf8mb4 -u root nurse_ward -e \"SELECT id, name FROM wards WHERE id IN \\(32,33,34,35\\);\")",
+      "PowerShell(& \"C:\\\\xampp\\\\mysql\\\\bin\\\\mysql.exe\" --default-character-set=utf8mb4 -u root nurse_ward)",
+      "PowerShell(python \"C:\\\\Users\\\\brand\\\\Downloads\\\\fix_wards.py\")",
+      "PowerShell(pip install mysql-connector-python -q)",
+      "PowerShell(python \"C:\\\\Users\\\\brand\\\\Downloads\\\\verify_wards.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\brand\\\\Downloads\\\\get_deps.py\")",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

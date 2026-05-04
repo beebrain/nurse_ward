@@ -246,10 +246,18 @@
                     </div>
                 </div>
             </div>
-            <div class="dashboard-chart-card">
-                <div class="dashboard-section-title">อัตราผลิตแยกตามแผนก</div>
-                <div class="dashboard-chart-wrap" style="min-height: 320px;">
-                    <canvas id="comparisonChart"></canvas>
+            <div class="dashboard-chart-row">
+                <div class="dashboard-chart-card">
+                    <div class="dashboard-section-title">Productivity แยกตามกลุ่มงาน</div>
+                    <div class="dashboard-chart-wrap" style="min-height: 300px;">
+                        <canvas id="deptChart"></canvas>
+                    </div>
+                </div>
+                <div class="dashboard-chart-card">
+                    <div class="dashboard-section-title">อัตราผลิตแยกตามแผนก</div>
+                    <div class="dashboard-chart-wrap" style="min-height: 300px;">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -262,6 +270,7 @@
         let trendChart = null;
         let productivityTrendChart = null;
         let comparisonChart = null;
+        let deptChart = null;
 
         const chartDefaults = {
             responsive: true,
@@ -388,16 +397,32 @@
             });
         }
 
+        function makeBarOptions(title) {
+            return {
+                indexAxis: 'y',
+                ...chartDefaults,
+                scales: {
+                    x: { beginAtZero: true, suggestedMax: 100, title: { display: true, text: '%' } },
+                    y: { ticks: { font: { size: 11 } } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ' ' + ctx.parsed.x.toFixed(1) + '%'
+                        }
+                    }
+                }
+            };
+        }
+
         function renderComparisonChart(labels, values) {
             const ctx = document.getElementById('comparisonChart').getContext('2d');
-            if (comparisonChart) {
-                comparisonChart.destroy();
-            }
-
+            if (comparisonChart) comparisonChart.destroy();
             comparisonChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: labels,
+                    labels,
                     datasets: [{
                         label: 'อัตราผลิต %',
                         data: values,
@@ -406,20 +431,32 @@
                         borderWidth: 1
                     }]
                 },
-                options: {
-                    indexAxis: 'y',
-                    ...chartDefaults,
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            suggestedMax: 100,
-                            title: { display: true, text: '%' }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
+                options: makeBarOptions('%')
+            });
+        }
+
+        function renderDeptChart(dept) {
+            const ctx = document.getElementById('deptChart').getContext('2d');
+            if (deptChart) deptChart.destroy();
+
+            const colors = dept.productivity.map(v =>
+                v >= 80  ? 'rgba(25, 135, 84, 0.75)' :
+                v >= 60  ? 'rgba(253, 126, 20, 0.75)' :
+                           'rgba(220, 53, 69, 0.65)'
+            );
+
+            deptChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dept.labels,
+                    datasets: [{
+                        label: 'Productivity %',
+                        data: dept.productivity,
+                        backgroundColor: colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: makeBarOptions('%')
             });
         }
 
@@ -452,6 +489,9 @@
                         );
                     }
                     renderComparisonChart(data.comparison.labels, data.comparison.productivity);
+                    if (data.department_comparison) {
+                        renderDeptChart(data.department_comparison);
+                    }
                     $('#dashboard-result').removeClass('d-none');
                 },
                 error: function(xhr) {

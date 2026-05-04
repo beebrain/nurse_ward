@@ -520,6 +520,58 @@ class ReportService
         return $out;
     }
 
+    /**
+     * Aggregate productivity by department (กลุ่มงาน) for a given month.
+     *
+     * @return array{labels: list<string>, productivity: list<float>, patient_days: list<int>}
+     */
+    public function getDepartmentProductivity(int $month, int $year): array
+    {
+        $daysInMonth = (int) date('t', mktime(0, 0, 0, $month, 1, $year));
+
+        $db   = \Config\Database::connect();
+        $rows = $db->table('wards w')
+            ->select('w.id, w.total_beds, d.id AS dept_id, d.short_name AS dept_name, d.sort_order')
+            ->join('departments d', 'd.id = w.department_id', 'inner')
+            ->where('w.is_active', 1)
+            ->orderBy('d.sort_order', 'ASC')
+            ->get()->getResultArray();
+
+        $depts = [];
+        foreach ($rows as $row) {
+            $deptId = (int) $row['dept_id'];
+            if (! isset($depts[$deptId])) {
+                $depts[$deptId] = [
+                    'name'       => $row['dept_name'],
+                    'total_beds' => 0,
+                    'ward_ids'   => [],
+                ];
+            }
+            $depts[$deptId]['total_beds'] += (int) $row['total_beds'];
+            $depts[$deptId]['ward_ids'][]  = (int) $row['id'];
+        }
+
+        $labels      = [];
+        $productivity = [];
+        $patientDays = [];
+
+        foreach ($depts as $dept) {
+            $days = 0;
+            foreach ($dept['ward_ids'] as $wid) {
+                $days += (int) $this->getMonthlyReport($wid, $month, $year)['patient_days'];
+            }
+            $labels[]      = $dept['name'];
+            $patientDays[] = $days;
+            $productivity[] = round($this->calculateProductivity($days, $dept['total_beds'], $daysInMonth), 1);
+        }
+
+        return [
+            'labels'       => $labels,
+            'productivity' => $productivity,
+            'patient_days' => $patientDays,
+        ];
+    }
+
     private function censusTotalPatients(array $row): int
     {
         return (int)($row['total_patients'] ?? $row['total_remaining'] ?? 0);

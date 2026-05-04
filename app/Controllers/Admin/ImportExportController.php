@@ -356,8 +356,11 @@ class ImportExportController extends BaseController
         'admissions', 'discharges', 'transfers_in', 'transfers_out', 'deaths',
         'nurses_hw', 'nurses_rn', 'nurses_tn', 'nurses_pn', 'nurses_aide', 'nurses_ward',
         'equipment_ventilator', 'equipment_hfnc',
-        'notes',
+        'notes', 'recorder_username',
     ];
+
+    // Columns that exist as real DB fields (excludes derived/joined cols like recorder_username)
+    private const CSV_READONLY_COLUMNS = ['recorder_username'];
 
     /**
      * Export ALL wards for a given month/year to CSV.
@@ -375,13 +378,15 @@ class ImportExportController extends BaseController
         $db      = \Config\Database::connect();
         $builder = $db->table('daily_census dc');
 
-        $selectFields = array_map(
-            fn($col) => $col === 'ward_name' ? 'wards.name AS ward_name' : "dc.{$col}",
-            self::CSV_COLUMNS
-        );
+        $selectFields = array_map(function ($col) {
+            if ($col === 'ward_name')         return 'wards.name AS ward_name';
+            if ($col === 'recorder_username') return 'users.username AS recorder_username';
+            return "dc.{$col}";
+        }, self::CSV_COLUMNS);
 
         $builder->select(implode(', ', $selectFields));
         $builder->join('wards', 'wards.id = dc.ward_id', 'left');
+        $builder->join('users', 'users.id = dc.created_by', 'left');
         $builder->where('MONTH(dc.record_date)', $month);
         $builder->where('YEAR(dc.record_date)', $year);
         $builder->orderBy('dc.record_date', 'ASC');
@@ -527,6 +532,7 @@ class ImportExportController extends BaseController
                 'record_date' => $recordDate,
                 'shift'       => $shift,
                 'notes'       => $get('notes'),
+                // recorder_username is read-only reference info — not written to DB
             ];
 
             foreach ($numericFields as $field) {

@@ -182,8 +182,9 @@ class ReportController extends BaseController
             return $this->response->setJSON(['error' => 'Invalid parameters'])->setStatusCode(400);
         }
 
-        $monthLabels = $this->reportService->getThaiMonthShortLabels();
-        $comparison  = $this->reportService->getWardComparison($month, $year);
+        $monthLabels           = $this->reportService->getThaiMonthShortLabels();
+        $comparison            = $this->reportService->getWardComparison($month, $year);
+        $departmentComparison  = $this->reportService->getDepartmentProductivity($month, $year);
 
         $wardToken = is_scalar($wardIdRaw) ? strtolower(trim((string) $wardIdRaw)) : '';
         $isAll     = ($wardToken === '' || $wardToken === 'all' || $wardToken === '0');
@@ -209,7 +210,8 @@ class ReportController extends BaseController
                     'labels'   => $monthLabels,
                     'datasets' => $this->reportService->buildProductivityTrendDatasets($prodSeries),
                 ],
-                'comparison' => $comparison,
+                'comparison'            => $comparison,
+                'department_comparison' => $departmentComparison,
             ]);
         }
 
@@ -245,7 +247,8 @@ class ReportController extends BaseController
                 'labels'   => $monthLabels,
                 'datasets' => $this->reportService->buildProductivityTrendDatasets($prodSeries),
             ],
-            'comparison' => $comparison,
+            'comparison'            => $comparison,
+            'department_comparison' => $departmentComparison,
         ]);
     }
 
