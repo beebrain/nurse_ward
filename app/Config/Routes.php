@@ -25,6 +25,10 @@ $routes->get('debug/auth', '\App\Controllers\DebugController::auth');
 $routes->get('debug/test-login', '\App\Controllers\DebugLoginController::test');
 $routes->get('debug/check-user', '\App\Controllers\DebugLoginController::checkUser');
 
+// Account settings
+$routes->get('account/change-password', '\App\Controllers\AccountController::changePasswordView', ['filter' => 'session']);
+$routes->post('account/change-password', '\App\Controllers\AccountController::changePasswordAction', ['filter' => 'session']);
+
 // Static JS via PHP (avoids 404 when reverse proxy does not serve public/js/*)
 $routes->get('app-asset/js/(:segment)', '\App\Controllers\AppAsset::javascript/$1');
 // Same file when browser requests .../public/js/... (e.g. app.publicAssetsPrefix = public + all requests via index.php)

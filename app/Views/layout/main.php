@@ -401,6 +401,7 @@ if (auth()->loggedIn()) {
         $navItems[] = ['label' => 'นำเข้า/ส่งออก', 'icon' => 'import_export', 'url' => base_url('admin/import-export')];
         $navItems[] = ['label' => 'สำรองข้อมูล', 'icon' => 'database', 'url' => base_url('admin/backup')];
     }
+    $navItems[] = ['label' => 'เปลี่ยนรหัสผ่าน', 'icon' => 'key', 'url' => base_url('account/change-password')];
 }
 ?>
 

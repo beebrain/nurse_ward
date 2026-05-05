@@ -109,10 +109,10 @@ class Filters extends BaseFilters
      */
     public array $filters = [
         'session' => [
-            'before' => ['admin/*', 'census*', 'reports*', 'dashboards*'],
+            'before' => ['admin/*', 'census*', 'reports*', 'dashboards*', 'account/*'],
         ],
         'approval' => [
-            'before' => ['admin/*', 'census*', 'reports*', 'dashboards*', '/'],
+            'before' => ['admin/*', 'census*', 'reports*', 'dashboards*', 'account/*', '/'],
         ],
     ];
 }
