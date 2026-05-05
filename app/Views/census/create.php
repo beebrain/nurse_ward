@@ -926,7 +926,85 @@
       <span id="carry_forward_note_text">ยอดยกมาจากเวรก่อนหน้า 0 คน</span>
     </div>
 
-    <!-- ── Section 1: Patient Levels ────────────────────────────────── -->
+    <!-- ── Section 1: Patient Movements ──────────────────────────────── -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-header">
+        <span>
+          <span class="material-symbols-outlined text-primary me-1">swap_horiz</span>
+          การเคลื่อนไหวผู้ป่วย
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="movement-balance-panel mb-3">
+          <div class="row g-2 align-items-center">
+            <div class="col-md-3 col-6">
+              <div class="movement-balance-label">ยอดยกมา</div>
+              <div class="movement-balance-value" id="carried_forward_display">0</div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="movement-balance-label">ยอดคาดการณ์</div>
+              <div class="movement-balance-value" id="movement_expected_display">0</div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="movement-balance-label">ยอดคงอยู่จริง</div>
+              <div class="movement-balance-value" id="movement_actual_display">0</div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="movement-balance-label">ส่วนต่าง</div>
+              <div class="movement-balance-value" id="movement_variance_display">0</div>
+            </div>
+          </div>
+          <div id="movement_balance_status" class="small text-muted mt-2">
+            เลือก Ward / วันที่ / Shift เพื่อดึงยอดยกมาจากเวรก่อนหน้า
+          </div>
+        </div>
+        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-2">
+
+          <div class="col">
+            <div class="stat-card nc-other">
+              <div class="stat-label">รับใหม่ <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Admission">info</span></div>
+              <input type="number" name="admissions" id="admissions" class="stat-input movement-input"
+                min="0" value="<?= old('admissions', 0) ?>">
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="stat-card nc-other">
+              <div class="stat-label">จำหน่าย <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Discharge">info</span></div>
+              <input type="number" name="discharges" id="discharges" class="stat-input movement-input"
+                min="0" value="<?= old('discharges', 0) ?>">
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="stat-card nc-other">
+              <div class="stat-label">ย้ายเข้า <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Transfer In">info</span></div>
+              <input type="number" name="transfers_in" id="transfers_in" class="stat-input movement-input"
+                min="0" value="<?= old('transfers_in', 0) ?>">
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="stat-card nc-other">
+              <div class="stat-label">ย้ายออก <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Transfer Out">info</span></div>
+              <input type="number" name="transfers_out" id="transfers_out" class="stat-input movement-input"
+                min="0" value="<?= old('transfers_out', 0) ?>">
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="stat-card nc-other">
+              <div class="stat-label">เสียชีวิต <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Death">info</span></div>
+              <input type="number" name="deaths" id="deaths" class="stat-input movement-input"
+                min="0" value="<?= old('deaths', 0) ?>">
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section 2: Patient Levels ────────────────────────────────── -->
     <div class="card shadow-sm mb-3">
       <div class="card-header">
         <span>
@@ -1013,84 +1091,6 @@
           </div>
         </div>
 
-      </div>
-    </div>
-
-    <!-- ── Section 2: Patient Movements ──────────────────────────────── -->
-    <div class="card shadow-sm mb-3">
-      <div class="card-header">
-        <span>
-          <span class="material-symbols-outlined text-primary me-1">swap_horiz</span>
-          การเคลื่อนไหวผู้ป่วย
-        </span>
-      </div>
-      <div class="card-body">
-        <div class="movement-balance-panel mb-3">
-          <div class="row g-2 align-items-center">
-            <div class="col-md-3 col-6">
-              <div class="movement-balance-label">ยอดยกมา</div>
-              <div class="movement-balance-value" id="carried_forward_display">0</div>
-            </div>
-            <div class="col-md-3 col-6">
-              <div class="movement-balance-label">ยอดคาดการณ์</div>
-              <div class="movement-balance-value" id="movement_expected_display">0</div>
-            </div>
-            <div class="col-md-3 col-6">
-              <div class="movement-balance-label">ยอดคงอยู่จริง</div>
-              <div class="movement-balance-value" id="movement_actual_display">0</div>
-            </div>
-            <div class="col-md-3 col-6">
-              <div class="movement-balance-label">ส่วนต่าง</div>
-              <div class="movement-balance-value" id="movement_variance_display">0</div>
-            </div>
-          </div>
-          <div id="movement_balance_status" class="small text-muted mt-2">
-            เลือก Ward / วันที่ / Shift เพื่อดึงยอดยกมาจากเวรก่อนหน้า
-          </div>
-        </div>
-        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-2">
-
-          <div class="col">
-            <div class="stat-card nc-other">
-              <div class="stat-label">รับใหม่ <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Admission">info</span></div>
-              <input type="number" name="admissions" id="admissions" class="stat-input movement-input"
-                min="0" value="<?= old('admissions', 0) ?>">
-            </div>
-          </div>
-
-          <div class="col">
-            <div class="stat-card nc-other">
-              <div class="stat-label">จำหน่าย <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Discharge">info</span></div>
-              <input type="number" name="discharges" id="discharges" class="stat-input movement-input"
-                min="0" value="<?= old('discharges', 0) ?>">
-            </div>
-          </div>
-
-          <div class="col">
-            <div class="stat-card nc-other">
-              <div class="stat-label">ย้ายเข้า <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Transfer In">info</span></div>
-              <input type="number" name="transfers_in" id="transfers_in" class="stat-input movement-input"
-                min="0" value="<?= old('transfers_in', 0) ?>">
-            </div>
-          </div>
-
-          <div class="col">
-            <div class="stat-card nc-other">
-              <div class="stat-label">ย้ายออก <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Transfer Out">info</span></div>
-              <input type="number" name="transfers_out" id="transfers_out" class="stat-input movement-input"
-                min="0" value="<?= old('transfers_out', 0) ?>">
-            </div>
-          </div>
-
-          <div class="col">
-            <div class="stat-card nc-other">
-              <div class="stat-label">เสียชีวิต <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Death">info</span></div>
-              <input type="number" name="deaths" id="deaths" class="stat-input movement-input"
-                min="0" value="<?= old('deaths', 0) ?>">
-            </div>
-          </div>
-
-        </div>
       </div>
     </div>
 
