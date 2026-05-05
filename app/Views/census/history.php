@@ -354,7 +354,7 @@
                 total_working: dailyWorking,
                 daily_prod:    dailyProd,
             };
-            dayCalcs[day.record_date] = dailyCalc;
+            dayCalcs[day.date] = dailyCalc;
 
             // Compute and cache per-shift productivity into shift objects
             SHIFTS.forEach(sk => {
@@ -380,7 +380,7 @@
             });
 
             const prodCell = `<td rowspan="3" class="text-center align-middle border-start prod-day-cell"
-                data-day-key="${day.record_date}" style="min-width:90px;cursor:pointer;">
+                data-day-key="${day.date}" style="min-width:90px;cursor:pointer;">
                 ${prodBadge(dailyProd, 'fs-6')}
                 <div class="text-muted" style="font-size:.7rem;margin-top:.25rem;">คลิกดูรายละเอียด</div>
             </td>`;
@@ -892,7 +892,9 @@
 
             $('#dailyProdModalLabel').text(`Productivity รายวัน — ${dc.date_label}`);
             $('#dailyProdBody').html(body);
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('dailyProdModal')).show();
+            const dailyModalEl = document.getElementById('dailyProdModal');
+            document.body.appendChild(dailyModalEl);
+            bootstrap.Modal.getOrCreateInstance(dailyModalEl).show();
         }
 
         $('#history-filter').on('submit', function(event) {
@@ -900,7 +902,7 @@
             loadHistory();
         });
         $('#history-result').on('click', 'td.prod-day-cell', function(e) {
-            e.stopPropagation();
+            e.stopImmediatePropagation();
             showDailyProdModal($(this).data('day-key'));
         });
         $('#history-result').on('click', 'tr[data-shift-key]', function() {
