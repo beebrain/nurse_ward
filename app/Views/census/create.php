@@ -859,8 +859,7 @@
       <span class="material-symbols-outlined mt-1" style="font-size:1.1rem;">lock</span>
       <div class="small">
         คุณสามารถบันทึกได้เฉพาะ Ward ที่รับผิดชอบ (<strong><?= count($wards) ?> Ward</strong>)
-        และบันทึกย้อนหลังได้ไม่เกิน <strong>12 ชั่วโมง</strong> หลังจากกะเริ่ม
-        <span class="text-muted">(ดึก 00:00 / เช้า 08:00 / บ่าย 16:00)</span>
+        <span class="text-muted">(เวลาเริ่มเวร: ดึก 00:00 / เช้า 08:00 / บ่าย 16:00)</span>
       </div>
     </div>
   <?php endif; ?>
@@ -1595,28 +1594,7 @@
       warn.classList.remove('d-none');
       return;
     }
-    if (!IS_NURSE) {
-      warn.classList.add('d-none');
-      return;
-    }
-    const deadline = getShiftDeadline(dateStr, shift);
-    if (!deadline) {
-      warn.classList.add('d-none');
-      return;
-    }
-    const now = new Date();
-    if (now > deadline) {
-      const fmt = deadline.toLocaleString('th-TH', {
-        hour: '2-digit',
-        minute: '2-digit',
-        day: 'numeric',
-        month: 'short'
-      });
-      warn.textContent = `⚠ เกินระยะเวลาบันทึก (หมดเขต ${fmt}) กะนี้ไม่สามารถบันทึกได้`;
-      warn.classList.remove('d-none');
-    } else {
-      warn.classList.add('d-none');
-    }
+    warn.classList.add('d-none');
   }
 
   ['shift', 'record_date'].forEach(id => {
@@ -1637,7 +1615,6 @@
       return;
     }
 
-    if (!IS_NURSE) return;
     const dateStr = document.getElementById('record_date').value;
     const shift = document.getElementById('shift').value;
     const [y, m, d] = dateStr.split('-').map(Number);
@@ -1646,11 +1623,6 @@
       e.preventDefault();
       alert('ยังไม่ถึงเวลาเริ่มเวรนี้ จึงยังไม่สามารถบันทึกได้');
       return;
-    }
-    const deadline = getShiftDeadline(dateStr, shift);
-    if (deadline && new Date() > deadline) {
-      e.preventDefault();
-      alert('ไม่สามารถบันทึกได้ เนื่องจากเกินระยะเวลา 12 ชั่วโมงหลังกะเริ่ม');
     }
   });
 

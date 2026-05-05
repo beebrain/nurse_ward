@@ -715,11 +715,11 @@ class CensusController extends BaseController
     }
 
     /**
-     * Nurses (and anyone, for consistency) may only record data within 12 hours
-     * of a shift's start. Superadmin and Manager are exempt.
+     * Recording window:
+     * - Never allow "future shifts" (before shift start).
+     * - Late-entry is allowed (no 12-hour cutoff).
      *
      * Shift starts: Night=00:00, Morning=08:00, Afternoon=16:00
-     * Deadline = shift_start + 12 hours
      */
     private function isWithinRecordingWindow(string $date, string $shift): bool
     {
@@ -730,14 +730,7 @@ class CensusController extends BaseController
             return false;
         }
 
-        // Superadmin / Manager bypass the late-entry restriction, but not future shifts.
-        if (! $this->isNurse()) {
-            return true;
-        }
-
-        $deadline   = $shiftStart + (12 * 3600);
-
-        return time() <= $deadline;
+        return true;
     }
 
     private function recordingWindowError(string $date, string $shift): string
@@ -749,7 +742,7 @@ class CensusController extends BaseController
             return 'ยังไม่ถึงเวลาเริ่มเวร ' . $shift . ' วันที่ ' . $date . ' จึงยังไม่สามารถบันทึกได้';
         }
 
-        return 'ไม่สามารถบันทึกย้อนหลังเกิน 12 ชั่วโมง สำหรับกะ ' . $shift . ' วันที่ ' . $date;
+        return 'ไม่สามารถบันทึกได้สำหรับเวรนี้';
     }
 
     private function buildCensusData(array $post): ?array
