@@ -33,7 +33,7 @@
                 <span class="material-symbols-outlined" style="color:var(--primary);font-size:2rem;">monitoring</span>
                 <div>
                     <h1 class="mb-0"><?= esc($title) ?></h1>
-                    <div class="text-muted small">สรุป Productivity โดยใช้ข้อมูล 3 กะอย่างถูกต้อง ไม่รวม Patient Days ซ้ำ</div>
+                    <div class="text-muted small">สรุป Productivity โดยใช้ข้อมูล 3 เวรอย่างถูกต้อง ไม่รวม Patient Days ซ้ำ</div>
                 </div>
             </div>
             <a href="<?= base_url('census/history') ?>" class="btn btn-outline-secondary align-self-start align-self-xl-end">
@@ -44,7 +44,7 @@
 
         <div class="alert alert-info">
             <span class="material-symbols-outlined align-middle me-1">info</span>
-            Patient Days ใช้ค่าเดียวต่อวันตามลำดับ กะดึก → กะบ่าย → กะเช้า ส่วนรับใหม่/จำหน่าย/ย้าย/เสียชีวิต และชั่วโมงทำงาน รวมจากทั้ง 3 กะ
+            Patient Days ใช้ค่าเดียวต่อวันตามลำดับ เวรดึก → เวรบ่าย → เวรเช้า ส่วนรับใหม่/จำหน่าย/ย้าย/เสียชีวิต และชั่วโมงทำงาน รวมจากทั้ง 3 เวร
         </div>
 
         <div class="card shadow-sm mb-4">
@@ -162,7 +162,7 @@
 <script>
     $(function() {
         const endpoint = '<?= base_url('census/productivity-data') ?>';
-        const shiftLabels = { Night: 'กะดึก', Morning: 'กะเช้า', Afternoon: 'กะบ่าย' };
+        const shiftLabels = { Night: 'เวรดึก', Morning: 'เวรเช้า', Afternoon: 'เวรบ่าย' };
 
         function escapeHtml(value) {
             return $('<div>').text(value ?? '').html();
@@ -218,7 +218,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="ps-3">วันที่</th>
-                                <th class="text-end">กะที่บันทึก</th>
+                                <th class="text-end">เวรที่บันทึก</th>
                                 <th class="text-end">Patient Days</th>
                                 <th>ใช้ยอดจาก</th>
                                 <th>Care จาก</th>
@@ -263,7 +263,7 @@
                             <tr>
                                 <th class="ps-3">เดือน</th>
                                 <th class="text-end">วันที่มีข้อมูล</th>
-                                <th class="text-end">จำนวนกะ</th>
+                                <th class="text-end">จำนวนเวร</th>
                                 <th class="text-end">Patient Days</th>
                                 <th class="text-end">Required Hours</th>
                                 <th class="text-end">Working Hours</th>

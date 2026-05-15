@@ -911,7 +911,7 @@
       </div>
       <div class="toolbar-divider"></div>
       <div class="toolbar-field">
-        <label>Shift <span class="text-danger">*</span></label>
+        <label>เวร <span class="text-danger">*</span></label>
         <select name="shift" id="shift" class="form-select" required>
           <option value="">— เลือก —</option>
           <option value="Night" <?= old('shift') === 'Night'     ? 'selected' : '' ?>>ดึก (Night)</option>
@@ -955,7 +955,7 @@
             </div>
           </div>
           <div id="movement_balance_status" class="small text-muted mt-2">
-            เลือก Ward / วันที่ / Shift เพื่อดึงยอดยกมาจากเวรก่อนหน้า
+            เลือก Ward / วันที่ / เวร เพื่อดึงยอดยกมาจากเวรก่อนหน้า
           </div>
         </div>
         <div class="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-2">
@@ -1070,7 +1070,7 @@
         <!-- Productivity preview (Afternoon shift only) -->
         <div id="care_hours_preview" class="prod-preview d-none">
           <div class="small text-center opacity-75 mb-2">
-            Preview Productivity (คำนวณเมื่อบันทึกครบ 3 Shift)
+            Preview Productivity (คำนวณเมื่อบันทึกครบ 3 เวร)
           </div>
           <div class="row text-center g-0">
             <div class="col border-end prod-divider">
@@ -1448,7 +1448,7 @@
       setShiftLock(false);
       updateCarryForwardNote(null);
       status.className = 'small text-muted mt-2';
-      status.textContent = 'เลือก Ward / วันที่ / Shift เพื่อดึงยอดยกมาจากเวรก่อนหน้า';
+      status.textContent = 'เลือก Ward / วันที่ / เวร เพื่อดึงยอดยกมาจากเวรก่อนหน้า';
       updateMovementBalance();
       return;
     }
@@ -1640,7 +1640,7 @@
     const date = document.getElementById('record_date').value;
     const shift = document.getElementById('shift').value;
     if (!wardId || !date || !shift) {
-      statusEl.textContent = 'กรุณาเลือก Ward / วันที่ / Shift ก่อน';
+      statusEl.textContent = 'กรุณาเลือก Ward / วันที่ / เวร ก่อน';
       return;
     }
     statusEl.textContent = 'กำลังบันทึก…';

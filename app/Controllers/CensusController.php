@@ -55,7 +55,7 @@ class CensusController extends BaseController
         $post = $this->request->getPost();
         $censusData = $this->buildCensusData($post);
         if ($censusData === null) {
-            return redirect()->back()->withInput()->with('error', 'กรุณากรอกข้อมูล Ward / วันที่ / Shift ให้ครบ');
+            return redirect()->back()->withInput()->with('error', 'กรุณากรอกข้อมูล Ward / วันที่ / เวร ให้ครบ');
         }
 
         // Permission: nurse may only record for assigned wards

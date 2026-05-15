@@ -184,7 +184,7 @@
                 <ul class="small text-muted mb-0 mt-2">
                     <li>แถวแรก (Row 1) คือหัวตาราง ไม่ต้องกรอกข้อมูล</li>
                     <li>ชื่อแผนกต้องตรงกับที่มีในระบบ: <strong><?= implode(', ', array_column($wards, 'name')) ?></strong></li>
-                    <li>เวร (Shift) รับเฉพาะ: <code>Morning</code>, <code>Afternoon</code>, <code>Night</code></li>
+                    <li>เวร รับเฉพาะ: <code>Morning</code>, <code>Afternoon</code>, <code>Night</code></li>
                     <li>วันที่ต้องเป็นรูปแบบ <code>YYYY-MM-DD</code> เช่น <code>2025-03-15</code></li>
                 </ul>
             </div>

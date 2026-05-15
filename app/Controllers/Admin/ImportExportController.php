@@ -80,7 +80,7 @@ class ImportExportController extends BaseController
         $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         // Header row
-        $headers = ['ชื่อแผนก', 'วันที่ (YYYY-MM-DD)', 'กะ', 'รับใหม่', 'จำหน่าย', 'รับย้าย', 'ส่งย้าย', 'เสียชีวิต', 'คงเหลือ'];
+        $headers = ['ชื่อแผนก', 'วันที่ (YYYY-MM-DD)', 'เวร', 'รับใหม่', 'จำหน่าย', 'รับย้าย', 'ส่งย้าย', 'เสียชีวิต', 'คงเหลือ'];
         $cols    = range('A', 'I');
         foreach ($headers as $i => $header) {
             $sheet->setCellValue($cols[$i] . '4', $header);
@@ -154,13 +154,13 @@ class ImportExportController extends BaseController
             ['คอลัมน์', 'คำอธิบาย', 'ตัวอย่าง'],
             ['ชื่อแผนก', 'ชื่อแผนกต้องตรงกับในระบบ', implode(', ', array_column($wards, 'name'))],
             ['วันที่', 'รูปแบบ YYYY-MM-DD', '2025-03-15'],
-            ['กะ', 'Morning, Afternoon หรือ Night เท่านั้น', 'Morning'],
+            ['เวร', 'Morning, Afternoon หรือ Night เท่านั้น', 'Morning'],
             ['รับใหม่', 'จำนวนผู้ป่วยรับใหม่ (ตัวเลข >= 0)', '3'],
             ['จำหน่าย', 'จำนวนผู้ป่วยจำหน่าย', '2'],
             ['รับย้าย', 'รับย้ายจากแผนกอื่น', '1'],
             ['ส่งย้าย', 'ส่งย้ายไปแผนกอื่น', '0'],
             ['เสียชีวิต', 'จำนวนผู้ป่วยเสียชีวิต', '0'],
-            ['คงเหลือ', 'จำนวนผู้ป่วยคงเหลือ ณ สิ้นกะ', '25'],
+            ['คงเหลือ', 'จำนวนผู้ป่วยคงเหลือ ณ สิ้นเวร', '25'],
         ];
         foreach ($instructions as $i => $inst) {
             $instSheet->setCellValue('A' . ($i + 2), $inst[0]);
@@ -174,7 +174,7 @@ class ImportExportController extends BaseController
 
         // Template sheet
         $spreadsheet->setActiveSheetIndex(0);
-        $headers = ['ชื่อแผนก', 'วันที่ (YYYY-MM-DD)', 'กะ', 'รับใหม่', 'จำหน่าย', 'รับย้าย', 'ส่งย้าย', 'เสียชีวิต', 'คงเหลือ'];
+        $headers = ['ชื่อแผนก', 'วันที่ (YYYY-MM-DD)', 'เวร', 'รับใหม่', 'จำหน่าย', 'รับย้าย', 'ส่งย้าย', 'เสียชีวิต', 'คงเหลือ'];
         $cols    = range('A', 'I');
         foreach ($headers as $i => $header) {
             $sheet->setCellValue($cols[$i] . '1', $header);
@@ -291,7 +291,7 @@ class ImportExportController extends BaseController
 
             // Validate shift
             if (!in_array($shift, $validShifts, true)) {
-                $errors[] = "แถว {$r}: กะไม่ถูกต้อง '{$shift}' (ต้องเป็น Morning, Afternoon หรือ Night)";
+                $errors[] = "แถว {$r}: เวรไม่ถูกต้อง '{$shift}' (ต้องเป็น Morning, Afternoon หรือ Night)";
                 $skipped++;
                 continue;
             }
@@ -521,7 +521,7 @@ class ImportExportController extends BaseController
             }
 
             if (!in_array($shift, $validShifts, true)) {
-                $errors[] = "แถว {$lineNum}: กะไม่ถูกต้อง '{$shift}'";
+                $errors[] = "แถว {$lineNum}: เวรไม่ถูกต้อง '{$shift}'";
                 $skipped++;
                 continue;
             }
