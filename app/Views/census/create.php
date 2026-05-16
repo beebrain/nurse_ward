@@ -859,7 +859,6 @@
       <span class="material-symbols-outlined mt-1" style="font-size:1.1rem;">lock</span>
       <div class="small">
         คุณสามารถบันทึกได้เฉพาะ Ward ที่รับผิดชอบ (<strong><?= count($wards) ?> Ward</strong>)
-        <span class="text-muted">(เวลาเริ่มเวร: ดึก 00:00 / เช้า 08:00 / บ่าย 16:00)</span>
       </div>
     </div>
   <?php endif; ?>
@@ -1264,8 +1263,6 @@
       <textarea name="notes" class="form-control form-control-sm" rows="2"><?= old('notes') ?></textarea>
     </div>
 
-    <div id="shift_lock_warning" class="alert alert-warning py-2 small d-none mb-2"></div>
-    <div id="window_warning" class="alert alert-danger py-2 small d-none mb-2"></div>
     <div id="autosave_status" class="text-muted small text-end mb-2" style="min-height:1.2em"></div>
 
     <div class="d-flex gap-2 justify-content-end form-actions-bar">
@@ -1296,7 +1293,6 @@
   const SHIFT_HOURS = 7;
   let carriedForwardPatients = 0;
   let hasCarryForwardSource = false;
-  let isShiftLocked = false;
 
   if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
@@ -1346,24 +1342,6 @@
       if (input) {
         input.value = 0;
       }
-    });
-  }
-
-  function setShiftLock(locked, lockedBy = null, hasCurrent = false) {
-    isShiftLocked = locked;
-    const warning = document.getElementById('shift_lock_warning');
-    const lockedLabel = lockedBy ? `${lockedBy.record_date} / ${lockedBy.shift}` : 'เวรถัดไป';
-
-    warning.classList.toggle('d-none', !locked);
-    warning.textContent = locked ?
-      `เวรนี้ถูกล็อกแล้ว เนื่องจากมีการบันทึก${lockedLabel} แล้ว ไม่สามารถ${hasCurrent ? 'แก้ไข' : 'เพิ่ม'}ข้อมูลเวรนี้ได้` :
-      '';
-
-    document.querySelectorAll('#censusForm input, #censusForm select, #censusForm textarea, #censusForm button').forEach(el => {
-      if (['ward_id', 'record_date', 'shift'].includes(el.id)) {
-        return;
-      }
-      el.disabled = locked;
     });
   }
 
@@ -1445,7 +1423,6 @@
     if (!wardId || !date || !shift) {
       carriedForwardPatients = 0;
       hasCarryForwardSource = false;
-      setShiftLock(false);
       updateCarryForwardNote(null);
       status.className = 'small text-muted mt-2';
       status.textContent = 'เลือก Ward / วันที่ / เวร เพื่อดึงยอดยกมาจากเวรก่อนหน้า';
@@ -1473,12 +1450,9 @@
 
       if (json.success && json.has_current) {
         applyCurrentRecord(json.current_record);
-        setShiftLock(Boolean(json.is_locked), json.locked_by, true);
-      } else {
-        setShiftLock(Boolean(json.success && json.is_locked), json.locked_by, false);
       }
 
-      if (json.success && !json.has_current && json.has_previous && !json.is_locked) {
+      if (json.success && !json.has_current && json.has_previous) {
         applyPreviousShiftSnapshot(json.previous_snapshot, forcePopulate);
         if (forcePopulate) {
           resetMovementInputs();
@@ -1487,7 +1461,6 @@
     } catch (e) {
       carriedForwardPatients = 0;
       hasCarryForwardSource = false;
-      setShiftLock(false);
       updateCarryForwardNote(null);
       status.className = 'small text-danger mt-2';
       status.textContent = 'ดึงยอดยกมาไม่สำเร็จ';
@@ -1556,74 +1529,13 @@
     s.style.display = s.style.display === 'none' ? '' : 'none';
   });
 
-  // ── Shift window check (nurse only) ───────────────────────────────────────
-  const IS_NURSE = <?= json_encode($isNurse) ?>;
-  const SHIFT_START_HOUR = {
-    Night: 0,
-    Morning: 8,
-    Afternoon: 16
-  };
-
-  function getShiftDeadline(dateStr, shift) {
-    if (!dateStr || !shift) return null;
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const startHour = SHIFT_START_HOUR[shift] ?? 0;
-    const start = new Date(y, m - 1, d, startHour, 0, 0);
-    return new Date(start.getTime() + 12 * 3600 * 1000);
-  }
-
-  function checkWindowWarning() {
-    const dateStr = document.getElementById('record_date').value;
-    const shift = document.getElementById('shift').value;
-    const warn = document.getElementById('window_warning');
-    if (!warn) return;
-    if (!dateStr || !shift) {
-      warn.classList.add('d-none');
-      return;
-    }
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const shiftStart = new Date(y, m - 1, d, SHIFT_START_HOUR[shift] ?? 0, 0, 0);
-    if (new Date() < shiftStart) {
-      const fmt = shiftStart.toLocaleString('th-TH', {
-        hour: '2-digit',
-        minute: '2-digit',
-        day: 'numeric',
-        month: 'short'
-      });
-      warn.textContent = `ยังไม่ถึงเวลาเริ่มเวรนี้ (เริ่ม ${fmt}) จึงยังไม่สามารถบันทึกได้`;
-      warn.classList.remove('d-none');
-      return;
-    }
-    warn.classList.add('d-none');
-  }
-
-  ['shift', 'record_date'].forEach(id => {
-    document.getElementById(id)?.addEventListener('change', checkWindowWarning);
-  });
-  checkWindowWarning();
-
   document.getElementById('censusForm').addEventListener('submit', function(e) {
-    if (isShiftLocked) {
-      e.preventDefault();
-      alert('ไม่สามารถบันทึกได้ เนื่องจากมีการบันทึกเวรถัดไปแล้ว');
-      return;
-    }
-
     const variance = parseInt(document.getElementById('movement_variance_display')?.textContent || '0', 10) || 0;
     if (hasCarryForwardSource && variance !== 0 && !confirm('ยอดคงอยู่ไม่ตรงกับยอดคาดการณ์จากยอดยกมาและ movement ต้องการบันทึกต่อหรือไม่?')) {
       e.preventDefault();
       return;
     }
 
-    const dateStr = document.getElementById('record_date').value;
-    const shift = document.getElementById('shift').value;
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const shiftStart = new Date(y, m - 1, d, SHIFT_START_HOUR[shift] ?? 0, 0, 0);
-    if (new Date() < shiftStart) {
-      e.preventDefault();
-      alert('ยังไม่ถึงเวลาเริ่มเวรนี้ จึงยังไม่สามารถบันทึกได้');
-      return;
-    }
   });
 
   // ── Auto-save ──────────────────────────────────────────────────────────────
@@ -1631,11 +1543,6 @@
   const statusEl = document.getElementById('autosave_status');
 
   async function doAutosave() {
-    if (isShiftLocked) {
-      statusEl.textContent = 'เวรนี้ถูกล็อก ไม่สามารถบันทึกได้';
-      return;
-    }
-
     const wardId = document.getElementById('ward_id').value;
     const date = document.getElementById('record_date').value;
     const shift = document.getElementById('shift').value;

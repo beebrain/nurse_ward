@@ -17,13 +17,6 @@ class CensusController extends BaseController
     protected $userWardModel;
     protected $wardModel;
 
-    // Shift start hours (24h) — used for the 12-hour recording window.
-    private const SHIFT_START_HOUR = [
-        'Night'     => 0,
-        'Morning'   => 8,
-        'Afternoon' => 16,
-    ];
-
     public function __construct()
     {
         $this->censusModel   = new CensusModel();
@@ -63,21 +56,11 @@ class CensusController extends BaseController
             return redirect()->back()->withInput()->with('error', 'คุณไม่มีสิทธิ์บันทึกข้อมูลสำหรับ Ward นี้');
         }
 
-        // Time window: shift must have started; nurses have max 12 hours after shift start.
-        if (! $this->isWithinRecordingWindow($censusData['record_date'], $censusData['shift'])) {
-            return redirect()->back()->withInput()
-                ->with('error', $this->recordingWindowError($censusData['record_date'], $censusData['shift']));
-        }
-
         $existing = $this->censusModel->findByShift(
             (int)$censusData['ward_id'],
             $censusData['record_date'],
             $censusData['shift']
         );
-
-        if ($this->censusModel->getNextShiftRecord((int)$censusData['ward_id'], $censusData['record_date'], $censusData['shift'])) {
-            return redirect()->back()->withInput()->with('error', 'ไม่สามารถแก้ไข/เพิ่มเวรนี้ได้ เนื่องจากมีการบันทึกเวรถัดไปแล้ว');
-        }
 
         $censusId = null;
         try {
@@ -126,13 +109,6 @@ class CensusController extends BaseController
             return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'ไม่มีสิทธิ์บันทึก Ward นี้']);
         }
 
-        if (! $this->isWithinRecordingWindow($post['record_date'], $post['shift'])) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => $this->recordingWindowError($post['record_date'], $post['shift']),
-            ]);
-        }
-
         $censusData = $this->buildCensusData($post);
         if ($censusData === null) {
             return $this->response->setJSON(['success' => false, 'message' => 'ข้อมูลไม่ถูกต้อง']);
@@ -143,13 +119,6 @@ class CensusController extends BaseController
             $censusData['record_date'],
             $censusData['shift']
         );
-
-        if ($this->censusModel->getNextShiftRecord((int)$censusData['ward_id'], $censusData['record_date'], $censusData['shift'])) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'ไม่สามารถแก้ไข/เพิ่มเวรนี้ได้ เนื่องจากมีการบันทึกเวรถัดไปแล้ว',
-            ]);
-        }
 
         $censusId  = null;
         $isUpdate  = false;
@@ -205,25 +174,16 @@ class CensusController extends BaseController
         }
 
         [$previousDate, $previousShift] = $this->censusModel->previousShiftKey($date, $shift);
-        [$nextDate, $nextShift] = $this->censusModel->nextShiftKey($date, $shift);
         $current = $this->censusModel->findByShift($wardId, $date, $shift);
         $previous = $this->censusModel->getPreviousShiftRecord($wardId, $date, $shift);
-        $next = $this->censusModel->getNextShiftRecord($wardId, $date, $shift);
         $qi = $current ? $this->qiModel->findByCensusId((int)$current['id']) : null;
 
         return $this->response->setJSON([
             'success'        => true,
             'previous_date'  => $previousDate,
             'previous_shift' => $previousShift,
-            'next_date'      => $nextDate,
-            'next_shift'     => $nextShift,
             'has_previous'   => $previous !== null,
             'has_current'    => $current !== null,
-            'is_locked'      => $next !== null,
-            'locked_by'      => $next ? [
-                'record_date' => $next['record_date'],
-                'shift'       => $next['shift'],
-            ] : null,
             'carried_forward_patients' => (int)($previous['total_patients'] ?? 0),
             'current_record' => $current ? $this->formatCensusSnapshot($current, $qi) : null,
             'previous_snapshot' => [
@@ -712,37 +672,6 @@ class CensusController extends BaseController
             return true;
         }
         return $this->userWardModel->userCanAccessWard((int)auth()->id(), $wardId);
-    }
-
-    /**
-     * Recording window:
-     * - Never allow "future shifts" (before shift start).
-     * - Late-entry is allowed (no 12-hour cutoff).
-     *
-     * Shift starts: Night=00:00, Morning=08:00, Afternoon=16:00
-     */
-    private function isWithinRecordingWindow(string $date, string $shift): bool
-    {
-        $startHour = self::SHIFT_START_HOUR[$shift] ?? 0;
-        $shiftStart = strtotime($date . ' ' . sprintf('%02d:00:00', $startHour));
-
-        if (time() < $shiftStart) {
-            return false;
-        }
-
-        return true;
-    }
-
-    private function recordingWindowError(string $date, string $shift): string
-    {
-        $startHour = self::SHIFT_START_HOUR[$shift] ?? 0;
-        $shiftStart = strtotime($date . ' ' . sprintf('%02d:00:00', $startHour));
-
-        if (time() < $shiftStart) {
-            return 'ยังไม่ถึงเวลาเริ่มเวร ' . $shift . ' วันที่ ' . $date . ' จึงยังไม่สามารถบันทึกได้';
-        }
-
-        return 'ไม่สามารถบันทึกได้สำหรับเวรนี้';
     }
 
     private function buildCensusData(array $post): ?array
