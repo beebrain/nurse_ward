@@ -406,6 +406,73 @@ class ReportService
     }
 
     /**
+     * Daily census matrix for all wards (rows = days, columns = wards).
+     *
+     * @param list<array<string, mixed>> $wards
+     * @return array{wards: list<array<string, int|string>>, days: list<array<string, mixed>>, summary: array<string, int>}
+     */
+    public function getAllWardsDailyMatrix(array $wards, int $month, int $year): array
+    {
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+        $lastDay   = (int) date('t', strtotime($startDate));
+
+        $days = [];
+        for ($day = 1; $day <= $lastDay; $day++) {
+            $date = sprintf('%04d-%02d-%02d', $year, $month, $day);
+            $days[$date] = [
+                'date'    => $date,
+                'by_ward' => [],
+            ];
+        }
+
+        $wardMeta = [];
+        $summary  = [
+            'patient_days'  => 0,
+            'admissions'    => 0,
+            'discharges'    => 0,
+            'transfers_in'  => 0,
+            'transfers_out' => 0,
+            'deaths'        => 0,
+        ];
+
+        foreach ($wards as $ward) {
+            $wardId = (int) $ward['id'];
+            $wardMeta[] = [
+                'id'    => $wardId,
+                'name'  => (string) $ward['name'],
+                'label' => trim((string) ($ward['code'] ?? '') . ' ' . $ward['name']),
+            ];
+
+            foreach ($this->getDailySummaryTable($wardId, $month, $year) as $row) {
+                $date = $row['record_date'];
+                if (! isset($days[$date])) {
+                    continue;
+                }
+                $days[$date]['by_ward'][(string) $wardId] = [
+                    'patient_days'  => (int) $row['patient_days'],
+                    'admissions'    => (int) $row['admissions'],
+                    'discharges'    => (int) $row['discharges'],
+                    'transfers_in'  => (int) $row['transfers_in'],
+                    'transfers_out' => (int) $row['transfers_out'],
+                    'deaths'        => (int) $row['deaths'],
+                ];
+                $summary['patient_days']  += (int) $row['patient_days'];
+                $summary['admissions']    += (int) $row['admissions'];
+                $summary['discharges']    += (int) $row['discharges'];
+                $summary['transfers_in']  += (int) $row['transfers_in'];
+                $summary['transfers_out'] += (int) $row['transfers_out'];
+                $summary['deaths']        += (int) $row['deaths'];
+            }
+        }
+
+        return [
+            'wards'   => $wardMeta,
+            'days'    => array_values($days),
+            'summary' => $summary,
+        ];
+    }
+
+    /**
      * @return list<string> Thai short month labels (12).
      */
     public function getThaiMonthShortLabels(): array

@@ -240,15 +240,14 @@ class CensusController extends BaseController
 
     public function productivity()
     {
-        [$wards, $defaultWardId] = $this->getAvailableWardsForCurrentUser();
+        [$wards] = $this->getAvailableWardsForCurrentUser();
 
         return view('census/productivity', [
-            'title' => 'Productivity',
-            'wards' => $wards,
-            'defaultWardId' => $defaultWardId,
+            'title'        => 'Productivity',
+            'wards'        => $wards,
             'currentMonth' => (int) date('n'),
-            'currentYear' => (int) date('Y'),
-            'isNurse' => $this->isNurse(),
+            'currentYear'  => (int) date('Y'),
+            'isNurse'      => $this->isNurse(),
         ]);
     }
 
@@ -258,9 +257,9 @@ class CensusController extends BaseController
             return $this->response->setStatusCode(401)->setJSON(['error' => 'Unauthorized']);
         }
 
-        $mode = (string)($this->request->getGet('mode') ?? 'month');
-        $year = (int)($this->request->getGet('year') ?? date('Y'));
-        $month = (int)($this->request->getGet('month') ?? date('n'));
+        $mode  = (string) ($this->request->getGet('mode') ?? 'month');
+        $year  = (int) ($this->request->getGet('year') ?? date('Y'));
+        $month = (int) ($this->request->getGet('month') ?? date('n'));
 
         if (! in_array($mode, ['month', 'year'], true) || $year < 2000 || $year > 2100) {
             return $this->response->setStatusCode(400)->setJSON(['error' => 'ตัวกรองไม่ถูกต้อง']);
@@ -269,16 +268,16 @@ class CensusController extends BaseController
             return $this->response->setStatusCode(400)->setJSON(['error' => 'เดือนไม่ถูกต้อง']);
         }
 
-        $wardId = $this->resolveHistoryWardId($this->request->getGet('ward_id'));
-        if ($wardId === null) {
+        [$wards] = $this->getAvailableWardsForCurrentUser();
+        if ($wards === []) {
             return $this->response->setStatusCode(403)->setJSON(['error' => 'ไม่มี Ward ที่สามารถดูข้อมูลได้']);
         }
 
         if ($mode === 'year') {
-            return $this->response->setJSON($this->buildYearProductivityPayload($wardId, $year));
+            return $this->response->setJSON($this->buildAllWardsYearProductivityPayload($wards, $year));
         }
 
-        return $this->response->setJSON($this->buildMonthProductivityPayload($wardId, $month, $year));
+        return $this->response->setJSON($this->buildAllWardsMonthProductivityPayload($wards, $month, $year));
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -370,6 +369,140 @@ class CensusController extends BaseController
             'year' => $year,
             'days' => array_values($daily),
             'summary' => $this->summarizeProductivityRows(array_values($daily)),
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $wards
+     */
+    private function buildAllWardsMonthProductivityPayload(array $wards, int $month, int $year): array
+    {
+        $dateFrom = sprintf('%04d-%02d-01', $year, $month);
+        $lastDay  = (int) date('t', strtotime($dateFrom));
+
+        $wardMeta = [];
+        foreach ($wards as $ward) {
+            $wardMeta[] = [
+                'id'    => (int) $ward['id'],
+                'name'  => (string) $ward['name'],
+                'label' => trim((string) ($ward['code'] ?? '') . ' ' . $ward['name']),
+            ];
+        }
+
+        $days = [];
+        for ($day = 1; $day <= $lastDay; $day++) {
+            $date = sprintf('%04d-%02d-%02d', $year, $month, $day);
+            $days[$date] = [
+                'date'          => $date,
+                'day_label'     => $this->thaiDateShort($date),
+                'weekday_label' => $this->thaiWeekdayLabel($date),
+                'by_ward'       => [],
+            ];
+        }
+
+        $allDailyRows = [];
+        foreach ($wards as $ward) {
+            $wardId = (int) $ward['id'];
+            $rows   = $this->censusModel->getHistoryForList($wardId, $dateFrom, date('Y-m-t', strtotime($dateFrom)), 120);
+            $daily  = $this->buildDailyProductivityRows($rows);
+
+            foreach ($daily as $date => $dayRow) {
+                if (! isset($days[$date])) {
+                    continue;
+                }
+                $days[$date]['by_ward'][(string) $wardId] = [
+                    'productivity'          => $dayRow['productivity'],
+                    'patient_days'          => $dayRow['patient_days'],
+                    'required_care_hours'   => $dayRow['required_care_hours'],
+                    'working_hours'         => $dayRow['working_hours'],
+                    'recorded_shifts'       => $dayRow['recorded_shifts'],
+                ];
+                $allDailyRows[] = $dayRow;
+            }
+        }
+
+        return [
+            'mode'   => 'month',
+            'month'  => $month,
+            'year'   => $year,
+            'wards'  => $wardMeta,
+            'days'   => array_values($days),
+            'summary' => $this->summarizeProductivityRows($allDailyRows),
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $wards
+     */
+    private function buildAllWardsYearProductivityPayload(array $wards, int $year): array
+    {
+        $wardMeta = [];
+        foreach ($wards as $ward) {
+            $wardMeta[] = [
+                'id'    => (int) $ward['id'],
+                'name'  => (string) $ward['name'],
+                'label' => trim((string) ($ward['code'] ?? '') . ' ' . $ward['name']),
+            ];
+        }
+
+        $months = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $months[$m] = [
+                'month'       => $m,
+                'month_label' => $this->thaiMonthLabel($m),
+                'by_ward'     => [],
+            ];
+        }
+
+        $allDailyRows = [];
+        foreach ($wards as $ward) {
+            $wardId = (int) $ward['id'];
+            $rows   = $this->censusModel->getHistoryForList($wardId, "{$year}-01-01", "{$year}-12-31", 1200);
+            $daily  = $this->buildDailyProductivityRows($rows);
+
+            foreach ($daily as $dayRow) {
+                $allDailyRows[] = $dayRow;
+            }
+
+            $monthly = [];
+            for ($m = 1; $m <= 12; $m++) {
+                $monthly[$m] = [
+                    'recorded_days'       => 0,
+                    'required_care_hours' => 0.0,
+                    'working_hours'       => 0.0,
+                    'productivity'        => null,
+                ];
+            }
+
+            foreach ($daily as $dayRow) {
+                $m = (int) date('n', strtotime($dayRow['date']));
+                $monthly[$m]['recorded_days']++;
+                $monthly[$m]['required_care_hours'] += $dayRow['required_care_hours'];
+                $monthly[$m]['working_hours'] += $dayRow['working_hours'];
+            }
+
+            foreach ($monthly as $m => &$row) {
+                $row['required_care_hours'] = round($row['required_care_hours'], 2);
+                $row['working_hours']       = round($row['working_hours'], 2);
+                $row['productivity']        = $row['working_hours'] > 0 && $row['required_care_hours'] > 0
+                    ? round(($row['required_care_hours'] * 100) / $row['working_hours'], 2)
+                    : null;
+                $months[$m]['by_ward'][(string) $wardId] = [
+                    'productivity'        => $row['productivity'],
+                    'recorded_days'     => $row['recorded_days'],
+                    'required_care_hours' => $row['required_care_hours'],
+                    'working_hours'     => $row['working_hours'],
+                ];
+            }
+            unset($row);
+        }
+
+        return [
+            'mode'    => 'year',
+            'year'    => $year,
+            'wards'   => $wardMeta,
+            'months'  => array_values($months),
+            'summary' => $this->summarizeProductivityRows($allDailyRows),
         ];
     }
 

@@ -385,13 +385,12 @@ if (auth()->loggedIn()) {
     $navItems[] = ['label' => 'บันทึกยอดรายวัน', 'icon' => 'clinical_notes', 'url' => base_url('census')];
     if (auth()->user()->can('census.record')) {
         $navItems[] = ['label' => 'ประวัติย้อนหลัง', 'icon' => 'history', 'url' => base_url('census/history')];
-        $navItems[] = ['label' => 'Productivity', 'icon' => 'monitoring', 'url' => base_url('census/productivity')];
+        $navItems[] = ['label' => 'Productivity', 'icon' => 'monitoring', 'url' => base_url('census/productivity'), 'hint' => 'ประสิทธิภาพการพยาบาล ทุกแผนก'];
     }
     if (auth()->user()->can('reports.view')) {
-        $navItems[] = ['label' => 'สรุปรายเดือน', 'icon' => 'summarize', 'url' => base_url('reports/monthly')];
-        $navItems[] = ['label' => 'ตารางรายวัน', 'icon' => 'table_chart', 'url' => base_url('reports/daily-summary')];
+        $navItems[] = ['label' => 'สรุปรายวัน', 'icon' => 'table_chart', 'url' => base_url('reports/daily-summary'), 'hint' => 'การเคลื่อนไหวผู้ป่วย ทุกแผนก'];
+        $navItems[] = ['label' => 'แดชบอร์ด', 'icon' => 'dashboard', 'url' => base_url('reports/dashboard'), 'hint' => 'เปรียบเทียบและแนวโน้ม'];
         $navItems[] = ['label' => 'ผู้รับผิดชอบแผนก', 'icon' => 'assignment_ind', 'url' => base_url('reports/user-wards')];
-        $navItems[] = ['label' => 'แดชบอร์ด', 'icon' => 'dashboard', 'url' => base_url('reports/dashboard')];
     }
     if (auth()->user()->can('wards.manage')) {
         $navItems[] = ['label' => 'จัดการแผนก', 'icon' => 'domain', 'url' => base_url('admin/wards')];
@@ -444,7 +443,7 @@ if (auth()->loggedIn()) {
                     <div class="side-title">The Sanctuary</div>
                     <div class="side-subtitle">Clinical Portal</div>
                     <?php foreach ($navItems as $item): ?>
-                        <a href="<?= $item['url'] ?>" class="side-nav-link <?= str_starts_with($currentUrl, $item['url']) ? 'active-link' : '' ?>">
+                        <a href="<?= $item['url'] ?>" class="side-nav-link <?= str_starts_with($currentUrl, $item['url']) ? 'active-link' : '' ?>"<?= ! empty($item['hint']) ? ' title="' . esc($item['hint']) . '"' : '' ?>>
                             <span class="material-symbols-outlined"><?= $item['icon'] ?></span>
                             <span><?= $item['label'] ?></span>
                         </a>

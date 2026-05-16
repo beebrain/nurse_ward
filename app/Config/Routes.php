@@ -50,6 +50,7 @@ $routes->group('reports', ['filter' => 'permission:reports.view'], static functi
     $routes->get('monthly', '\App\Controllers\ReportController::monthly');
     $routes->get('user-wards', '\App\Controllers\ReportController::userWards');
     $routes->get('daily-summary', '\App\Controllers\ReportController::dailySummary');
+    $routes->get('daily-summary-data', '\App\Controllers\ReportController::dailySummaryData');
     $routes->get('getData', '\App\Controllers\ReportController::getData');
     $routes->get('export', '\App\Controllers\ReportController::export');
     $routes->get('dashboard', '\App\Controllers\ReportController::dashboard');

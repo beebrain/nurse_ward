@@ -23,18 +23,12 @@ class ReportController extends BaseController
     }
 
     /**
-     * Display the monthly summary report page.
+     * Legacy route — monthly single-ward report merged into dashboard.
      */
     public function monthly()
     {
-        $data = [
-            'title' => 'Monthly Summary Report',
-            'wards' => $this->wardModel->where('is_active', true)->findAll(),
-            'current_month' => date('n'),
-            'current_year' => date('Y'),
-        ];
-        
-        return view('reports/monthly_summary', $data);
+        return redirect()->to(base_url('reports/dashboard'))
+            ->with('message', 'สรุปรายเดือนถูกรวมเข้าแดชบอร์ดแล้ว — เปรียบเทียบทุกแผนกได้ที่แท็บภาพรวมรายเดือน');
     }
 
     /**
@@ -233,35 +227,79 @@ class ReportController extends BaseController
     }
 
     /**
-     * Display daily table summary for selected ward/month/year.
+     * Daily patient movement matrix — all wards, no ward picker.
      */
     public function dailySummary()
     {
-        $wards = $this->wardModel->where('is_active', true)->findAll();
-        $currentMonth = (int) date('n');
-        $currentYear = (int) date('Y');
+        return view('reports/daily_summary', [
+            'title'         => 'สรุปรายวัน (ทุกแผนก)',
+            'wards'         => $this->wardModel->where('is_active', true)->orderBy('name', 'ASC')->findAll(),
+            'current_month' => (int) date('n'),
+            'current_year'  => (int) date('Y'),
+        ]);
+    }
 
-        $wardId = (int) ($this->request->getGet('ward_id') ?? 0);
-        $month = (int) ($this->request->getGet('month') ?? $currentMonth);
-        $year = (int) ($this->request->getGet('year') ?? $currentYear);
+    /**
+     * AJAX: daily matrix for all wards.
+     */
+    public function dailySummaryData()
+    {
+        $month = (int) $this->request->getGet('month');
+        $year  = (int) $this->request->getGet('year');
 
-        $rows = [];
-        $selectedWard = null;
-        if ($wardId > 0 && $month >= 1 && $month <= 12 && $year > 0) {
-            $selectedWard = $this->wardModel->find($wardId);
-            if ($selectedWard) {
-                $rows = $this->reportService->getDailySummaryTable($wardId, $month, $year);
-            }
+        if ($month < 1 || $month > 12 || $year <= 0) {
+            return $this->response->setJSON(['error' => 'ตัวกรองไม่ถูกต้อง'])->setStatusCode(400);
         }
 
-        return view('reports/daily_summary', [
-            'title' => 'Daily Summary Table',
-            'wards' => $wards,
-            'current_month' => $month,
-            'current_year' => $year,
-            'selected_ward_id' => $wardId,
-            'selected_ward' => $selectedWard,
-            'rows' => $rows,
+        $wards = $this->wardModel->where('is_active', true)->orderBy('name', 'ASC')->findAll();
+        if ($wards === []) {
+            return $this->response->setJSON(['error' => 'ไม่มีแผนกที่เปิดใช้งาน'])->setStatusCode(403);
+        }
+
+        $matrix = $this->reportService->getAllWardsDailyMatrix($wards, $month, $year);
+
+        $days = [];
+        foreach ($matrix['days'] as $day) {
+            $date = (string) $day['date'];
+            $days[] = array_merge($day, [
+                'day_label'     => $this->thaiDateShort($date),
+                'weekday_label' => $this->thaiWeekdayLabel($date),
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'month'   => $month,
+            'year'    => $year,
+            'wards'   => $matrix['wards'],
+            'days'    => $days,
+            'summary' => $matrix['summary'],
         ]);
+    }
+
+    private function thaiWeekdayLabel(string $date): string
+    {
+        $labels = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+
+        return $labels[(int) date('w', strtotime($date))] ?? '';
+    }
+
+    private function thaiDateShort(string $date): string
+    {
+        $timestamp = strtotime($date);
+        if ($timestamp === false) {
+            return $date;
+        }
+
+        $months = [
+            1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.',
+            5 => 'พ.ค.', 6 => 'มิ.ย.', 7 => 'ก.ค.', 8 => 'ส.ค.',
+            9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.',
+        ];
+
+        $day           = (int) date('j', $timestamp);
+        $month         = $months[(int) date('n', $timestamp)] ?? date('m', $timestamp);
+        $thaiYearShort = ((int) date('Y', $timestamp) + 543) % 100;
+
+        return sprintf('%d %s %02d', $day, $month, $thaiYearShort);
     }
 }

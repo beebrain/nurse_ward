@@ -137,7 +137,7 @@ $thaiMonths = [
 
 <div class="dashboard-hero mb-3">
     <h1 class="mb-1"><?= esc($title) ?></h1>
-    <p class="text-muted small mb-0">เปรียบเทียบประสิทธิภาพทุกแผนก — เฉพาะ Super Admin</p>
+    <p class="text-muted small mb-0">สรุปรายเดือน · เปรียบเทียบอัตราใช้เตียงและ Productivity ทุกแผนก · แนวโน้มและสถานะปัจจุบัน</p>
 </div>
 
 <ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
