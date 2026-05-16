@@ -384,6 +384,7 @@ class CensusController extends BaseController
         foreach ($wards as $ward) {
             $wardMeta[] = [
                 'id'    => (int) $ward['id'],
+                'code'  => (string) ($ward['code'] ?? ''),
                 'name'  => (string) $ward['name'],
                 'label' => trim((string) ($ward['code'] ?? '') . ' ' . $ward['name']),
             ];
@@ -440,6 +441,7 @@ class CensusController extends BaseController
         foreach ($wards as $ward) {
             $wardMeta[] = [
                 'id'    => (int) $ward['id'],
+                'code'  => (string) ($ward['code'] ?? ''),
                 'name'  => (string) $ward['name'],
                 'label' => trim((string) ($ward['code'] ?? '') . ' ' . $ward['name']),
             ];

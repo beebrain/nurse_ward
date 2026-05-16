@@ -1,57 +1,8 @@
 <?= $this->extend('layout/main') ?>
 
 <?= $this->section('content') ?>
+<?= $this->include('partials/ward_matrix_styles') ?>
 <style>
-    .productivity-kpi {
-        border-radius: 14px;
-        border: 1px solid #dbe3ef;
-        background: #fbfcfe;
-    }
-
-    .productivity-kpi-label {
-        color: #64748b;
-        font-size: .84rem;
-        font-weight: 700;
-    }
-
-    .productivity-kpi-value {
-        font-size: 2rem;
-        font-weight: 800;
-        color: #1e3a8a;
-    }
-
-    .productivity-table th,
-    .productivity-table td {
-        vertical-align: middle;
-        white-space: nowrap;
-    }
-
-    .productivity-table-scroll {
-        max-height: calc(100vh - 22rem);
-        overflow: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .productivity-table thead th {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        background-color: #f8f9fa;
-        box-shadow: 0 1px 0 #dee2e6;
-    }
-
-    .productivity-table thead th.ward-col {
-        min-width: 88px;
-        text-align: end;
-        font-size: 0.82rem;
-    }
-
-    .productivity-table tbody td.ward-cell {
-        text-align: end;
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-
     .prod-good { color: #0c7521; }
     .prod-warn { color: #b45309; }
     .prod-low  { color: #93000a; }
@@ -60,44 +11,42 @@
 
 <div class="row">
     <div class="col-12">
-        <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
             <div class="d-flex align-items-center gap-2">
-                <span class="material-symbols-outlined" style="color:var(--primary);font-size:2rem;">monitoring</span>
+                <span class="material-symbols-outlined" style="color:var(--primary);font-size:1.75rem;">monitoring</span>
                 <div>
-                    <h1 class="mb-0"><?= esc($title) ?></h1>
-                    <div class="text-muted small">ประสิทธิภาพการพยาบาล (ชั่วโมง) ทุกแผนก — ต่างจากสรุปรายวันและแดชบอร์ด</div>
+                    <h1 class="h3 mb-0"><?= esc($title) ?></h1>
+                    <div class="text-muted small">ประสิทธิภาพการพยาบาล (ชั่วโมง) ทุกแผนก</div>
                 </div>
             </div>
-            <a href="<?= base_url('census/history') ?>" class="btn btn-outline-secondary align-self-start align-self-xl-end">
-                <span class="material-symbols-outlined me-1" style="font-size:1.1rem;">history</span>
-                ดู Raw ประวัติย้อนหลัง
+            <a href="<?= base_url('census/history') ?>" class="btn btn-sm btn-outline-secondary align-self-start">
+                <span class="material-symbols-outlined me-1" style="font-size:1rem;">history</span>
+                ประวัติย้อนหลัง
             </a>
         </div>
 
-        <div class="alert alert-info">
-            <span class="material-symbols-outlined align-middle me-1">info</span>
-            Productivity = Required Care Hours ÷ Working Hours × 100 (รวม 3 เวรต่อวัน) · Patient Days ใช้ค่าเดียวต่อวัน (เวรดึก → บ่าย → เช้า)
+        <div class="alert alert-info py-2 small mb-3">
+            Productivity = ชั่วโมงดูแลที่ต้องการ ÷ ชั่วโมงทำงาน × 100 · จำนวนผู้ป่วยใช้ค่าเดียวต่อวัน (เวรดึก → บ่าย → เช้า)
         </div>
 
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <form id="productivity-filter" class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <label for="mode" class="form-label fw-bold">รูปแบบรายงาน</label>
-                        <select name="mode" id="mode" class="form-select">
-                            <option value="month">รายเดือน: ทุกแผนกรายวัน</option>
-                            <option value="year">รายปี: ทุกแผนกรายเดือน</option>
+        <div class="card shadow-sm mb-3">
+            <div class="card-body py-3">
+                <form id="productivity-filter" class="row g-2 align-items-end matrix-filter-actions">
+                    <div class="col-12 col-md-4">
+                        <label for="mode" class="form-label fw-bold small mb-1">รูปแบบ</label>
+                        <select name="mode" id="mode" class="form-select form-select-sm">
+                            <option value="month">รายเดือน (รายวัน)</option>
+                            <option value="year">รายปี (รายเดือน)</option>
                         </select>
                     </div>
-
-                    <div class="col-md-3" id="month-filter-wrap">
-                        <label for="month" class="form-label fw-bold">เดือน</label>
-                        <select name="month" id="month" class="form-select">
+                    <div class="col-6 col-md-3" id="month-filter-wrap">
+                        <label for="month" class="form-label fw-bold small mb-1">เดือน</label>
+                        <select name="month" id="month" class="form-select form-select-sm">
                             <?php
                             $months = [
-                                1 => 'มกราคม', 2 => 'กุมภาพันธ์', 3 => 'มีนาคม', 4 => 'เมษายน',
-                                5 => 'พฤษภาคม', 6 => 'มิถุนายน', 7 => 'กรกฎาคม', 8 => 'สิงหาคม',
-                                9 => 'กันยายน', 10 => 'ตุลาคม', 11 => 'พฤศจิกายน', 12 => 'ธันวาคม',
+                                1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.',
+                                5 => 'พ.ค.', 6 => 'มิ.ย.', 7 => 'ก.ค.', 8 => 'ส.ค.',
+                                9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.',
                             ];
                             ?>
                             <?php foreach ($months as $monthNo => $monthName): ?>
@@ -105,71 +54,62 @@
                             <?php endforeach; ?>
                         </select>
                     </div>
-
-                    <div class="col-md-3">
-                        <label for="year" class="form-label fw-bold">ปี</label>
-                        <select name="year" id="year" class="form-select">
+                    <div class="col-6 col-md-3">
+                        <label for="year" class="form-label fw-bold small mb-1">ปี</label>
+                        <select name="year" id="year" class="form-select form-select-sm">
                             <?php for ($year = $currentYear; $year >= $currentYear - 5; $year--): ?>
                                 <option value="<?= $year ?>" <?= $year === $currentYear ? 'selected' : '' ?>><?= $year ?></option>
                             <?php endfor; ?>
                         </select>
                     </div>
-
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <span class="material-symbols-outlined me-1" style="font-size:1rem;">calculate</span>
-                            คำนวณ
-                        </button>
+                    <div class="col-12 col-md-2">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">แสดง</button>
                     </div>
                 </form>
             </div>
         </div>
 
         <?php if (empty($wards)): ?>
-            <div class="alert alert-warning">
-                <span class="material-symbols-outlined align-middle me-1">warning</span>
-                ยังไม่มี Ward ที่คุณสามารถดูข้อมูลได้
-            </div>
+            <div class="alert alert-warning py-2 small">ยังไม่มี Ward ที่คุณสามารถดูข้อมูลได้</div>
         <?php endif; ?>
 
-        <div id="productivity-alert" class="alert alert-danger d-none"></div>
+        <div id="productivity-alert" class="alert alert-danger d-none py-2 small"></div>
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-3">
-                <div class="productivity-kpi p-3 h-100">
-                    <div class="productivity-kpi-label">Productivity รวม</div>
-                    <div class="productivity-kpi-value" id="kpi-productivity">-</div>
+        <div class="row g-2 mb-3">
+            <div class="col-6 col-lg-3">
+                <div class="matrix-page-kpi p-2 h-100">
+                    <div class="matrix-page-kpi-label">Productivity รวม</div>
+                    <div class="matrix-page-kpi-value" id="kpi-productivity">-</div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="productivity-kpi p-3 h-100">
-                    <div class="productivity-kpi-label">Patient Days รวม</div>
-                    <div class="productivity-kpi-value" id="kpi-patient-days">0</div>
+            <div class="col-6 col-lg-3">
+                <div class="matrix-page-kpi p-2 h-100">
+                    <div class="matrix-page-kpi-label">จำนวนผู้ป่วย (สะสม)</div>
+                    <div class="matrix-page-kpi-value" id="kpi-patient-days">0</div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="productivity-kpi p-3 h-100">
-                    <div class="productivity-kpi-label">Required Care Hours</div>
-                    <div class="productivity-kpi-value" id="kpi-required-hours">0</div>
+            <div class="col-6 col-lg-3">
+                <div class="matrix-page-kpi p-2 h-100">
+                    <div class="matrix-page-kpi-label">ชม.ดูแลที่ต้องการ</div>
+                    <div class="matrix-page-kpi-value" id="kpi-required-hours">0</div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="productivity-kpi p-3 h-100">
-                    <div class="productivity-kpi-label">Working Hours</div>
-                    <div class="productivity-kpi-value" id="kpi-working-hours">0</div>
+            <div class="col-6 col-lg-3">
+                <div class="matrix-page-kpi p-2 h-100">
+                    <div class="matrix-page-kpi-label">ชม.ทำงาน</div>
+                    <div class="matrix-page-kpi-value" id="kpi-working-hours">0</div>
                 </div>
             </div>
         </div>
 
         <div class="card shadow-sm">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <h5 class="mb-0" id="productivity-title">Productivity Summary</h5>
+            <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center flex-wrap gap-1">
+                <h6 class="mb-0" id="productivity-title">Productivity</h6>
                 <span class="text-muted small" id="productivity-subtitle"></span>
             </div>
             <div class="card-body p-0">
-                <div id="productivity-loading" class="text-center text-muted py-5 d-none">
-                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                    กำลังโหลดข้อมูล...
+                <div id="productivity-loading" class="text-center text-muted py-4 d-none small">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>กำลังโหลด...
                 </div>
                 <div id="productivity-result"></div>
             </div>
@@ -177,13 +117,11 @@
     </div>
 </div>
 
+<?= $this->include('partials/ward_matrix_helpers') ?>
 <script>
     $(function() {
+        const WM = window.WardMatrix;
         const endpoint = '<?= base_url('census/productivity-data') ?>';
-
-        function escapeHtml(value) {
-            return $('<div>').text(value ?? '').html();
-        }
 
         function numberValue(value, digits = 0) {
             return Number(value || 0).toLocaleString(undefined, {
@@ -207,10 +145,10 @@
         function wardCell(day, ward) {
             const cell = day.by_ward?.[String(ward.id)];
             if (!cell || cell.productivity === null || cell.productivity === undefined) {
-                return `<td class="ward-cell prod-none" title="ไม่มีข้อมูล">—</td>`;
+                return '<td class="ward-cell prod-none" title="ไม่มีข้อมูล">—</td>';
             }
-            const title = `Patient Days: ${cell.patient_days ?? 0} · Req: ${cell.required_care_hours ?? 0}h · Work: ${cell.working_hours ?? 0}h`;
-            return `<td class="ward-cell ${prodClass(cell.productivity)}" title="${escapeHtml(title)}">${productivityValue(cell.productivity)}</td>`;
+            const title = `จำนวนผู้ป่วย: ${cell.patient_days ?? 0} · ชม.ดูแล: ${cell.required_care_hours ?? 0} · ชม.ทำงาน: ${cell.working_hours ?? 0}`;
+            return `<td class="ward-cell ${prodClass(cell.productivity)}" title="${WM.escapeHtml(title)}">${productivityValue(cell.productivity)}</td>`;
         }
 
         function updateModeVisibility() {
@@ -226,50 +164,32 @@
 
         function renderMonth(payload) {
             const wards = payload.wards || [];
-            const wardHeaders = wards.map(w => `
-                <th class="ward-col" title="${escapeHtml(w.label)}">${escapeHtml(w.name)}</th>
-            `).join('');
-
+            const wardHeaders = wards.map(w => WM.headerTh(w)).join('');
             const rows = (payload.days || []).map(day => `
                 <tr>
-                    <td class="ps-3">
-                        <div class="fw-semibold">${escapeHtml(day.day_label)}</div>
-                        <div class="text-muted small">${escapeHtml(day.weekday_label)}</div>
-                    </td>
+                    ${WM.dateCell(day)}
                     ${wards.map(w => wardCell(day, w)).join('')}
-                    <td class="pe-3"></td>
                 </tr>
             `).join('');
 
-            const colSpan = wards.length + 2;
-
-            $('#productivity-title').text('รายเดือน: Productivity ทุกแผนก (รายวัน)');
-            $('#productivity-subtitle').text(`${payload.month}/${payload.year} · ${wards.length} แผนก`);
-            $('#productivity-result').html(`
-                <div class="productivity-table-scroll table-responsive">
-                    <table class="table productivity-table table-hover table-sm mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-3" style="min-width:100px;">วันที่</th>
-                                ${wardHeaders}
-                                <th class="pe-3"></th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows || `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">ไม่มีข้อมูล</td></tr>`}</tbody>
-                    </table>
-                </div>
-            `);
+            const colSpan = wards.length + 1;
+            $('#productivity-title').text('Productivity ทุกแผนก (รายวัน)');
+            $('#productivity-subtitle').text(`${payload.month}/${payload.year} · ${wards.length} แผนก · เลื่อนแนวนอน`);
+            $('#productivity-result').html(WM.wrapTable(`
+                <thead class="table-light"><tr>
+                    <th class="ward-matrix-date-col ps-2">วันที่</th>
+                    ${wardHeaders}
+                </tr></thead>
+                <tbody>${rows || `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">ไม่มีข้อมูล</td></tr>`}</tbody>
+            `));
         }
 
         function renderYear(payload) {
             const wards = payload.wards || [];
-            const wardHeaders = wards.map(w => `
-                <th class="ward-col" title="${escapeHtml(w.label)}">${escapeHtml(w.name)}</th>
-            `).join('');
-
+            const wardHeaders = wards.map(w => WM.headerTh(w)).join('');
             const rows = (payload.months || []).map(month => `
                 <tr>
-                    <td class="ps-3 fw-semibold">${escapeHtml(month.month_label)}</td>
+                    <td class="ward-matrix-date-col ps-2"><span class="date-main">${WM.escapeHtml(month.month_label)}</span></td>
                     ${wards.map(w => {
                         const cell = month.by_ward?.[String(w.id)];
                         if (!cell || cell.productivity === null || cell.productivity === undefined) {
@@ -277,33 +197,22 @@
                         }
                         return `<td class="ward-cell ${prodClass(cell.productivity)}" title="วันที่มีข้อมูล: ${cell.recorded_days ?? 0}">${productivityValue(cell.productivity)}</td>`;
                     }).join('')}
-                    <td class="pe-3"></td>
                 </tr>
             `).join('');
 
-            const colSpan = wards.length + 2;
-
-            $('#productivity-title').text('รายปี: Productivity ทุกแผนก (รายเดือน)');
-            $('#productivity-subtitle').text(`ปี ${payload.year} · ${wards.length} แผนก`);
-            $('#productivity-result').html(`
-                <div class="productivity-table-scroll table-responsive">
-                    <table class="table productivity-table table-hover table-sm mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-3">เดือน</th>
-                                ${wardHeaders}
-                                <th class="pe-3"></th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows || `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">ไม่มีข้อมูล</td></tr>`}</tbody>
-                    </table>
-                </div>
-            `);
+            const colSpan = wards.length + 1;
+            $('#productivity-title').text('Productivity ทุกแผนก (รายเดือน)');
+            $('#productivity-subtitle').text(`ปี ${payload.year} · ${wards.length} แผนก · เลื่อนแนวนอน`);
+            $('#productivity-result').html(WM.wrapTable(`
+                <thead class="table-light"><tr>
+                    <th class="ward-matrix-date-col ps-2">เดือน</th>
+                    ${wardHeaders}
+                </tr></thead>
+                <tbody>${rows || `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">ไม่มีข้อมูล</td></tr>`}</tbody>
+            `));
         }
 
         function loadProductivity() {
-            const formData = $('#productivity-filter').serializeArray();
-
             $('#productivity-alert').addClass('d-none').text('');
             $('#productivity-loading').removeClass('d-none');
             $('#productivity-result').empty();
@@ -311,7 +220,7 @@
             $.ajax({
                 url: endpoint,
                 method: 'GET',
-                data: formData,
+                data: $('#productivity-filter').serializeArray(),
                 dataType: 'json'
             }).done(function(payload) {
                 updateKpis(payload.summary || {});
@@ -321,8 +230,7 @@
                     renderMonth(payload);
                 }
             }).fail(function(xhr) {
-                const message = xhr.responseJSON?.error || 'โหลดข้อมูลไม่สำเร็จ';
-                $('#productivity-alert').removeClass('d-none').text(message);
+                $('#productivity-alert').removeClass('d-none').text(xhr.responseJSON?.error || 'โหลดข้อมูลไม่สำเร็จ');
                 updateKpis({});
             }).always(function() {
                 $('#productivity-loading').addClass('d-none');

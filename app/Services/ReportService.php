@@ -439,6 +439,7 @@ class ReportService
             $wardId = (int) $ward['id'];
             $wardMeta[] = [
                 'id'    => $wardId,
+                'code'  => (string) ($ward['code'] ?? ''),
                 'name'  => (string) $ward['name'],
                 'label' => trim((string) ($ward['code'] ?? '') . ' ' . $ward['name']),
             ];

@@ -107,7 +107,7 @@ class ReportController extends BaseController
         $sheet->setCellValue('B5', 'Value');
         $sheet->getStyle('A5:B5')->applyFromArray($headerStyle);
 
-        $sheet->setCellValue('A6', 'Total Patient Days');
+        $sheet->setCellValue('A6', 'จำนวนผู้ป่วย (สะสม)');
         $sheet->setCellValue('B6', $reportData['patient_days']);
         $sheet->setCellValue('A7', 'Ward Beds');
         $sheet->setCellValue('B7', $reportData['ward_beds']);

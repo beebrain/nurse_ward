@@ -186,7 +186,7 @@ $thaiMonths = [
 
             <div id="dashboard-monthly-body" class="d-none">
                 <div class="formula-note">
-                    <strong>อัตราใช้เตียง</strong> = วันนอนรวม ÷ (เตียง × วันในเดือน) × 100 &nbsp;|&nbsp;
+                    <strong>อัตราใช้เตียง</strong> = จำนวนผู้ป่วยสะสม ÷ (เตียง × วันในเดือน) × 100 &nbsp;|&nbsp;
                     <strong>ประสิทธิภาพการพยาบาล</strong> = Required Care Hours ÷ Working Hours × 100
                 </div>
 
@@ -200,7 +200,7 @@ $thaiMonths = [
                                 <tr>
                                     <th class="ps-3">แผนก</th>
                                     <th class="text-end">เตียง</th>
-                                    <th class="text-end">Patient Days</th>
+                                    <th class="text-end">จำนวนผู้ป่วย<br><span class="fw-normal small text-muted">(สะสม)</span></th>
                                     <th class="text-end">อัตราใช้เตียง %</th>
                                     <th class="text-end pe-3">ประสิทธิภาพการพยาบาล %</th>
                                 </tr>
@@ -242,7 +242,7 @@ $thaiMonths = [
 
                 <div class="dashboard-chart-row mb-4">
                     <div class="dashboard-card">
-                        <div class="dashboard-section-title">แนวโน้มวันนอนผู้ป่วย (รายปี ทุกแผนก)</div>
+                        <div class="dashboard-section-title">แนวโน้มจำนวนผู้ป่วย (รายปี ทุกแผนก)</div>
                         <div class="dashboard-chart-wrap">
                             <canvas id="patientDaysTrendChart"></canvas>
                         </div>
@@ -279,7 +279,7 @@ $thaiMonths = [
                         <tr>
                             <th>แผนก</th>
                             <th class="text-center">เตียง</th>
-                            <th class="text-center">คงพยาบาล</th>
+                            <th class="text-center">จำนวนผู้ป่วย</th>
                             <th class="text-center">ใช้เตียง %</th>
                             <th class="text-nowrap">วันที่ข้อมูล</th>
                             <th class="text-center">เวรอ้างอิง</th>
@@ -363,7 +363,7 @@ $(function() {
             <div class="dashboard-kpi">
                 <div class="dashboard-kpi-label">อัตราใช้เตียงเฉลี่ย</div>
                 <div class="dashboard-kpi-value">${fmtPct(summary.avg_occupancy_productivity)}</div>
-                <div class="dashboard-kpi-sub">Patient Days รวม ${fmtNum(summary.total_patient_days)}</div>
+                <div class="dashboard-kpi-sub">จำนวนผู้ป่วยสะสม ${fmtNum(summary.total_patient_days)}</div>
             </div>
             <div class="dashboard-kpi">
                 <div class="dashboard-kpi-label">ประสิทธิภาพการพยาบาลเฉลี่ย</div>
@@ -469,7 +469,7 @@ $(function() {
             data: { labels, datasets },
             options: {
                 ...chartDefaults,
-                scales: { y: { beginAtZero: true, title: { display: true, text: 'วันนอน' } } },
+                scales: { y: { beginAtZero: true, title: { display: true, text: 'จำนวนผู้ป่วย' } } },
                 plugins: { legend: { display: datasets.length > 1, position: 'bottom' } }
             }
         });

@@ -53,7 +53,7 @@
                     <div class="row text-center mb-4">
                         <div class="col-md-3">
                             <div class="border rounded p-3 bg-light">
-                                <h6 class="text-muted">จำนวนวันนอนผู้ป่วย</h6>
+                                <h6 class="text-muted">จำนวนผู้ป่วย (สะสม)</h6>
                                 <h3 id="stat-patient-days" class="mb-0 text-primary">0</h3>
                             </div>
                         </div>
@@ -86,7 +86,7 @@
                                     <th>ย้ายเข้า</th>
                                     <th>ย้ายออก</th>
                                     <th>เสียชีวิต</th>
-                                    <th class="table-primary">จำนวนวันนอนผู้ป่วย</th>
+                                    <th class="table-primary">จำนวนผู้ป่วย (สะสม)</th>
                                 </tr>
                             </thead>
                             <tbody id="report-table-body" class="text-center">
