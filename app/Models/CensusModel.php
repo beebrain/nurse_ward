@@ -27,7 +27,7 @@ class CensusModel extends Model
         // Nursing staff
         'nurses_hw', 'nurses_rn', 'nurses_tn', 'nurses_pn', 'nurses_aide', 'nurses_ward',
         // Patients using ward equipment (counts are people, not devices)
-        'equipment_ventilator',
+        'equipment_ventilator', 'equipment_hfnc',
         // Calculated (stored)
         'working_hours', 'required_care_hours', 'productivity',
         'notes', 'created_by',
@@ -71,6 +71,7 @@ class CensusModel extends Model
         'nurses_tn'     => 'permit_empty|numeric|greater_than_equal_to[0]',
         'nurses_pn'     => 'permit_empty|numeric|greater_than_equal_to[0]',
         'equipment_ventilator'       => 'permit_empty|numeric|greater_than_equal_to[0]',
+        'equipment_hfnc'             => 'permit_empty|numeric|greater_than_equal_to[0]',
     ];
 
     protected $validationMessages   = [];
@@ -222,6 +223,7 @@ class CensusModel extends Model
             'daily_census.nurses_aide',
             'daily_census.nurses_ward',
             'daily_census.equipment_ventilator',
+            'daily_census.equipment_hfnc',
             'daily_census.working_hours',
             'daily_census.required_care_hours',
             'daily_census.productivity',

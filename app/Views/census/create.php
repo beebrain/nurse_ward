@@ -1174,6 +1174,7 @@
           <?php
           $equipmentFields = [
             'equipment_ventilator' => ['label' => 'เครื่องช่วยหายใจ', 'help' => 'จำนวนผู้ป่วยที่ใช้เครื่องช่วยหายใจในเวรนี้'],
+            'equipment_hfnc'       => ['label' => 'High Flow O₂', 'help' => 'จำนวนผู้ป่วยที่ใช้ High Flow O₂ ในเวรนี้ (บันทึกที่เดียว)'],
           ];
           foreach ($equipmentFields as $field => $meta):
           ?>
@@ -1325,7 +1326,7 @@
       }
     });
 
-    ['equipment_ventilator'].forEach(id => {
+    ['equipment_ventilator', 'equipment_hfnc'].forEach(id => {
       const input = document.getElementById(id);
       if (input) {
         input.value = parseInt(snapshot[id], 10) || 0;

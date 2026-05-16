@@ -198,6 +198,7 @@ class CensusController extends BaseController
                 'patients_special_level_2' => (int)($previous['patients_special_level_2'] ?? 0),
                 'patients_special_level_1' => (int)($previous['patients_special_level_1'] ?? 0),
                 'equipment_ventilator'     => (int)($previous['equipment_ventilator'] ?? 0),
+                'equipment_hfnc'           => (int)($previous['equipment_hfnc'] ?? 0),
             ],
         ]);
     }
@@ -720,6 +721,7 @@ class CensusController extends BaseController
             'nurses_aide' => (int)($row['nurses_aide'] ?? 0),
             'nurses_ward' => (int)($row['nurses_ward'] ?? 0),
             'equipment_ventilator' => (int)($row['equipment_ventilator'] ?? 0),
+            'equipment_hfnc' => (int)($row['equipment_hfnc'] ?? 0),
             'working_hours' => (float)($row['working_hours'] ?? 0),
             'required_care_hours' => (float)($row['required_care_hours'] ?? 0),
             'productivity' => $row['productivity'] !== null ? round((float)$row['productivity'], 2) : null,
@@ -849,6 +851,7 @@ class CensusController extends BaseController
             'nurses_aide'      => (int)($post['nurses_aide'] ?? 0),
             'nurses_ward'      => (int)($post['nurses_ward'] ?? 0),
             'equipment_ventilator'       => (int)($post['equipment_ventilator'] ?? 0),
+            'equipment_hfnc'             => (int)($post['equipment_hfnc'] ?? 0),
             'notes'            => $post['notes'] ?? null,
             'created_by'       => auth()->id(),
         ];
@@ -873,7 +876,7 @@ class CensusController extends BaseController
             'patients_special_level_2', 'patients_special_level_1',
             'admissions', 'discharges', 'transfers_in', 'transfers_out', 'deaths',
             'nurses_hw', 'nurses_rn', 'nurses_tn', 'nurses_pn', 'nurses_aide', 'nurses_ward',
-            'equipment_ventilator',
+            'equipment_ventilator', 'equipment_hfnc',
         ];
 
         $snapshot = [];
