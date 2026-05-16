@@ -27,6 +27,20 @@
         color: #1e293b;
     }
 
+    .history-table-scroll {
+        max-height: calc(100vh - 22rem);
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .history-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        background-color: #f8f9fa;
+        box-shadow: 0 1px 0 #dee2e6;
+    }
+
     .history-table th,
     .history-table td {
         vertical-align: middle;
@@ -670,7 +684,7 @@
                         ])}
                     </div>
                     <div class="col-lg-4">
-                        ${detailTable('อุปกรณ์', [
+                        ${detailTable('ผู้ป่วยที่ใช้อุปกรณ์ (คน)', [
                             ['เครื่องช่วยหายใจ', shift.equipment_ventilator],
                             ['High Flow', shift.equipment_hfnc],
                         ])}
@@ -689,7 +703,7 @@
             $('#history-title').text('รายเดือน: แสดงรายวันแยก 3 เวร');
             $('#history-subtitle').text(`${payload.month}/${payload.year}`);
             $('#history-result').html(`
-                <div class="table-responsive">
+                <div class="history-table-scroll table-responsive">
                     <table class="table history-table table-hover mb-0">
                         <thead class="table-light">
                             <tr>

@@ -26,7 +26,7 @@ class CensusModel extends Model
         'admissions', 'discharges', 'transfers_in', 'transfers_out', 'deaths',
         // Nursing staff
         'nurses_hw', 'nurses_rn', 'nurses_tn', 'nurses_pn', 'nurses_aide', 'nurses_ward',
-        // Ward equipment
+        // Patients using ward equipment (counts are people, not devices)
         'equipment_ventilator', 'equipment_hfnc',
         // Calculated (stored)
         'working_hours', 'required_care_hours', 'productivity',

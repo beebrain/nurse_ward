@@ -432,7 +432,6 @@ if (auth()->loggedIn()) {
                     <a class="ghost-chip" href="<?= base_url('logout') ?>"><span class="material-symbols-outlined">logout</span>ออกจากระบบ</a>
                 <?php else: ?>
                     <a class="ghost-chip" href="<?= base_url('login') ?>"><span class="material-symbols-outlined">login</span>เข้าสู่ระบบ</a>
-                    <a class="ghost-chip" href="<?= base_url('register') ?>"><span class="material-symbols-outlined">person_add</span>ลงทะเบียน</a>
                 <?php endif; ?>
             </div>
         </div>

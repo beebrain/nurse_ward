@@ -12,9 +12,9 @@ $routes->get('login', '\App\Controllers\LoginController::loginView');
 $routes->post('login', '\App\Controllers\LoginController::loginAction');
 $routes->get('logout', '\App\Controllers\LoginController::logoutAction');
 
-// Shield registration and other routes
-$routes->get('register', '\CodeIgniter\Shield\Controllers\RegisterController::registerView');
-$routes->post('register', '\CodeIgniter\Shield\Controllers\RegisterController::registerAction');
+// Public registration disabled — superadmin creates users via admin/users
+$routes->get('register', '\App\Controllers\AuthController::registrationDisabled');
+$routes->post('register', '\App\Controllers\AuthController::registrationDisabled');
 $routes->get('login/magic-link', '\CodeIgniter\Shield\Controllers\MagicLinkController::loginView');
 $routes->post('login/magic-link', '\CodeIgniter\Shield\Controllers\MagicLinkController::loginAction');
 $routes->get('login/verify-magic-link', '\CodeIgniter\Shield\Controllers\MagicLinkController::verify');

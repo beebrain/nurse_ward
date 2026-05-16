@@ -300,10 +300,8 @@
                     <button type="submit" class="login-submit">เข้าสู่แดชบอร์ด</button>
                 </form>
 
-                <hr class="my-4">
-
-                <p class="text-center text-muted mb-0">
-                    ยังไม่มีบัญชี? <a href="<?= site_url('register') ?>">ลงทะเบียน</a>
+                <p class="text-center text-muted small mb-0 mt-3">
+                    บัญชีผู้ใช้จัดทำโดยผู้ดูแลระบบเท่านั้น
                 </p>
 
                 <div class="debug-info">

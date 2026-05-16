@@ -1160,20 +1160,21 @@
       </div>
     </div>
 
-    <!-- ── Section 4: Ward Equipment ─────────────────────────────────── -->
+    <!-- ── Section 4: Patients using ward equipment ───────────────────── -->
     <div class="card shadow-sm mb-3">
       <div class="card-header">
         <span>
           <span class="material-symbols-outlined text-primary me-1">medical_information</span>
-          เครื่องมือใน Ward
+          ผู้ป่วยที่ใช้อุปกรณ์
         </span>
+        <small class="text-muted d-block mt-1">บันทึกเป็นจำนวนผู้ป่วย (คน) ไม่ใช่จำนวนเครื่อง</small>
       </div>
       <div class="card-body">
         <div class="row row-cols-2 row-cols-sm-3 row-cols-md-6 g-2">
           <?php
           $equipmentFields = [
-            'equipment_ventilator' => ['label' => 'เครื่องช่วยหายใจ', 'help' => 'จำนวนเครื่องที่ใช้ในเวรนี้'],
-            'equipment_hfnc'       => ['label' => 'High Flow', 'help' => 'จำนวน High Flow ที่ใช้ในเวรนี้'],
+            'equipment_ventilator' => ['label' => 'เครื่องช่วยหายใจ', 'help' => 'จำนวนผู้ป่วยที่ใช้เครื่องช่วยหายใจในเวรนี้'],
+            'equipment_hfnc'       => ['label' => 'High Flow', 'help' => 'จำนวนผู้ป่วยที่ใช้ High Flow ในเวรนี้'],
           ];
           foreach ($equipmentFields as $field => $meta):
           ?>

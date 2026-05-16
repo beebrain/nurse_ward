@@ -572,6 +572,104 @@ class ReportService
         ];
     }
 
+    /**
+     * Cross-ward comparison with occupancy and nursing productivity metrics.
+     *
+     * @return array{
+     *   wards: list<array<string, int|float|string|null>>,
+     *   summary: array<string, int|float|string|null>
+     * }
+     */
+    public function getFullWardComparison(int $month, int $year): array
+    {
+        $wards = $this->getWardModel()
+            ->where('is_active', true)
+            ->orderBy('name', 'ASC')
+            ->findAll();
+
+        $daysInMonth = (int) date('t', mktime(0, 0, 0, $month, 1, $year));
+        $aggregate   = new ProductivityAggregateService($this->getCensusModel());
+
+        $wardRows           = [];
+        $totalPatientDays   = 0;
+        $totalBeds          = 0;
+        $totalRequiredHours = 0.0;
+        $totalWorkingHours  = 0.0;
+
+        foreach ($wards as $ward) {
+            $wardId  = (int) $ward['id'];
+            $report  = $this->getMonthlyReport($wardId, $month, $year);
+            $nursing = $aggregate->getMonthlySummary($wardId, $month, $year);
+            $beds    = (int) $ward['total_beds'];
+
+            $wardRows[] = [
+                'ward_id'                => $wardId,
+                'ward_name'              => (string) $ward['name'],
+                'ward_code'              => (string) ($ward['code'] ?? ''),
+                'beds'                   => $beds,
+                'patient_days'         => (int) $report['patient_days'],
+                'occupancy_productivity' => round((float) $report['productivity'], 2),
+                'nursing_productivity'   => $nursing['productivity'],
+                'recorded_days'          => $nursing['recorded_days'],
+                'working_hours'          => $nursing['working_hours'],
+                'required_care_hours'    => $nursing['required_care_hours'],
+            ];
+
+            $totalPatientDays   += (int) $report['patient_days'];
+            $totalBeds          += $beds;
+            $totalRequiredHours += $nursing['required_care_hours'];
+            $totalWorkingHours  += $nursing['working_hours'];
+        }
+
+        $capacity       = $totalBeds * $daysInMonth;
+        $avgOccupancy   = $capacity > 0 ? round(($totalPatientDays / $capacity) * 100, 2) : 0.0;
+        $avgNursing     = $totalWorkingHours > 0
+            ? round(($totalRequiredHours * 100) / $totalWorkingHours, 2)
+            : null;
+
+        return [
+            'wards'   => $wardRows,
+            'summary' => [
+                'total_patient_days'      => $totalPatientDays,
+                'total_beds'              => $totalBeds,
+                'avg_occupancy_productivity' => $avgOccupancy,
+                'avg_nursing_productivity'   => $avgNursing,
+                'best_occupancy'          => $this->extremumWard($wardRows, 'occupancy_productivity', true),
+                'worst_occupancy'         => $this->extremumWard($wardRows, 'occupancy_productivity', false),
+                'best_nursing'            => $this->extremumWard($wardRows, 'nursing_productivity', true),
+                'worst_nursing'           => $this->extremumWard($wardRows, 'nursing_productivity', false),
+            ],
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $wardRows
+     * @return array{ward_name: string, value: float}|null
+     */
+    private function extremumWard(array $wardRows, string $field, bool $max): ?array
+    {
+        $best     = null;
+        $bestName = null;
+
+        foreach ($wardRows as $row) {
+            $value = $row[$field] ?? null;
+            if ($value === null) {
+                continue;
+            }
+            $float = (float) $value;
+            if ($best === null || ($max && $float > $best) || (! $max && $float < $best)) {
+                $best     = $float;
+                $bestName = (string) $row['ward_name'];
+            }
+        }
+
+        if ($best === null || $bestName === null) {
+            return null;
+        }
+
+        return ['ward_name' => $bestName, 'value' => round($best, 2)];
+    }
+
     private function censusTotalPatients(array $row): int
     {
         return (int)($row['total_patients'] ?? $row['total_remaining'] ?? 0);
