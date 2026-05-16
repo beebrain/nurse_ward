@@ -19,7 +19,7 @@ class CensusQualityIndicatorModel extends Model
         'hai_clabsi', 'hai_ssi', 'hai_bsi', 'hai_mdr',
         // Special conditions
         'new_sepsis', 'end_of_life', 'palliative_care',
-        'critical_care_support', 'high_flow_oxygen',
+        'critical_care_support',
     ];
 
     protected $useTimestamps = true;

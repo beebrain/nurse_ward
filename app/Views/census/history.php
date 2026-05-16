@@ -686,7 +686,6 @@
                     <div class="col-lg-4">
                         ${detailTable('ผู้ป่วยที่ใช้อุปกรณ์ (คน)', [
                             ['เครื่องช่วยหายใจ', shift.equipment_ventilator],
-                            ['High Flow', shift.equipment_hfnc],
                         ])}
                     </div>
                 </div>

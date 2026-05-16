@@ -1174,7 +1174,6 @@
           <?php
           $equipmentFields = [
             'equipment_ventilator' => ['label' => 'เครื่องช่วยหายใจ', 'help' => 'จำนวนผู้ป่วยที่ใช้เครื่องช่วยหายใจในเวรนี้'],
-            'equipment_hfnc'       => ['label' => 'High Flow', 'help' => 'จำนวนผู้ป่วยที่ใช้ High Flow ในเวรนี้'],
           ];
           foreach ($equipmentFields as $field => $meta):
           ?>
@@ -1240,7 +1239,6 @@
             'end_of_life'           => 'End of Life',
             'palliative_care'       => 'Palliative Care',
             'critical_care_support' => 'Critical Care',
-            'high_flow_oxygen'      => 'High Flow O₂',
           ];
           foreach ($specialFields as $field => $label):
           ?>
@@ -1327,7 +1325,7 @@
       }
     });
 
-    ['equipment_ventilator', 'equipment_hfnc'].forEach(id => {
+    ['equipment_ventilator'].forEach(id => {
       const input = document.getElementById(id);
       if (input) {
         input.value = parseInt(snapshot[id], 10) || 0;

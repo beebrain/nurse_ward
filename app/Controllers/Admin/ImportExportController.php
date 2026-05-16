@@ -355,7 +355,7 @@ class ImportExportController extends BaseController
         'total_patients', 'carried_forward_patients',
         'admissions', 'discharges', 'transfers_in', 'transfers_out', 'deaths',
         'nurses_hw', 'nurses_rn', 'nurses_tn', 'nurses_pn', 'nurses_aide', 'nurses_ward',
-        'equipment_ventilator', 'equipment_hfnc',
+        'equipment_ventilator',
         'notes', 'recorder_username',
     ];
 
@@ -492,7 +492,7 @@ class ImportExportController extends BaseController
             'total_patients', 'carried_forward_patients',
             'admissions', 'discharges', 'transfers_in', 'transfers_out', 'deaths',
             'nurses_hw', 'nurses_rn', 'nurses_tn', 'nurses_pn', 'nurses_aide', 'nurses_ward',
-            'equipment_ventilator', 'equipment_hfnc',
+            'equipment_ventilator',
         ];
 
         while (($row = fgetcsv($handle)) !== false) {
