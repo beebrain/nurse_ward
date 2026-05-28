@@ -12,7 +12,7 @@ class WardModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'code', 'department_id', 'total_beds', 'is_active'];
+    protected $allowedFields    = ['name', 'code', 'department_id', 'total_beds', 'is_active', 'api_ward_code', 'api_ward_name'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

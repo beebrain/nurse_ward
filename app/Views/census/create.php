@@ -925,6 +925,78 @@
       <span id="carry_forward_note_text">ยอดยกมาจากเวรก่อนหน้า 0 คน</span>
     </div>
 
+    <!-- ── Handover Guidelines Widget ────────────────────────────────── -->
+    <div id="handover_guidelines_card" class="card shadow-sm mb-4 d-none">
+      <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #1e3a8a, #0d9488) !important; color: #fff !important; padding: 14px 18px !important;">
+        <span class="d-flex align-items-center gap-2">
+          <span class="material-symbols-outlined" style="font-size:1.3rem;">clinical_notes</span>
+          <span class="fw-bold">แนวทางการส่งเวรรายชั่วโมง (Handover Guidelines)</span>
+        </span>
+        <button type="button" id="btn_apply_hourly" class="btn btn-sm btn-light fw-bold text-primary d-flex align-items-center gap-1 py-1 px-2 border-0">
+          <span class="material-symbols-outlined" style="font-size:1rem;">install_desktop</span>
+          นำเข้าข้อมูลไปยังฟอร์มบันทึก
+        </button>
+      </div>
+      <div class="card-body">
+        <div class="row align-items-stretch">
+          <!-- Stats Summary -->
+          <div class="col-lg-5 col-12 mb-3 mb-lg-0">
+            <h6 class="fw-bold text-muted mb-2 small text-uppercase" style="letter-spacing: .05em;">สรุปข้อมูลการเคลื่อนไหวระหว่างเวรจากระบบ API</h6>
+            <div class="row row-cols-3 g-2">
+              <div class="col">
+                <div class="p-2 rounded text-center" style="background: var(--c-admit-bg); border: 1.5px solid var(--c-admit);">
+                  <div class="small fw-semibold text-success">รับใหม่ (Admit)</div>
+                  <div class="h5 fw-bold text-success mb-0 mt-1" id="hourly_admit_val">0</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="p-2 rounded text-center" style="background: var(--c-dc-bg); border: 1.5px solid var(--c-dc);">
+                  <div class="small fw-semibold text-danger">จำหน่าย (Discharge)</div>
+                  <div class="h5 fw-bold text-danger mb-0 mt-1" id="hourly_dc_val">0</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="p-2 rounded text-center" style="background: var(--c-tin-bg); border: 1.5px solid var(--c-tin);">
+                  <div class="small fw-semibold text-primary">ย้ายเข้า (Transfer In)</div>
+                  <div class="h5 fw-bold text-primary mb-0 mt-1" id="hourly_tin_val">0</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="p-2 rounded text-center" style="background: var(--c-tout-bg); border: 1.5px solid var(--c-tout);">
+                  <div class="small fw-semibold" style="color: var(--c-tout);">ย้ายออก (Transfer Out)</div>
+                  <div class="h5 fw-bold mb-0 mt-1" style="color: var(--c-tout);" id="hourly_tout_val">0</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="p-2 rounded text-center" style="background: #f1f5f9; border: 1.5px solid #64748b;">
+                  <div class="small fw-semibold text-secondary">เสียชีวิต (Death)</div>
+                  <div class="h5 fw-bold text-secondary mb-0 mt-1" id="hourly_death_val">0</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="p-2 rounded text-center" style="background: #fbeef1; border: 1.5px solid #ba1a1a;">
+                  <div class="small fw-semibold" style="color: #ba1a1a;">ผู้ป่วยคงพยาบาล</div>
+                  <div class="h5 fw-bold mb-0 mt-1" style="color: #ba1a1a;" id="hourly_patient_val">0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Chart / Timeline -->
+          <div class="col-lg-7 col-12 d-flex flex-column">
+            <h6 class="fw-bold text-muted mb-2 small text-uppercase" style="letter-spacing: .05em;">ไทม์ไลน์ยอดผู้ป่วยรายชั่วโมง (Hourly Patient Census Timeline)</h6>
+            <div class="flex-grow-1 p-2 rounded" style="background: #fafbfd; border: 1px solid var(--border-soft); min-height: 120px;">
+              <div id="hourly_timeline_chart_container" class="position-relative h-100 w-100 d-flex align-items-end justify-content-between px-3 pt-4" style="height: 120px !important;">
+                <!-- Timeline bars will be dynamically rendered here -->
+              </div>
+              <div id="hourly_timeline_labels" class="d-flex justify-content-between px-3 mt-1 text-muted" style="font-size: .65rem; font-weight: bold;">
+                <!-- Labels will be dynamically rendered here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Section 1: Patient Movements ──────────────────────────────── -->
     <div class="card shadow-sm mb-3">
       <div class="card-header">
@@ -960,42 +1032,52 @@
         <div class="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-2">
 
           <div class="col">
-            <div class="stat-card nc-other">
-              <div class="stat-label">รับใหม่ <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Admission">info</span></div>
-              <input type="number" name="admissions" id="admissions" class="stat-input movement-input"
-                min="0" value="<?= old('admissions', 0) ?>">
+            <div class="stat-card nc-other" style="position: relative;">
+              <div class="stat-label">รับใหม่ <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Admission">info</span><span class="badge bg-secondary ms-1 api-guideline" id="gl_admissions" style="display:none; font-size:0.6rem;" data-bs-toggle="tooltip" title="ข้อมูลอ้างอิงจาก HOSxP">-</span></div>
+              <input type="number" name="admissions" id="admissions" class="stat-input movement-input" min="0" value="<?= old('admissions', 0) ?>" data-field="admissions">
+              <div id="reason_container_admissions" style="display:none; margin-top: 5px;">
+                  <input type="text" name="api_discrepancy_reasons[admissions]" id="reason_admissions" class="form-control form-control-sm discrepancy-reason" placeholder="เหตุผล" style="font-size: 0.7rem; padding: 2px 4px; min-height: 24px;">
+              </div>
             </div>
           </div>
 
           <div class="col">
-            <div class="stat-card nc-other">
-              <div class="stat-label">จำหน่าย <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Discharge">info</span></div>
-              <input type="number" name="discharges" id="discharges" class="stat-input movement-input"
-                min="0" value="<?= old('discharges', 0) ?>">
+            <div class="stat-card nc-other" style="position: relative;">
+              <div class="stat-label">จำหน่าย <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Discharge">info</span><span class="badge bg-secondary ms-1 api-guideline" id="gl_discharges" style="display:none; font-size:0.6rem;" data-bs-toggle="tooltip" title="ข้อมูลอ้างอิงจาก HOSxP">-</span></div>
+              <input type="number" name="discharges" id="discharges" class="stat-input movement-input" min="0" value="<?= old('discharges', 0) ?>" data-field="discharges">
+              <div id="reason_container_discharges" style="display:none; margin-top: 5px;">
+                  <input type="text" name="api_discrepancy_reasons[discharges]" id="reason_discharges" class="form-control form-control-sm discrepancy-reason" placeholder="เหตุผล" style="font-size: 0.7rem; padding: 2px 4px; min-height: 24px;">
+              </div>
             </div>
           </div>
 
           <div class="col">
-            <div class="stat-card nc-other">
-              <div class="stat-label">ย้ายเข้า <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Transfer In">info</span></div>
-              <input type="number" name="transfers_in" id="transfers_in" class="stat-input movement-input"
-                min="0" value="<?= old('transfers_in', 0) ?>">
+            <div class="stat-card nc-other" style="position: relative;">
+              <div class="stat-label">ย้ายเข้า <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Transfer In">info</span><span class="badge bg-secondary ms-1 api-guideline" id="gl_transfers_in" style="display:none; font-size:0.6rem;" data-bs-toggle="tooltip" title="ข้อมูลอ้างอิงจาก HOSxP">-</span></div>
+              <input type="number" name="transfers_in" id="transfers_in" class="stat-input movement-input" min="0" value="<?= old('transfers_in', 0) ?>" data-field="transfers_in">
+              <div id="reason_container_transfers_in" style="display:none; margin-top: 5px;">
+                  <input type="text" name="api_discrepancy_reasons[transfers_in]" id="reason_transfers_in" class="form-control form-control-sm discrepancy-reason" placeholder="เหตุผล" style="font-size: 0.7rem; padding: 2px 4px; min-height: 24px;">
+              </div>
             </div>
           </div>
 
           <div class="col">
-            <div class="stat-card nc-other">
-              <div class="stat-label">ย้ายออก <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Transfer Out">info</span></div>
-              <input type="number" name="transfers_out" id="transfers_out" class="stat-input movement-input"
-                min="0" value="<?= old('transfers_out', 0) ?>">
+            <div class="stat-card nc-other" style="position: relative;">
+              <div class="stat-label">ย้ายออก <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Transfer Out">info</span><span class="badge bg-secondary ms-1 api-guideline" id="gl_transfers_out" style="display:none; font-size:0.6rem;" data-bs-toggle="tooltip" title="ข้อมูลอ้างอิงจาก HOSxP">-</span></div>
+              <input type="number" name="transfers_out" id="transfers_out" class="stat-input movement-input" min="0" value="<?= old('transfers_out', 0) ?>" data-field="transfers_out">
+              <div id="reason_container_transfers_out" style="display:none; margin-top: 5px;">
+                  <input type="text" name="api_discrepancy_reasons[transfers_out]" id="reason_transfers_out" class="form-control form-control-sm discrepancy-reason" placeholder="เหตุผล" style="font-size: 0.7rem; padding: 2px 4px; min-height: 24px;">
+              </div>
             </div>
           </div>
 
           <div class="col">
-            <div class="stat-card nc-other">
-              <div class="stat-label">เสียชีวิต <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Death">info</span></div>
-              <input type="number" name="deaths" id="deaths" class="stat-input movement-input"
-                min="0" value="<?= old('deaths', 0) ?>">
+            <div class="stat-card nc-other" style="position: relative;">
+              <div class="stat-label">เสียชีวิต <span class="material-symbols-outlined field-help" data-bs-toggle="tooltip" title="Death">info</span><span class="badge bg-secondary ms-1 api-guideline" id="gl_deaths" style="display:none; font-size:0.6rem;" data-bs-toggle="tooltip" title="ข้อมูลอ้างอิงจาก HOSxP">-</span></div>
+              <input type="number" name="deaths" id="deaths" class="stat-input movement-input" min="0" value="<?= old('deaths', 0) ?>" data-field="deaths">
+              <div id="reason_container_deaths" style="display:none; margin-top: 5px;">
+                  <input type="text" name="api_discrepancy_reasons[deaths]" id="reason_deaths" class="form-control form-control-sm discrepancy-reason" placeholder="เหตุผล" style="font-size: 0.7rem; padding: 2px 4px; min-height: 24px;">
+              </div>
             </div>
           </div>
 
@@ -1360,6 +1442,15 @@
       }
     });
 
+    if (record.api_discrepancy_reasons) {
+        Object.entries(record.api_discrepancy_reasons).forEach(([field, value]) => {
+            const input = document.getElementById('reason_' + field);
+            if (input) {
+                input.value = value ?? '';
+            }
+        });
+    }
+
     if (record.qi) {
       Object.entries(record.qi).forEach(([field, value]) => {
         const input = document.querySelector(`[name="qi[${field}]"]`);
@@ -1511,17 +1602,218 @@
     }
   }
 
+  // ── Handover Guidelines Logic ──────────────────────────────────
+  function drawTimelineChart(timeline) {
+    const chartContainer = document.getElementById('hourly_timeline_chart_container');
+    const labelsContainer = document.getElementById('hourly_timeline_labels');
+    if (!chartContainer || !labelsContainer) return;
+
+    chartContainer.innerHTML = '';
+    labelsContainer.innerHTML = '';
+
+    const counts = timeline.map(r => parseInt(r.patient_count) || 0);
+    const maxVal = Math.max(...counts, 10);
+
+    timeline.forEach(record => {
+      const timeStr = record.record_time || '';
+      const hourPart = timeStr.substring(11, 16) || '--:--';
+      const patientCount = parseInt(record.patient_count) || 0;
+
+      const heightPct = maxVal > 0 ? (patientCount / maxVal) * 80 : 0;
+
+      const barWrapper = document.createElement('div');
+      barWrapper.className = 'd-flex flex-column align-items-center flex-grow-1 h-100 justify-content-end';
+      barWrapper.style.minWidth = '0';
+      barWrapper.style.padding = '0 2px';
+
+      const valueLabel = document.createElement('span');
+      valueLabel.className = 'fw-bold mb-1';
+      valueLabel.style.fontSize = '0.7rem';
+      valueLabel.style.color = '#1e3a8a';
+      valueLabel.textContent = patientCount;
+
+      const bar = document.createElement('div');
+      bar.className = 'rounded-top shadow-sm';
+      bar.style.width = '70%';
+      bar.style.maxWidth = '30px';
+      bar.style.height = `${heightPct}%`;
+      bar.style.background = 'linear-gradient(to top, #0d9488, #3b82f6)';
+      bar.style.transition = 'height 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s';
+      bar.style.cursor = 'pointer';
+      
+      const details = `รับใหม่: +${record.admissions_today}, จำหน่าย: -${record.discharges_today}, ย้ายเข้า: +${record.moves_in_today}, ย้ายออก: -${record.moves_out_today}, เสียชีวิต: -${record.deaths_today}`;
+      bar.title = `เวลา ${hourPart}น.\nผู้ป่วยคงพยาบาล: ${patientCount} คน\n(${details})`;
+
+      bar.addEventListener('mouseenter', () => {
+        bar.style.background = 'linear-gradient(to top, #14b8a6, #60a5fa)';
+      });
+      bar.addEventListener('mouseleave', () => {
+        bar.style.background = 'linear-gradient(to top, #0d9488, #3b82f6)';
+      });
+
+      barWrapper.appendChild(valueLabel);
+      barWrapper.appendChild(bar);
+      chartContainer.appendChild(barWrapper);
+
+      const label = document.createElement('span');
+      label.className = 'text-center flex-grow-1';
+      label.style.minWidth = '0';
+      label.style.fontSize = '0.65rem';
+      label.textContent = hourPart;
+      labelsContainer.appendChild(label);
+    });
+  }
+
+  function checkDiscrepancy(fieldId) {
+    const input = document.getElementById(fieldId);
+    const badge = document.getElementById('gl_' + fieldId);
+    const container = document.getElementById('reason_container_' + fieldId);
+    const reasonInput = document.getElementById('reason_' + fieldId);
+    
+    if (!input || !badge || !container) return;
+    
+    if (badge.style.display !== 'none' && badge.dataset.apiValue !== undefined) {
+        if (input.value !== '' && parseInt(input.value) !== parseInt(badge.dataset.apiValue)) {
+            container.style.display = 'block';
+            reasonInput.setAttribute('required', 'required');
+        } else {
+            container.style.display = 'none';
+            reasonInput.removeAttribute('required');
+        }
+    } else {
+        container.style.display = 'none';
+        reasonInput.removeAttribute('required');
+    }
+  }
+
+  function checkAllDiscrepancies() {
+      ['admissions', 'discharges', 'transfers_in', 'transfers_out', 'deaths'].forEach(checkDiscrepancy);
+  }
+
+  async function loadHourlyGuidelines() {
+    const wardId = document.getElementById('ward_id').value;
+    const date = document.getElementById('record_date').value;
+    const shift = document.getElementById('shift').value;
+    const card = document.getElementById('handover_guidelines_card');
+
+    if (!wardId || !date || !shift) {
+      if (card) card.classList.add('d-none');
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams({
+        ward_id: wardId,
+        record_date: date,
+        shift
+      });
+      const resp = await fetch(`<?= base_url('census/hourly-guidelines') ?>?${params.toString()}`, {
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+      });
+      const json = await resp.json();
+      if (json.success && json.timeline && json.timeline.length > 0) {
+        if (card) card.classList.remove('d-none');
+        
+        document.getElementById('hourly_admit_val').textContent = json.totals.admissions;
+        document.getElementById('hourly_dc_val').textContent = json.totals.discharges;
+        document.getElementById('hourly_tin_val').textContent = json.totals.transfers_in;
+        document.getElementById('hourly_tout_val').textContent = json.totals.transfers_out;
+        document.getElementById('hourly_death_val').textContent = json.totals.deaths;
+        document.getElementById('hourly_patient_val').textContent = json.totals.patient_count;
+
+        ['admissions', 'discharges', 'transfers_in', 'transfers_out', 'deaths'].forEach(f => {
+            const badge = document.getElementById('gl_' + f);
+            if (badge) {
+                badge.textContent = json.totals[f] !== undefined ? json.totals[f] : '-';
+                badge.style.display = 'inline-block';
+                badge.dataset.apiValue = json.totals[f];
+            }
+        });
+        checkAllDiscrepancies();
+
+        document.getElementById('btn_apply_hourly').dataset.totals = JSON.stringify(json.totals);
+
+        drawTimelineChart(json.timeline);
+      } else {
+        if (card) card.classList.add('d-none');
+        ['admissions', 'discharges', 'transfers_in', 'transfers_out', 'deaths'].forEach(f => {
+            const badge = document.getElementById('gl_' + f);
+            if (badge) badge.style.display = 'none';
+        });
+        checkAllDiscrepancies();
+      }
+    } catch (e) {
+      console.error('Failed to load hourly guidelines:', e);
+      if (card) card.classList.add('d-none');
+    }
+  }
+
+  document.getElementById('btn_apply_hourly')?.addEventListener('click', function() {
+    const totalsData = this.dataset.totals;
+    if (!totalsData) return;
+
+    try {
+      const totals = JSON.parse(totalsData);
+      
+      const inputs = {
+        'admissions': totals.admissions,
+        'discharges': totals.discharges,
+        'transfers_in': totals.transfers_in,
+        'transfers_out': totals.transfers_out,
+        'deaths': totals.deaths
+      };
+
+      Object.entries(inputs).forEach(([id, val]) => {
+        const input = document.getElementById(id);
+        if (input) {
+          input.value = val;
+          const parent = input.closest('.stat-card');
+          if (parent) {
+            parent.style.transition = 'none';
+            parent.style.transform = 'scale(1.05)';
+            parent.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.5)';
+            parent.style.borderColor = 'rgba(59, 130, 246, 0.8)';
+            setTimeout(() => {
+              parent.style.transition = 'all 0.3s ease';
+              parent.style.transform = '';
+              parent.style.boxShadow = '';
+              parent.style.borderColor = '';
+            }, 800);
+          }
+        }
+      });
+
+      updateMovementBalance();
+      
+      const form = document.getElementById('censusForm');
+      if (form) {
+        form.dispatchEvent(new Event('input'));
+      }
+    } catch (e) {
+      console.error('Error applying hourly totals:', e);
+    }
+  });
+
   document.querySelectorAll('.patient-level-type, .nurse-calc').forEach(el => {
     el.addEventListener('input', updateTotals);
   });
   document.getElementById('shift').addEventListener('change', updateTotals);
   document.querySelectorAll('.movement-input').forEach(el => {
-    el.addEventListener('input', updateMovementBalance);
+    el.addEventListener('input', () => {
+        updateMovementBalance();
+        checkDiscrepancy(el.dataset.field);
+    });
   });
   ['ward_id', 'record_date', 'shift'].forEach(id => {
-    document.getElementById(id)?.addEventListener('change', () => loadMovementContext(true));
+    document.getElementById(id)?.addEventListener('change', () => {
+      loadMovementContext(true);
+      loadHourlyGuidelines();
+    });
   });
   loadMovementContext(false);
+  loadHourlyGuidelines();
   updateTotals();
 
   document.getElementById('toggleQI').addEventListener('click', () => {

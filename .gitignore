@@ -125,5 +125,10 @@ _modules/*
 # Visual Studio Code
 .vscode/
 
+# Python venv (scripts/fetch_ipd_hourly.py)
+.venv/
+__pycache__/
+*.pyc
+
 /results/
 /phpunit*.xml

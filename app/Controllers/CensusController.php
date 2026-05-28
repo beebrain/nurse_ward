@@ -203,6 +203,34 @@ class CensusController extends BaseController
         ]);
     }
 
+    public function hourlyGuidelines()
+    {
+        if (! $this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Invalid request']);
+        }
+
+        $wardId = (int)($this->request->getGet('ward_id') ?? 0);
+        $date   = (string)($this->request->getGet('record_date') ?? '');
+        $shift  = (string)($this->request->getGet('shift') ?? '');
+
+        if ($wardId <= 0 || $date === '' || $shift === '') {
+            return $this->response->setJSON(['success' => false, 'message' => 'ข้อมูลไม่ครบ']);
+        }
+
+        if (! $this->canRecordForWard($wardId)) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'ไม่มีสิทธิ์ดู Ward นี้']);
+        }
+
+        $hourlyModel = new \App\Models\HourlyCensusModel();
+        $data = $hourlyModel->getShiftTotals($wardId, $date, $shift);
+
+        return $this->response->setJSON([
+            'success'  => true,
+            'timeline' => $data['timeline'],
+            'totals'   => $data['totals']
+        ]);
+    }
+
     public function history()
     {
         [$wards, $defaultWardId] = $this->getAvailableWardsForCurrentUser();
@@ -853,6 +881,7 @@ class CensusController extends BaseController
             'equipment_ventilator'       => (int)($post['equipment_ventilator'] ?? 0),
             'equipment_hfnc'             => (int)($post['equipment_hfnc'] ?? 0),
             'notes'            => $post['notes'] ?? null,
+            'api_discrepancy_reasons' => isset($post['api_discrepancy_reasons']) ? json_encode($post['api_discrepancy_reasons'], JSON_UNESCAPED_UNICODE) : null,
             'created_by'       => auth()->id(),
         ];
 
@@ -885,6 +914,9 @@ class CensusController extends BaseController
         }
 
         $snapshot['notes'] = (string)($record['notes'] ?? '');
+        $snapshot['api_discrepancy_reasons'] = isset($record['api_discrepancy_reasons']) && is_string($record['api_discrepancy_reasons']) 
+            ? json_decode($record['api_discrepancy_reasons'], true) 
+            : [];
         $snapshot['qi'] = [];
         foreach ($this->filterQiData($qi ?? []) as $field => $value) {
             $snapshot['qi'][$field] = $value;

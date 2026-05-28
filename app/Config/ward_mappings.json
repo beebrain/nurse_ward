@@ -1,0 +1,130 @@
+{
+  "1": {
+    "api_ward_code": "09",
+    "api_ward_name": "ศัลยกรรมชาย"
+  },
+  "2": {
+    "api_ward_code": "19",
+    "api_ward_name": "หออภิบาลผู้ป่วยวิกฤตอายุรกรรม"
+  },
+  "3": {
+    "api_ward_code": "18",
+    "api_ward_name": "หออภิบาลผู้ป่วยวิกฤตศัลยกรรม"
+  },
+  "4": {
+    "api_ward_code": "31",
+    "api_ward_name": "หออภิบาลผู้ป่วยวิกฤตโรคหัวใจ"
+  },
+  "5": {
+    "api_ward_code": "75",
+    "api_ward_name": "ICU ระบบทางเดินหายใจ"
+  },
+  "6": {
+    "api_ward_code": "40",
+    "api_ward_name": "หออภิบาลผู้ป่วยวิกฤตศัลยกรรมประสาท"
+  },
+  "7": {
+    "api_ward_code": "38",
+    "api_ward_name": "หออภิบาลผู้ป่วยวิกฤตกุมารเวชกรรม"
+  },
+  "8": {
+    "api_ward_code": "78",
+    "api_ward_name": "ICU ศัลยกรรมอุบัติเหตุ"
+  },
+  "9": {
+    "api_ward_code": "53",
+    "api_ward_name": "หอผู้ป่วยโรคหลอดเลือดสมอง (Stroke unit)"
+  },
+  "10": {
+    "api_ward_code": "80",
+    "api_ward_name": "หอผู้ป่วยระบบทางเดินหายใจ"
+  },
+  "11": {
+    "api_ward_code": "21",
+    "api_ward_name": "ตา หู คอ จมูก"
+  },
+  "13": {
+    "api_ward_code": "06",
+    "api_ward_name": "ศัลยกรรมกระดูกชาย"
+  },
+  "14": {
+    "api_ward_code": "07",
+    "api_ward_name": "ศัลยกรรมกระดูกหญิง"
+  },
+  "15": {
+    "api_ward_code": "77",
+    "api_ward_name": "พูนพิพัฒน์ 3"
+  },
+  "16": {
+    "api_ward_code": "08",
+    "api_ward_name": "ศญ1_สามัญ"
+  },
+  "17": {
+    "api_ward_code": "05",
+    "api_ward_name": "ศัลยกรรมอุบัติเหตุ"
+  },
+  "18": {
+    "api_ward_code": "25",
+    "api_ward_name": "ศัลยกรรมประสาท"
+  },
+  "19": {
+    "api_ward_code": "57",
+    "api_ward_name": "พูนพิพัฒน์ 4"
+  },
+  "20": {
+    "api_ward_code": "10",
+    "api_ward_name": "กุมารเวชกรรม 2"
+  },
+  "21": {
+    "api_ward_code": "11",
+    "api_ward_name": "กุมารเวชกรรม 3"
+  },
+  "22": {
+    "api_ward_code": "12",
+    "api_ward_name": "สูติกรรมหลังคลอด"
+  },
+  "23": {
+    "api_ward_code": "13",
+    "api_ward_name": "นรีเวชกรรม"
+  },
+  "24": {
+    "api_ward_code": "59",
+    "api_ward_name": "พูนพิพัฒน์ 5"
+  },
+  "25": {
+    "api_ward_code": "74",
+    "api_ward_name": "พูนพิพัฒน์ 2"
+  },
+  "26": {
+    "api_ward_code": "81",
+    "api_ward_name": "หอแยกโรคผู้ป่วยติดเชื้อ"
+  },
+  "27": {
+    "api_ward_code": "79",
+    "api_ward_name": "หอผู้ป่วยหัตถการโรคหัวใจ"
+  },
+  "28": {
+    "api_ward_code": "03",
+    "api_ward_name": "อายุรกรรมหญิง 1"
+  },
+  "29": {
+    "api_ward_code": "01",
+    "api_ward_name": "อายุรกรรมชาย 1"
+  },
+  "31": {
+    "api_ward_code": "26",
+    "api_ward_name": "ห้องคลอด"
+  },
+  "34": {
+    "api_ward_code": "02",
+    "api_ward_name": "อายุรกรรมชาย 2"
+  },
+  "35": {
+    "api_ward_code": "04",
+    "api_ward_name": "อายุรกรรมหญิง 2"
+  },
+  "36": {
+    "api_ward_code": "76",
+    "api_ward_name": "อินทนิล"
+  }
+}

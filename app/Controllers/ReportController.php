@@ -276,6 +276,84 @@ class ReportController extends BaseController
         ]);
     }
 
+    /**
+     * Ward-specific patient behavior dashboard.
+     */
+    public function behaviorDashboard()
+    {
+        $user = auth()->user();
+        
+        $assignedWards = [];
+        if ($user && $user->inGroup('nurse') && ! $user->inGroup('superadmin') && ! $user->inGroup('manager')) {
+            $assignedIds = array_map('intval', $this->userWardModel->getWardIdsForUser((int)$user->id));
+            $assignedWards = array_values(array_filter($this->wardModel->getActiveWithDepartment(), fn($w) => in_array((int)$w['id'], $assignedIds, true)));
+        } else {
+            $assignedWards = $this->wardModel->getActiveWithDepartment();
+        }
+
+        return view('reports/behavior_dashboard', [
+            'title' => 'แดชบอร์ดพฤติกรรมคนไข้',
+            'wards' => $assignedWards,
+            'current_month' => (int) date('n'),
+            'current_year' => (int) date('Y'),
+        ]);
+    }
+
+    /**
+     * AJAX: behavior dashboard data.
+     */
+    public function behaviorDashboardData()
+    {
+        $wardId = (int) $this->request->getGet('ward_id');
+        $month = (int) $this->request->getGet('month');
+        $year = (int) $this->request->getGet('year');
+
+        if ($wardId <= 0 || $month <= 0 || $month > 12 || $year <= 0) {
+            return $this->response->setJSON(['error' => 'Invalid parameters'])->setStatusCode(400);
+        }
+
+        $db = \Config\Database::connect();
+        $builder = $db->table('hourly_patient_census');
+        $builder->where('ward_id', $wardId);
+        $builder->where('YEAR(record_time)', $year);
+        $builder->where('MONTH(record_time)', $month);
+        $builder->orderBy('record_time', 'ASC');
+        $results = $builder->get()->getResultArray();
+
+        $daily = [];
+        foreach ($results as $row) {
+            $date = date('Y-m-d', strtotime($row['record_time']));
+            if (!isset($daily[$date])) {
+                $daily[$date] = [
+                    'date' => $date,
+                    'patient_count' => [],
+                    'admissions' => 0,
+                    'discharges' => 0,
+                    'transfers_in' => 0,
+                    'transfers_out' => 0,
+                    'deaths' => 0,
+                ];
+            }
+            $daily[$date]['patient_count'][] = (int)$row['patient_count'];
+            
+            // To get net movements for the day we need max values or delta.
+            // Since API gives cumulative "today", the max value of the day is the total.
+            $daily[$date]['admissions'] = max($daily[$date]['admissions'], (int)$row['admissions_today']);
+            $daily[$date]['discharges'] = max($daily[$date]['discharges'], (int)$row['discharges_today']);
+            $daily[$date]['transfers_in'] = max($daily[$date]['transfers_in'], (int)$row['moves_in_today']);
+            $daily[$date]['transfers_out'] = max($daily[$date]['transfers_out'], (int)$row['moves_out_today']);
+            $daily[$date]['deaths'] = max($daily[$date]['deaths'], (int)$row['deaths_today']);
+        }
+
+        return $this->response->setJSON([
+            'year' => $year,
+            'month' => $month,
+            'ward_id' => $wardId,
+            'raw_data' => $results,
+            'daily_summary' => array_values($daily)
+        ]);
+    }
+
     private function thaiWeekdayLabel(string $date): string
     {
         $labels = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];

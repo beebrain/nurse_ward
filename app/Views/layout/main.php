@@ -384,6 +384,7 @@ $navItems = [];
 if (auth()->loggedIn()) {
     $navItems[] = ['label' => 'บันทึกยอดรายวัน', 'icon' => 'clinical_notes', 'url' => base_url('census')];
     if (auth()->user()->can('census.record')) {
+        $navItems[] = ['label' => 'พฤติกรรมคนไข้', 'icon' => 'insights', 'url' => base_url('census/behavior-dashboard'), 'hint' => 'Dashboard แสดงพฤติกรรมคนไข้รายวอร์ด'];
         $navItems[] = ['label' => 'ประวัติย้อนหลัง', 'icon' => 'history', 'url' => base_url('census/history')];
         $navItems[] = ['label' => 'Productivity', 'icon' => 'monitoring', 'url' => base_url('census/productivity'), 'hint' => 'ประสิทธิภาพการพยาบาล ทุกแผนก'];
     }

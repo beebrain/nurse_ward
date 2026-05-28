@@ -44,6 +44,8 @@ class WardController extends BaseController
             'code'          => 'permit_empty|max_length[30]',
             'department_id' => 'permit_empty|numeric',
             'total_beds'    => 'required|numeric|greater_than_equal_to[0]',
+            'api_ward_code' => 'permit_empty|max_length[50]',
+            'api_ward_name' => 'permit_empty|max_length[100]',
         ];
 
         if (!$this->validate($rules)) {
@@ -56,6 +58,8 @@ class WardController extends BaseController
             'department_id' => $this->request->getPost('department_id') ?: null,
             'total_beds'    => $this->request->getPost('total_beds'),
             'is_active'     => $this->request->getPost('is_active') ? true : false,
+            'api_ward_code' => $this->request->getPost('api_ward_code') ?: null,
+            'api_ward_name' => $this->request->getPost('api_ward_name') ?: null,
         ]);
 
         return redirect()->to('admin/wards')->with('message', 'Ward created successfully.');
@@ -85,6 +89,8 @@ class WardController extends BaseController
             'code'          => 'permit_empty|max_length[30]',
             'department_id' => 'permit_empty|numeric',
             'total_beds'    => 'required|numeric|greater_than_equal_to[0]',
+            'api_ward_code' => 'permit_empty|max_length[50]',
+            'api_ward_name' => 'permit_empty|max_length[100]',
         ];
 
         if (!$this->validate($rules)) {
@@ -97,6 +103,8 @@ class WardController extends BaseController
             'department_id' => $this->request->getPost('department_id') ?: null,
             'total_beds'    => $this->request->getPost('total_beds'),
             'is_active'     => $this->request->getPost('is_active') ? true : false,
+            'api_ward_code' => $this->request->getPost('api_ward_code') ?: null,
+            'api_ward_name' => $this->request->getPost('api_ward_name') ?: null,
         ]);
 
         return redirect()->to('admin/wards')->with('message', 'Ward updated successfully.');

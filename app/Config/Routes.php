@@ -42,8 +42,11 @@ $routes->group('census', ['filter' => 'permission:census.record'], static functi
     $routes->get('productivity', '\App\Controllers\CensusController::productivity');
     $routes->get('productivity-data', '\App\Controllers\CensusController::productivityData');
     $routes->get('movement-context', '\App\Controllers\CensusController::movementContext');
+    $routes->get('hourly-guidelines', '\App\Controllers\CensusController::hourlyGuidelines');
     $routes->post('store', '\App\Controllers\CensusController::store');
     $routes->post('autosave', '\App\Controllers\CensusController::autosave');
+    $routes->get('behavior-dashboard', '\App\Controllers\ReportController::behaviorDashboard');
+    $routes->get('behavior-dashboard-data', '\App\Controllers\ReportController::behaviorDashboardData');
 });
 
 $routes->group('reports', ['filter' => 'permission:reports.view'], static function ($routes) {

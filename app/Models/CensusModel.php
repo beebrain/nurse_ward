@@ -30,6 +30,7 @@ class CensusModel extends Model
         'equipment_ventilator', 'equipment_hfnc',
         // Calculated (stored)
         'working_hours', 'required_care_hours', 'productivity',
+        'api_discrepancy_reasons',
         'notes', 'created_by',
     ];
 
