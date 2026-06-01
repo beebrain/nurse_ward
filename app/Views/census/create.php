@@ -987,7 +987,7 @@
         <div class="row align-items-stretch">
           <!-- Stats Summary -->
           <div class="col-lg-5 col-12 mb-3 mb-lg-0">
-            <h6 class="fw-bold text-muted mb-2 small text-uppercase" style="letter-spacing: .05em;">สรุปข้อมูลการเคลื่อนไหวระหว่างเวรจากระบบ API</h6>
+            <h6 class="fw-bold text-muted mb-2 small text-uppercase" style="letter-spacing: .05em;">สรุปข้อมูลการเคลื่อนไหวระหว่างเวร จาก HOSxP</h6>
             <div class="hourly-handover-grid">
               <div class="hourly-stat-card" style="background: var(--c-admit-bg); border-color: var(--c-admit);">
                 <div class="hourly-stat-label text-success">รับใหม่ (Admit)</div>
