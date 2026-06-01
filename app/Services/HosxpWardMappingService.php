@@ -62,7 +62,7 @@ class HosxpWardMappingService
     /**
      * @param list<array<string, mixed>> $merged
      *
-     * @return list<array{ward: string, ward_name: string}>
+     * @return list<array{ward: string, ward_name: string, ward_name_ward: string}>
      */
     public function uniqueApiWardsFromMerged(array $merged): array
     {
@@ -77,7 +77,11 @@ class HosxpWardMappingService
                 continue;
             }
             $seen[$key] = true;
-            $out[]      = ['ward' => $code, 'ward_name' => $name];
+            $out[]      = [
+                'ward'            => $code,
+                'ward_name'       => $name,
+                'ward_name_ward'  => trim((string) ($row['ward_name_ward'] ?? '')),
+            ];
         }
 
         usort($out, static fn ($a, $b) => [$a['ward'], $a['ward_name']] <=> [$b['ward'], $b['ward_name']]);

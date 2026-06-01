@@ -1,5 +1,5 @@
 <?php
-/** @var list<array{ward: string, ward_name: string}> $api_ward_options */
+/** @var list<array{ward: string, ward_name: string, ward_name_ward?: string}> $api_ward_options */
 $apiWardOptions = $api_ward_options ?? [];
 $ward           = $ward ?? [];
 
@@ -19,9 +19,25 @@ foreach ($apiWardOptions as $opt) {
     if ($code === '' || $name === '') {
         continue;
     }
-    $namesByCode[$code][] = ['ward' => $code, 'ward_name' => $name];
+    $namesByCode[$code][] = [
+        'ward'           => $code,
+        'ward_name'      => $name,
+        'ward_name_ward' => trim((string) ($opt['ward_name_ward'] ?? '')),
+    ];
 }
 ksort($namesByCode);
+
+$groupLabelForCode = static function (array $names): string {
+    $groups = [];
+    foreach ($names as $n) {
+        $g = trim((string) ($n['ward_name_ward'] ?? ''));
+        if ($g !== '') {
+            $groups[$g] = true;
+        }
+    }
+
+    return implode(', ', array_keys($groups));
+};
 
 $codeInList = $currentCode !== '' && isset($namesByCode[$currentCode]);
 $nameInList = false;
@@ -50,9 +66,16 @@ $uid       = 'api-map-' . uniqid();
         <label for="<?= esc($uid) ?>-code-pick" class="form-label">API Ward Code <span class="text-danger">*</span></label>
         <select id="<?= esc($uid) ?>-code-pick" class="form-select">
             <option value="">— เลือกรหัส ward —</option>
-            <?php foreach ($namesByCode as $code => $names): ?>
+            <?php foreach ($namesByCode as $code => $names):
+                $group = $groupLabelForCode($names);
+                $label = 'รหัส ' . $code;
+                if ($group !== '') {
+                    $label .= ' — ' . $group;
+                }
+                $label .= ' (' . count($names) . ' ชื่อ)';
+                ?>
                 <option value="<?= esc($code, 'attr') ?>" <?= $code === $currentCode ? 'selected' : '' ?>>
-                    รหัส <?= esc($code) ?> (<?= count($names) ?> ชื่อ)
+                    <?= esc($label) ?>
                 </option>
             <?php endforeach; ?>
             <option value="__custom__" <?= $useCustom ? 'selected' : '' ?>>อื่นๆ — ไม่มีในรายการ</option>
@@ -62,6 +85,7 @@ $uid       = 'api-map-' . uniqid();
     <input type="hidden" name="api_ward_code" id="<?= esc($uid) ?>-code" value="<?= esc($currentCode) ?>">
 
     <div id="<?= esc($uid) ?>-names-panel" class="<?= $currentCode === '' ? 'd-none' : '' ?>">
+        <div id="<?= esc($uid) ?>-group-hint" class="alert alert-light border small py-2 mb-3 d-none"></div>
         <div class="mb-3">
             <label for="<?= esc($uid) ?>-primary-name" class="form-label">API Ward Name หลัก <span class="text-danger">*</span></label>
             <select id="<?= esc($uid) ?>-primary-name" name="api_ward_name"
@@ -126,6 +150,36 @@ $uid       = 'api-map-' . uniqid();
         return namesByCode[code] || [];
     }
 
+    function formatNameLabel(row) {
+        const g = (row.ward_name_ward || '').trim();
+        return g ? row.ward_name + ' · กลุ่ม: ' + g : row.ward_name;
+    }
+
+    function groupLabelsForCode(code) {
+        const groups = new Set();
+        namesForCode(code).forEach((row) => {
+            const g = (row.ward_name_ward || '').trim();
+            if (g) groups.add(g);
+        });
+        return Array.from(groups).join(', ');
+    }
+
+    function updateGroupHint(code) {
+        const el = document.getElementById(uid + '-group-hint');
+        if (!el) return;
+        const groups = groupLabelsForCode(code);
+        if (!code || !groups) {
+            el.classList.add('d-none');
+            return;
+        }
+        el.classList.remove('d-none');
+        el.innerHTML = '<strong>กลุ่มวอร์ด (ward_name_ward):</strong> ' + escapeHtml(groups);
+    }
+
+    function escapeHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
     function fillNameSelects(code) {
         if (!primaryName || !aliasesEl) return;
 
@@ -148,7 +202,7 @@ $uid       = 'api-map-' . uniqid();
 
             const optPrimary = document.createElement('option');
             optPrimary.value = name;
-            optPrimary.textContent = name;
+            optPrimary.textContent = formatNameLabel(row);
             if (name === selectedPrimary) {
                 optPrimary.selected = true;
             }
@@ -166,7 +220,7 @@ $uid       = 'api-map-' . uniqid();
             if (isUsed(name) || name === primary) return;
             const opt = document.createElement('option');
             opt.value = name;
-            opt.textContent = name;
+            opt.textContent = formatNameLabel(row);
             if (aliasSelections.includes(name)) {
                 opt.selected = true;
             }
@@ -179,6 +233,7 @@ $uid       = 'api-map-' . uniqid();
         if (namesPanel) {
             namesPanel.classList.toggle('d-none', !code);
         }
+        updateGroupHint(code);
         if (code) fillNameSelects(code);
     }
 

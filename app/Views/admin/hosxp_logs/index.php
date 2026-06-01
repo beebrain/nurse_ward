@@ -347,7 +347,7 @@
         let apiTable = '<p class="text-muted small">ไม่มีแถวจาก API</p>';
         if (apiRows.length) {
             const head = `<thead><tr>
-                <th>สถานะ</th><th>รหัส API</th><th>ward_name (API)</th>
+                <th>สถานะ</th><th>รหัส API</th><th>ward_name</th><th>กลุ่ม (ward_name_ward)</th>
                 <th>แผนกในระบบ</th><th>api ที่ตั้งไว้</th><th class="text-end">ผู้ป่วย</th><th>หมายเหตุ</th><th></th>
             </tr></thead>`;
             const body = apiRows.map(r => {
@@ -365,6 +365,7 @@
                     <td>${mapStatusBadge(r.status_label || r.status, r.status)}</td>
                     <td>${escapeHtml(r.ward)}</td>
                     <td>${escapeHtml(r.ward_name)}</td>
+                    <td class="text-muted">${escapeHtml(r.ward_name_ward || '—')}</td>
                     <td>${dbLabel}</td>
                     <td class="small">${configured}</td>
                     <td class="text-end">${r.patient_count ?? 0}</td>
