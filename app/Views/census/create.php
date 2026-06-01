@@ -128,6 +128,52 @@
     min-height: 1.6em;
   }
 
+  /* Handover hourly summary — equal-width & equal-height cards */
+  .hourly-handover-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  @media (max-width: 575.98px) {
+    .hourly-handover-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .hourly-stat-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 4.75rem;
+    height: 100%;
+    padding: 0.5rem 0.35rem;
+    border-radius: 10px;
+    text-align: center;
+    border: 1.5px solid;
+  }
+
+  .hourly-stat-card .hourly-stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.25;
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+  }
+
+  .hourly-stat-card .hourly-stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0;
+  }
+
   .stat-input {
     font-size: 1.55rem;
     font-weight: 700;
@@ -942,42 +988,30 @@
           <!-- Stats Summary -->
           <div class="col-lg-5 col-12 mb-3 mb-lg-0">
             <h6 class="fw-bold text-muted mb-2 small text-uppercase" style="letter-spacing: .05em;">สรุปข้อมูลการเคลื่อนไหวระหว่างเวรจากระบบ API</h6>
-            <div class="row row-cols-3 g-2">
-              <div class="col">
-                <div class="p-2 rounded text-center" style="background: var(--c-admit-bg); border: 1.5px solid var(--c-admit);">
-                  <div class="small fw-semibold text-success">รับใหม่ (Admit)</div>
-                  <div class="h5 fw-bold text-success mb-0 mt-1" id="hourly_admit_val">0</div>
-                </div>
+            <div class="hourly-handover-grid">
+              <div class="hourly-stat-card" style="background: var(--c-admit-bg); border-color: var(--c-admit);">
+                <div class="hourly-stat-label text-success">รับใหม่ (Admit)</div>
+                <div class="hourly-stat-value text-success" id="hourly_admit_val">0</div>
               </div>
-              <div class="col">
-                <div class="p-2 rounded text-center" style="background: var(--c-dc-bg); border: 1.5px solid var(--c-dc);">
-                  <div class="small fw-semibold text-danger">จำหน่าย (Discharge)</div>
-                  <div class="h5 fw-bold text-danger mb-0 mt-1" id="hourly_dc_val">0</div>
-                </div>
+              <div class="hourly-stat-card" style="background: var(--c-dc-bg); border-color: var(--c-dc);">
+                <div class="hourly-stat-label text-danger">จำหน่าย (Discharge)</div>
+                <div class="hourly-stat-value text-danger" id="hourly_dc_val">0</div>
               </div>
-              <div class="col">
-                <div class="p-2 rounded text-center" style="background: var(--c-tin-bg); border: 1.5px solid var(--c-tin);">
-                  <div class="small fw-semibold text-primary">ย้ายเข้า (Transfer In)</div>
-                  <div class="h5 fw-bold text-primary mb-0 mt-1" id="hourly_tin_val">0</div>
-                </div>
+              <div class="hourly-stat-card" style="background: var(--c-tin-bg); border-color: var(--c-tin);">
+                <div class="hourly-stat-label text-primary">ย้ายเข้า (Transfer In)</div>
+                <div class="hourly-stat-value text-primary" id="hourly_tin_val">0</div>
               </div>
-              <div class="col">
-                <div class="p-2 rounded text-center" style="background: var(--c-tout-bg); border: 1.5px solid var(--c-tout);">
-                  <div class="small fw-semibold" style="color: var(--c-tout);">ย้ายออก (Transfer Out)</div>
-                  <div class="h5 fw-bold mb-0 mt-1" style="color: var(--c-tout);" id="hourly_tout_val">0</div>
-                </div>
+              <div class="hourly-stat-card" style="background: var(--c-tout-bg); border-color: var(--c-tout);">
+                <div class="hourly-stat-label" style="color: var(--c-tout);">ย้ายออก (Transfer Out)</div>
+                <div class="hourly-stat-value" style="color: var(--c-tout);" id="hourly_tout_val">0</div>
               </div>
-              <div class="col">
-                <div class="p-2 rounded text-center" style="background: #f1f5f9; border: 1.5px solid #64748b;">
-                  <div class="small fw-semibold text-secondary">เสียชีวิต (Death)</div>
-                  <div class="h5 fw-bold text-secondary mb-0 mt-1" id="hourly_death_val">0</div>
-                </div>
+              <div class="hourly-stat-card" style="background: #f1f5f9; border-color: #64748b;">
+                <div class="hourly-stat-label text-secondary">เสียชีวิต (Death)</div>
+                <div class="hourly-stat-value text-secondary" id="hourly_death_val">0</div>
               </div>
-              <div class="col">
-                <div class="p-2 rounded text-center" style="background: #fbeef1; border: 1.5px solid #ba1a1a;">
-                  <div class="small fw-semibold" style="color: #ba1a1a;">ผู้ป่วยคงพยาบาล</div>
-                  <div class="h5 fw-bold mb-0 mt-1" style="color: #ba1a1a;" id="hourly_patient_val">0</div>
-                </div>
+              <div class="hourly-stat-card" style="background: #fbeef1; border-color: #ba1a1a;">
+                <div class="hourly-stat-label" style="color: #ba1a1a;">ผู้ป่วยคงพยาบาล</div>
+                <div class="hourly-stat-value" style="color: #ba1a1a;" id="hourly_patient_val">0</div>
               </div>
             </div>
           </div>
