@@ -57,8 +57,6 @@ class WardController extends BaseController
             'code'          => 'permit_empty|max_length[30]',
             'department_id' => 'permit_empty|numeric',
             'total_beds'    => 'required|numeric|greater_than_equal_to[0]',
-            'api_ward_code' => 'permit_empty|max_length[50]',
-            'api_ward_name' => 'permit_empty|max_length[100]',
         ];
 
         if (! $this->validate($rules)) {
@@ -76,16 +74,9 @@ class WardController extends BaseController
             'department_id' => $this->request->getPost('department_id') ?: null,
             'total_beds'    => $this->request->getPost('total_beds'),
             'is_active'     => $this->request->getPost('is_active') ? true : false,
-            'api_ward_code' => $this->normalizeApiField('api_ward_code'),
-            'api_ward_name' => $this->normalizeApiField('api_ward_name'),
         ]);
 
-        $wardId = (int) $this->wardModel->getInsertID();
-        $this->saveApiAliases(
-            $wardId,
-            $this->normalizeApiField('api_ward_code') ?? '',
-            $this->normalizeApiField('api_ward_name') ?? ''
-        );
+        $this->saveApiMappingFromRequest((int) $this->wardModel->getInsertID());
 
         return redirect()->to('admin/wards')->with('message', 'Ward created successfully.');
     }
@@ -99,7 +90,7 @@ class WardController extends BaseController
         }
 
         $data = array_merge(
-            $this->apiMappingFormData((int) $id),
+            $this->apiMappingFormData((int) $id, $ward),
             [
                 'ward'        => $ward,
                 'title'       => 'แก้ไข Ward',
@@ -117,8 +108,6 @@ class WardController extends BaseController
             'code'          => 'permit_empty|max_length[30]',
             'department_id' => 'permit_empty|numeric',
             'total_beds'    => 'required|numeric|greater_than_equal_to[0]',
-            'api_ward_code' => 'permit_empty|max_length[50]',
-            'api_ward_name' => 'permit_empty|max_length[100]',
         ];
 
         if (! $this->validate($rules)) {
@@ -136,15 +125,9 @@ class WardController extends BaseController
             'department_id' => $this->request->getPost('department_id') ?: null,
             'total_beds'    => $this->request->getPost('total_beds'),
             'is_active'     => $this->request->getPost('is_active') ? true : false,
-            'api_ward_code' => $this->normalizeApiField('api_ward_code'),
-            'api_ward_name' => $this->normalizeApiField('api_ward_name'),
         ]);
 
-        $this->saveApiAliases(
-            (int) $id,
-            $this->normalizeApiField('api_ward_code') ?? '',
-            $this->normalizeApiField('api_ward_name') ?? ''
-        );
+        $this->saveApiMappingFromRequest((int) $id);
 
         return redirect()->to('admin/wards')->with('message', 'Ward updated successfully.');
     }
@@ -159,26 +142,91 @@ class WardController extends BaseController
     }
 
     /**
+     * @param array<string, mixed>|null $ward
+     *
      * @return array{
-     *     api_ward_options: list<array{ward: string, ward_name: string}>,
-     *     ward_aliases: list<string>,
+     *     api_ward_options: list<array<string, mixed>>,
+     *     ward_selected_names: list<string>,
      *     used_api_names: array<string, true>
      * }
      */
-    private function apiMappingFormData(?int $wardId): array
+    private function apiMappingFormData(?int $wardId, ?array $ward = null): array
     {
-        $aliases = $wardId !== null
-            ? (new WardApiAliasModel())->where('ward_id', $wardId)->findAll()
-            : [];
+        $selected = [];
+        if ($ward !== null) {
+            $primary = trim((string) ($ward['api_ward_name'] ?? ''));
+            if ($primary !== '') {
+                $selected[] = $primary;
+            }
+            $aliases = (new WardApiAliasModel())->where('ward_id', $wardId)->findAll();
+            foreach ($aliases as $a) {
+                $n = trim((string) ($a['api_ward_name'] ?? ''));
+                if ($n !== '') {
+                    $selected[] = $n;
+                }
+            }
+        }
+        $selected = array_values(array_unique($selected));
+
+        if ($posted = old('api_ward_names')) {
+            $selected = is_array($posted) ? array_values(array_unique(array_filter(array_map('trim', $posted)))) : $selected;
+        } elseif (($text = old('api_ward_names_text')) !== null && trim((string) $text) !== '') {
+            $parts    = preg_split('/\r\n|\r|\n/', (string) $text) ?: [];
+            $selected = array_values(array_unique(array_filter(array_map('trim', $parts))));
+        }
 
         return [
-            'api_ward_options' => $this->loadLatestApiWardOptions(),
-            'ward_aliases'     => array_map(
-                static fn ($a) => (string) ($a['api_ward_name'] ?? ''),
-                $aliases
-            ),
-            'used_api_names'   => $this->getUsedApiNamesExcept($wardId),
+            'api_ward_options'    => $this->loadLatestApiWardOptions(),
+            'ward_selected_names' => $selected,
+            'used_api_names'      => $this->getUsedApiNamesExcept($wardId),
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getPostedApiWardNames(): array
+    {
+        $out = [];
+
+        $posted = $this->request->getPost('api_ward_names');
+        if (is_array($posted)) {
+            foreach ($posted as $name) {
+                $name = trim((string) $name);
+                if ($name !== '') {
+                    $out[] = $name;
+                }
+            }
+        }
+
+        if ($out === []) {
+            $legacyPrimary = trim((string) ($this->request->getPost('api_ward_name') ?? ''));
+            if ($legacyPrimary !== '') {
+                $out[] = $legacyPrimary;
+            }
+            $legacyAliases = $this->request->getPost('api_aliases');
+            if (is_array($legacyAliases)) {
+                foreach ($legacyAliases as $name) {
+                    $name = trim((string) $name);
+                    if ($name !== '') {
+                        $out[] = $name;
+                    }
+                }
+            }
+        }
+
+        if ($out !== []) {
+            return array_values(array_unique($out));
+        }
+
+        $text = trim((string) ($this->request->getPost('api_ward_names_text') ?? ''));
+        if ($text === '') {
+            return [];
+        }
+
+        $parts = preg_split('/\r\n|\r|\n/', $text) ?: [];
+
+        return array_values(array_unique(array_filter(array_map('trim', $parts))));
     }
 
     /**
@@ -226,41 +274,55 @@ class WardController extends BaseController
 
     private function validateApiMapping(?int $excludeWardId = null): ?string
     {
-        $aliases = $this->request->getPost('api_aliases');
-        if (! is_array($aliases)) {
-            $aliases = [];
+        $code  = trim((string) ($this->request->getPost('api_ward_code') ?? ''));
+        $names = $this->getPostedApiWardNames();
+
+        if ($code === '' && $names === []) {
+            return null;
+        }
+
+        if ($code === '') {
+            return 'ต้องเลือกรหัส ward จาก HOSxP';
+        }
+
+        if ($names === []) {
+            return 'ติ๊กเลือกชื่อ API อย่างน้อย 1 ชื่อที่ต้องการรวม';
         }
 
         $result = (new HosxpWardMappingService())->validateApiMappingFields(
-            $this->request->getPost('api_ward_code'),
-            $this->request->getPost('api_ward_name'),
+            $code,
+            $names[0],
             $excludeWardId,
-            $aliases
+            array_slice($names, 1)
         );
 
         return $result['valid'] ? null : $result['message'];
     }
 
-    /**
-     * @param list<string>|null $postedAliases
-     */
-    private function saveApiAliases(int $wardId, string $apiWardCode, string $primaryName): void
+    private function saveApiMappingFromRequest(int $wardId): void
     {
-        $posted = $this->request->getPost('api_aliases');
-        if (! is_array($posted)) {
-            $posted = [];
+        $code  = $this->normalizeApiField('api_ward_code') ?? '';
+        $names = $this->getPostedApiWardNames();
+
+        if ($code === '' && $names === []) {
+            $this->wardModel->update($wardId, [
+                'api_ward_code' => null,
+                'api_ward_name' => null,
+            ]);
+            (new WardApiAliasModel())->syncForWard($wardId, '', []);
+
+            return;
         }
 
-        $names = [];
-        foreach ($posted as $name) {
-            $name = trim((string) $name);
-            if ($name === '' || $name === $primaryName) {
-                continue;
-            }
-            $names[] = $name;
-        }
+        $primary = $names[0];
+        $extras  = array_slice($names, 1);
 
-        (new WardApiAliasModel())->syncForWard($wardId, $apiWardCode, $names);
+        $this->wardModel->update($wardId, [
+            'api_ward_code' => $code,
+            'api_ward_name' => $primary,
+        ]);
+
+        (new WardApiAliasModel())->syncForWard($wardId, $code, $extras);
     }
 
     private function normalizeApiField(string $field): ?string

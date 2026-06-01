@@ -69,10 +69,10 @@
                     </div>
 
                     <?= view('admin/wards/_api_mapping_fields', [
-                        'api_ward_options' => $api_ward_options ?? [],
-                        'ward'             => $ward,
-                        'ward_aliases'     => $ward_aliases ?? [],
-                        'used_api_names'   => $used_api_names ?? [],
+                        'api_ward_options'    => $api_ward_options ?? [],
+                        'ward'                => $ward,
+                        'ward_selected_names' => $ward_selected_names ?? [],
+                        'used_api_names'      => $used_api_names ?? [],
                     ]) ?>
 
                     <div class="mb-3 form-check">

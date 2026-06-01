@@ -32,10 +32,15 @@ class HosxpWardMappingService
             $aliases = $aliasesByWardId[(int) $ward['id']] ?? [];
             $hasMap  = ($code !== '' && $name !== '') || $aliases !== [];
 
-            $ward['api_aliases'] = array_map(
+            $aliasNames = array_map(
                 static fn ($a) => (string) ($a['api_ward_name'] ?? ''),
                 $aliases
             );
+            $ward['api_aliases']       = $aliasNames;
+            $primaryName               = trim((string) ($ward['api_ward_name'] ?? ''));
+            $ward['api_mapped_names']  = array_values(array_unique(array_filter(
+                $primaryName !== '' ? array_merge([$primaryName], $aliasNames) : $aliasNames
+            )));
 
             if (! $hasMap) {
                 $status = 'missing';
@@ -425,18 +430,23 @@ class HosxpWardMappingService
         $code = trim((string) $apiCode);
         $name = trim((string) $apiName);
 
-        if ($code === '' && $name === '' && $extraAliasNames === []) {
+        $allNames = array_values(array_unique(array_filter(array_merge(
+            $name !== '' ? [$name] : [],
+            array_map(static fn ($n) => trim((string) $n), $extraAliasNames)
+        ))));
+
+        if ($code === '' && $allNames === []) {
             return ['valid' => true, 'message' => ''];
         }
 
-        if ($code === '' || $name === '') {
+        if ($code === '' || $allNames === []) {
             return [
                 'valid'   => false,
-                'message' => 'ต้องกรอกทั้ง API Ward Code และ API Ward Name หลัก (ชื่อเพิ่มเติมเลือกได้ภายหลัง)',
+                'message' => 'ต้องเลือกรหัส ward และติ๊กชื่อ API อย่างน้อย 1 ชื่อที่ต้องการรวม',
             ];
         }
 
-        $allNames = array_unique(array_filter(array_merge([$name], array_map('trim', $extraAliasNames))));
+        $allNames = array_values(array_unique($allNames));
 
         foreach ($allNames as $checkName) {
             if ($checkName === '') {
