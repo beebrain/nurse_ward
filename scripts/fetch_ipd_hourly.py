@@ -3,6 +3,7 @@ import argparse
 import os
 import ssl
 import json
+import sys
 import urllib.request
 from datetime import datetime, timedelta, timezone
 import pymysql
@@ -30,6 +31,19 @@ env_path = os.path.join(project_root, '.env')
 config_path = os.path.join(project_root, 'app', 'Config', 'ward_mappings.json')
 
 env = load_env(env_path)
+
+QUIET = False
+
+
+def log(msg: str) -> None:
+    if not QUIET:
+        print(msg)
+
+
+def log_error(msg: str) -> None:
+    print(msg, file=sys.stderr)
+    if QUIET:
+        print(msg)
 
 # Extract config values with defaults
 db_host = env.get('database.default.hostname', '127.0.0.1')
@@ -60,16 +74,16 @@ def get_db_connection():
             )
             return conn
         except Exception as e:
-            print(f"Failed to connect to MySQL on {host}: {e}")
+            log_error(f"Failed to connect to MySQL on {host}: {e}")
     raise Exception("Could not connect to any database hosts.")
 
 # 3. Synchronize Wards Mapping from Config file to Database
 def sync_ward_mappings(conn):
     if not os.path.exists(config_path):
-        print(f"Mapping config not found at {config_path}. Skipping mapping sync.")
+        log(f"Mapping config not found at {config_path}. Skipping mapping sync.")
         return
         
-    print("Syncing ward mappings from ward_mappings.json to database (only seeding empty values)...")
+    log("Syncing ward mappings from ward_mappings.json to database (only seeding empty values)...")
     with open(config_path, 'r', encoding='utf-8') as f:
         mappings = json.load(f)
         
@@ -87,7 +101,7 @@ def sync_ward_mappings(conn):
         )
     conn.commit()
     cursor.close()
-    print("Ward mappings seeded/synced successfully.")
+    log("Ward mappings seeded/synced successfully.")
 
 def log_unmapped_api_wards(api_items, find_ward_fn):
     """แจ้งรายการ API ที่ยังจับคู่แผนกในระบบไม่ได้"""
@@ -103,11 +117,11 @@ def log_unmapped_api_wards(api_items, find_ward_fn):
         if not find_ward_fn(code, name):
             missing.append(key)
     if missing:
-        print("WARNING: API rows without matching ward (ตั้ง api_ward_name ใน Admin):")
+        log("WARNING: API rows without matching ward (ตั้ง api_ward_name ใน Admin):")
         for code, name in missing[:20]:
-            print(f"  ward={code!r} ward_name={name!r}")
+            log(f"  ward={code!r} ward_name={name!r}")
         if len(missing) > 20:
-            print(f"  ... and {len(missing) - 20} more")
+            log(f"  ... and {len(missing) - 20} more")
 
 # 4. Fetch Data from API endpoints
 def fetch_api_data(endpoint):
@@ -125,7 +139,7 @@ def fetch_api_data(endpoint):
             if res.get("success") and "data" in res:
                 return res["data"].get("items", [])
     except Exception as e:
-        print(f"API Error fetching {endpoint}: {e}")
+        log_error(f"API Error fetching {endpoint}: {e}")
     return []
 
 def load_wards_from_db(conn):
@@ -207,6 +221,7 @@ def print_dry_run_summary(db_wards, census_data, record_time_str):
 
 
 def run_fetch(dry_run=False):
+    global QUIET
     conn = None
     db_wards = []
 
@@ -215,11 +230,11 @@ def run_fetch(dry_run=False):
         if not dry_run:
             sync_ward_mappings(conn)
         db_wards = load_wards_from_db(conn)
-        print(f"Connected to MySQL — {len(db_wards)} active wards")
+        log(f"Connected to MySQL — {len(db_wards)} active wards")
     except Exception as e:
         if dry_run:
             db_wards = load_wards_from_mapping_file()
-            print(f"MySQL unavailable ({e}) — dry-run using ward_mappings.json ({len(db_wards)} entries)")
+            log(f"MySQL unavailable ({e}) — dry-run using ward_mappings.json ({len(db_wards)} entries)")
         else:
             raise
 
@@ -238,8 +253,10 @@ def run_fetch(dry_run=False):
         }
 
     # 1. Fetch current patients count
-    print("Fetching current patients...")
+    log("Fetching current patients...")
     curr_patients = fetch_api_data("current-patients")
+    if not curr_patients and not dry_run:
+        raise Exception("API current-patients returned no data")
     log_unmapped_api_wards(curr_patients, find_ward)
     for item in curr_patients:
         code = item.get("ward")
@@ -249,7 +266,7 @@ def run_fetch(dry_run=False):
             census_data[ward['id']]['patient_count'] = int(item.get("count_an", 0))
 
     # 2. Fetch admissions today
-    print("Fetching admissions today...")
+    log("Fetching admissions today...")
     admissions = fetch_api_data("admissions-today")
     for item in admissions:
         code = item.get("ward")
@@ -259,7 +276,7 @@ def run_fetch(dry_run=False):
             census_data[ward['id']]['admissions_today'] = int(item.get("total_admissions", 0))
 
     # 3. Fetch discharges and deaths today
-    print("Fetching discharges today...")
+    log("Fetching discharges today...")
     discharges = fetch_api_data("discharges-today")
     for item in discharges:
         code = item.get("ward")
@@ -270,7 +287,7 @@ def run_fetch(dry_run=False):
             census_data[ward['id']]['deaths_today'] = int(item.get("count_dead", 0))
 
     # 4. Fetch bed moves today
-    print("Fetching bed moves today...")
+    log("Fetching bed moves today...")
     moves = fetch_api_data("bed-moves-today")
     for item in moves:
         code = item.get("nward")
@@ -289,13 +306,13 @@ def run_fetch(dry_run=False):
     record_time_str = record_time.strftime('%Y-%m-%d %H:%M:%S')
     now_str = now.strftime('%Y-%m-%d %H:%M:%S')
     
-    print(f"Recording census data for hour: {record_time_str}")
+    log(f"Recording census data for hour: {record_time_str}")
 
     if dry_run:
         print_dry_run_summary(db_wards, census_data, record_time_str)
         if conn:
             conn.close()
-        return
+        return record_time_str, len(census_data), sum(1 for s in census_data.values() if s['patient_count'] > 0)
 
     if not conn:
         raise Exception("Database connection required (use --dry-run to test API only)")
@@ -343,17 +360,35 @@ def run_fetch(dry_run=False):
     conn.commit()
     cursor.close()
     conn.close()
-    print(f"Completed! Upserted {records_saved} ward census records for {record_time_str}.")
+
+    wards_with_patients = sum(1 for s in census_data.values() if s['patient_count'] > 0)
+    msg = (
+        f"Completed! Upserted {records_saved} ward census records for {record_time_str} "
+        f"({wards_with_patients} wards with patients)."
+    )
+    log(msg)
+    return record_time_str, records_saved, wards_with_patients
 
 def main():
+    global QUIET
     parser = argparse.ArgumentParser(description='Fetch hourly IPD census from hospital API')
     parser.add_argument(
         '--dry-run',
         action='store_true',
         help='ดึง API และแสดงผลจับคู่แผนก ไม่บันทึกลง MySQL',
     )
+    parser.add_argument(
+        '--quiet',
+        action='store_true',
+        help='ลด output สำหรับ cron (แสดงเฉพาะสรุปและ error)',
+    )
     args = parser.parse_args()
-    run_fetch(dry_run=args.dry_run)
+    QUIET = args.quiet
+    try:
+        run_fetch(dry_run=args.dry_run)
+    except Exception as e:
+        log_error(f"FATAL: {e}")
+        sys.exit(1)
 
 
 if __name__ == '__main__':
