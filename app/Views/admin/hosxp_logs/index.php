@@ -15,6 +15,11 @@
     }
     .badge-ok { background: #dcfce7; color: #166534; }
     .badge-fail { background: #fee2e2; color: #991b1b; }
+    .hosxp-detail-table { font-size: 0.82rem; }
+    .hosxp-detail-table th { white-space: nowrap; background: var(--surface-low, #f2f3fc); }
+    .hosxp-detail-table td { vertical-align: middle; }
+    #payloadModal { z-index: 2000; }
+    .modal-backdrop { z-index: 1990; }
 </style>
 
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
@@ -87,15 +92,44 @@
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="payloadModalLabel">Raw JSON จาก HOSxP API</h5>
+                <h5 class="modal-title" id="payloadModalLabel">ข้อมูลจาก HOSxP API</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div id="payload-meta" class="small text-muted mb-2"></div>
-                <pre id="payload-json" class="hosxp-payload-pre"></pre>
+                <div id="payload-meta" class="small text-muted mb-3"></div>
+                <ul class="nav nav-tabs nav-tabs-sm mb-3" id="hosxpDetailTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tab-merged-btn" data-bs-toggle="tab" data-bs-target="#tab-merged" type="button" role="tab">ตารางรวม (แผนก)</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-patients-btn" data-bs-toggle="tab" data-bs-target="#tab-patients" type="button" role="tab">ผู้ป่วยปัจจุบัน</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-adm-btn" data-bs-toggle="tab" data-bs-target="#tab-adm" type="button" role="tab">รับใหม่</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-dc-btn" data-bs-toggle="tab" data-bs-target="#tab-dc" type="button" role="tab">จำหน่าย</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-move-btn" data-bs-toggle="tab" data-bs-target="#tab-move" type="button" role="tab">ย้ายเตียง</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-json-btn" data-bs-toggle="tab" data-bs-target="#tab-json" type="button" role="tab">JSON</button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="hosxpDetailTabContent">
+                    <div class="tab-pane fade show active" id="tab-merged" role="tabpanel"></div>
+                    <div class="tab-pane fade" id="tab-patients" role="tabpanel"></div>
+                    <div class="tab-pane fade" id="tab-adm" role="tabpanel"></div>
+                    <div class="tab-pane fade" id="tab-dc" role="tabpanel"></div>
+                    <div class="tab-pane fade" id="tab-move" role="tabpanel"></div>
+                    <div class="tab-pane fade" id="tab-json" role="tabpanel">
+                        <pre id="payload-json" class="hosxp-payload-pre"></pre>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-copy-json">คัดลอก JSON</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="btn-copy-json">คัดลอก JSON</button>
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ปิด</button>
             </div>
         </div>
@@ -112,6 +146,51 @@
     const payloadPre = document.getElementById('payload-json');
     const payloadMeta = document.getElementById('payload-meta');
     let lastJsonText = '';
+    let payloadModalInstance = null;
+
+    if (payloadModal) {
+        document.body.appendChild(payloadModal);
+    }
+
+    function getPayloadModal() {
+        if (!payloadModalInstance && payloadModal) {
+            payloadModalInstance = bootstrap.Modal.getOrCreateInstance(payloadModal, {
+                backdrop: true,
+                keyboard: true,
+                focus: true,
+            });
+            payloadModal.addEventListener('hidden.bs.modal', () => {
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('padding-right');
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            });
+        }
+        return payloadModalInstance;
+    }
+
+    function resetDetailTabs() {
+        document.querySelectorAll('#hosxpDetailTabs .nav-link').forEach(el => {
+            el.classList.remove('active');
+            el.setAttribute('aria-selected', 'false');
+        });
+        document.querySelectorAll('#hosxpDetailTabContent .tab-pane').forEach(el => {
+            el.classList.remove('show', 'active');
+        });
+        const firstBtn = document.getElementById('tab-merged-btn');
+        const firstPane = document.getElementById('tab-merged');
+        if (firstBtn) {
+            firstBtn.classList.add('active');
+            firstBtn.setAttribute('aria-selected', 'true');
+        }
+        if (firstPane) {
+            firstPane.classList.add('show', 'active');
+        }
+    }
+
+    function closePayloadModal() {
+        const inst = getPayloadModal();
+        if (inst) inst.hide();
+    }
 
     async function loadLogs() {
         loading.classList.remove('d-none');
@@ -156,7 +235,7 @@
                 <td class="text-end">${r.wards_saved ?? 0}</td>
                 <td class="text-end">${r.patient_total ?? 0}</td>
                 <td class="text-end">
-                    <button type="button" class="btn btn-sm btn-outline-primary btn-view-payload" data-id="${r.id}">ดู JSON</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-view-payload" data-id="${r.id}">ดูตาราง</button>
                 </td>
             </tr>`;
         }).join('');
@@ -164,6 +243,73 @@
 
     function escapeHtml(s) {
         return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function tableWrap(html) {
+        return `<div class="table-responsive">${html}</div>`;
+    }
+
+    function renderMergedTable(rows) {
+        if (!rows.length) {
+            return '<p class="text-muted small mb-0">ไม่มีแถวข้อมูลในรอบนี้</p>';
+        }
+        const head = `<thead><tr>
+            <th>รหัส ward</th><th>ward_name</th><th>กลุ่ม</th>
+            <th class="text-end">ผู้ป่วย</th><th class="text-end">รับใหม่</th><th class="text-end">จำหน่าย</th>
+            <th class="text-end">เสียชีวิต</th><th class="text-end">ย้ายเข้า</th><th class="text-end">ย้ายออก</th>
+        </tr></thead>`;
+        const body = rows.map(r => `<tr>
+            <td>${escapeHtml(r.ward)}</td>
+            <td>${escapeHtml(r.ward_name)}</td>
+            <td class="text-muted">${escapeHtml(r.ward_name_ward)}</td>
+            <td class="text-end fw-semibold">${r.patient_count ?? 0}</td>
+            <td class="text-end">${r.admissions_today ?? 0}</td>
+            <td class="text-end">${r.discharges_today ?? 0}</td>
+            <td class="text-end">${r.deaths_today ?? 0}</td>
+            <td class="text-end">${r.moves_in_today ?? 0}</td>
+            <td class="text-end">${r.moves_out_today ?? 0}</td>
+        </tr>`).join('');
+        return tableWrap(`<table class="table table-sm table-bordered hosxp-detail-table mb-0">${head}<tbody>${body}</tbody></table>`);
+    }
+
+    function renderSimpleEndpoint(rows, valueKey, valueLabel) {
+        if (!rows.length) return '<p class="text-muted small mb-0">ไม่มีข้อมูล</p>';
+        const head = `<thead><tr><th>รหัส</th><th>ward_name</th><th>กลุ่ม</th><th class="text-end">${escapeHtml(valueLabel)}</th></tr></thead>`;
+        const body = rows.map(r => `<tr>
+            <td>${escapeHtml(r.ward)}</td><td>${escapeHtml(r.ward_name)}</td>
+            <td class="text-muted">${escapeHtml(r.ward_name_ward)}</td>
+            <td class="text-end fw-semibold">${r[valueKey] ?? r.value ?? 0}</td>
+        </tr>`).join('');
+        return tableWrap(`<table class="table table-sm table-bordered hosxp-detail-table mb-0">${head}<tbody>${body}</tbody></table>`);
+    }
+
+    function renderDischargeTable(rows) {
+        if (!rows.length) return '<p class="text-muted small mb-0">ไม่มีข้อมูล</p>';
+        const head = `<thead><tr><th>รหัส</th><th>ward_name</th><th class="text-end">จำหน่าย</th><th class="text-end">เสียชีวิต</th></tr></thead>`;
+        const body = rows.map(r => `<tr>
+            <td>${escapeHtml(r.ward)}</td><td>${escapeHtml(r.ward_name)}</td>
+            <td class="text-end">${r.discharges ?? 0}</td><td class="text-end">${r.deaths ?? 0}</td>
+        </tr>`).join('');
+        return tableWrap(`<table class="table table-sm table-bordered hosxp-detail-table mb-0">${head}<tbody>${body}</tbody></table>`);
+    }
+
+    function renderMoveTable(rows) {
+        if (!rows.length) return '<p class="text-muted small mb-0">ไม่มีข้อมูล</p>';
+        const head = `<thead><tr><th>รหัส</th><th>ward_name</th><th class="text-end">ย้ายเข้า</th><th class="text-end">ย้ายออก</th></tr></thead>`;
+        const body = rows.map(r => `<tr>
+            <td>${escapeHtml(r.ward)}</td><td>${escapeHtml(r.ward_name)}</td>
+            <td class="text-end">${r.moves_in ?? 0}</td><td class="text-end">${r.moves_out ?? 0}</td>
+        </tr>`).join('');
+        return tableWrap(`<table class="table table-sm table-bordered hosxp-detail-table mb-0">${head}<tbody>${body}</tbody></table>`);
+    }
+
+    function renderDetailTables(tables) {
+        const ep = tables.endpoints || {};
+        document.getElementById('tab-merged').innerHTML = renderMergedTable(tables.merged || []);
+        document.getElementById('tab-patients').innerHTML = renderSimpleEndpoint(ep['current-patients'] || [], 'value', 'จำนวนผู้ป่วย');
+        document.getElementById('tab-adm').innerHTML = renderSimpleEndpoint(ep['admissions-today'] || [], 'value', 'รับใหม่วันนี้');
+        document.getElementById('tab-dc').innerHTML = renderDischargeTable(ep['discharges-today'] || []);
+        document.getElementById('tab-move').innerHTML = renderMoveTable(ep['bed-moves-today'] || []);
     }
 
     tbody.addEventListener('click', async (e) => {
@@ -181,14 +327,25 @@
             payloadMeta.innerHTML = `ดึงเมื่อ: <strong>${escapeHtml(log.fetched_at)}</strong> |
                 ช่วง: <strong>${escapeHtml(log.record_time)}</strong> |
                 แผนก: ${log.wards_saved} | ผู้ป่วยรวม: ${log.patient_total}`;
+            renderDetailTables(json.tables || { merged: [], endpoints: {} });
             lastJsonText = JSON.stringify(json.payload, null, 2);
             payloadPre.textContent = lastJsonText;
-            bootstrap.Modal.getOrCreateInstance(payloadModal).show();
+            document.getElementById('btn-copy-json').classList.remove('d-none');
+            resetDetailTabs();
+            document.body.appendChild(payloadModal);
+            getPayloadModal().show();
         } catch (err) {
             alert(err.message || 'โหลด JSON ไม่สำเร็จ');
         } finally {
             btn.disabled = false;
         }
+    });
+
+    payloadModal?.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closePayloadModal();
+        });
     });
 
     document.getElementById('btn-copy-json')?.addEventListener('click', () => {

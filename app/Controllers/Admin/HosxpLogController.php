@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\IpdApiFetchLogModel;
+use App\Services\HosxpPayloadParser;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class HosxpLogController extends BaseController
@@ -54,6 +55,9 @@ class HosxpLogController extends BaseController
             $payload = ['raw' => $log['payload_json']];
         }
 
+        $parser = new HosxpPayloadParser();
+        $tables = $parser->parse($payload);
+
         return $this->response->setJSON([
             'success' => true,
             'log'     => [
@@ -66,6 +70,7 @@ class HosxpLogController extends BaseController
                 'error_message'  => $log['error_message'],
             ],
             'payload' => $payload,
+            'tables'  => $tables,
         ]);
     }
 
