@@ -52,6 +52,29 @@ if ($codeInList) {
 $useCustom = $apiWardOptions !== [] && $currentCode !== '' && (! $codeInList || ! $nameInList);
 $uid       = 'api-map-' . uniqid();
 ?>
+<style>
+    .api-alias-list { max-height: 220px; overflow-y: auto; }
+    .api-alias-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.65rem;
+        padding: 0.55rem 0.65rem;
+        margin-bottom: 0.35rem;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s;
+    }
+    .api-alias-item:hover { border-color: #0d6efd; background: #f8fbff; }
+    .api-alias-item:has(input:checked) {
+        border-color: #0d6efd;
+        background: #eef4ff;
+    }
+    .api-alias-item input { width: 1.1rem; height: 1.1rem; margin-top: 0.15rem; flex-shrink: 0; cursor: pointer; }
+    .api-alias-item .alias-title { font-weight: 600; font-size: 0.9rem; }
+    .api-alias-item .alias-group { font-size: 0.8rem; color: #6c757d; }
+</style>
 <hr class="my-4">
 <h5 class="mb-2 text-muted">การเชื่อมโยง HOSxP API</h5>
 
@@ -98,9 +121,16 @@ $uid       = 'api-map-' . uniqid();
         </div>
 
         <div class="mb-3">
-            <label for="<?= esc($uid) ?>-aliases" class="form-label">ชื่อ API เพิ่มเติม <span class="text-muted fw-normal">(รหัสเดียวกัน — รวมยอดตอนแสดงผล)</span></label>
-            <select name="api_aliases[]" id="<?= esc($uid) ?>-aliases" class="form-select" multiple size="5"></select>
-            <div class="form-text">เลือกชื่ออื่นในรหัสเดียวกันที่ต้องการรวมกับแผนกนี้ (ไม่รวมชื่อหลัก)</div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                <label class="form-label mb-0">ชื่อ API เพิ่มเติม <span class="text-muted fw-normal">(ติ๊กเพื่อรวมยอดตอนแสดงผล)</span></label>
+                <span id="<?= esc($uid) ?>-alias-count" class="badge bg-secondary">เลือกแล้ว 0 ชื่อ</span>
+            </div>
+            <div id="<?= esc($uid) ?>-aliases-list" class="api-alias-list"></div>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="<?= esc($uid) ?>-alias-all">เลือกทั้งหมด</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="<?= esc($uid) ?>-alias-none">ล้างทั้งหมด</button>
+            </div>
+            <div class="form-text mt-2">คลิกที่แถวหรือช่องติ๊กเพื่อเพิ่มชื่อ (รหัสเดียวกับชื่อหลัก — ไม่รวมชื่อหลัก)</div>
         </div>
     </div>
 </div>
@@ -140,7 +170,10 @@ $uid       = 'api-map-' . uniqid();
     const nameManual = document.getElementById(uid + '-name-manual');
     const namesPanel = document.getElementById(uid + '-names-panel');
     const primaryName = document.getElementById(uid + '-primary-name');
-    const aliasesEl = document.getElementById(uid + '-aliases');
+    const aliasesList = document.getElementById(uid + '-aliases-list');
+    const aliasCount = document.getElementById(uid + '-alias-count');
+    const btnAliasAll = document.getElementById(uid + '-alias-all');
+    const btnAliasNone = document.getElementById(uid + '-alias-none');
 
     function isUsed(name) {
         return Object.prototype.hasOwnProperty.call(usedNames, name);
@@ -153,6 +186,18 @@ $uid       = 'api-map-' . uniqid();
     function formatNameLabel(row) {
         const g = (row.ward_name_ward || '').trim();
         return g ? row.ward_name + ' · กลุ่ม: ' + g : row.ward_name;
+    }
+
+    function getSelectedAliases() {
+        if (!aliasesList) return [];
+        return Array.from(aliasesList.querySelectorAll('input[type="checkbox"]:checked')).map((cb) => cb.value);
+    }
+
+    function updateAliasCount() {
+        if (!aliasCount) return;
+        const n = getSelectedAliases().length;
+        aliasCount.textContent = 'เลือกแล้ว ' + n + ' ชื่อ';
+        aliasCount.className = 'badge ' + (n > 0 ? 'bg-primary' : 'bg-secondary');
     }
 
     function groupLabelsForCode(code) {
@@ -181,15 +226,15 @@ $uid       = 'api-map-' . uniqid();
     }
 
     function fillNameSelects(code) {
-        if (!primaryName || !aliasesEl) return;
+        if (!primaryName || !aliasesList) return;
 
         const names = namesForCode(code);
         const prevPrimary = primaryName.value || initialName;
-        const prevAliases = Array.from(aliasesEl.selectedOptions).map(o => o.value);
+        const prevAliases = getSelectedAliases();
         const aliasSelections = prevAliases.length ? prevAliases : initialAliases;
 
         primaryName.innerHTML = '<option value="">— เลือกชื่อ —</option>';
-        aliasesEl.innerHTML = '';
+        aliasesList.innerHTML = '';
 
         let selectedPrimary = prevPrimary;
         if (!selectedPrimary && initialName && code === initialCode) {
@@ -213,20 +258,60 @@ $uid       = 'api-map-' . uniqid();
     }
 
     function rebuildAliasOptions(code, primary, aliasSelections) {
-        if (!aliasesEl) return;
-        aliasesEl.innerHTML = '';
+        if (!aliasesList) return;
+        aliasesList.innerHTML = '';
+        let available = 0;
+
         namesForCode(code).forEach((row) => {
             const name = row.ward_name;
             if (isUsed(name) || name === primary) return;
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = formatNameLabel(row);
+            available++;
+
+            const g = (row.ward_name_ward || '').trim();
+            const label = document.createElement('label');
+            label.className = 'api-alias-item';
+
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.name = 'api_aliases[]';
+            cb.value = name;
             if (aliasSelections.includes(name)) {
-                opt.selected = true;
+                cb.checked = true;
             }
-            aliasesEl.appendChild(opt);
+            cb.addEventListener('change', updateAliasCount);
+
+            const text = document.createElement('span');
+            const title = document.createElement('span');
+            title.className = 'alias-title';
+            title.textContent = name;
+            text.appendChild(title);
+            if (g) {
+                const sub = document.createElement('span');
+                sub.className = 'alias-group d-block';
+                sub.textContent = 'กลุ่ม: ' + g;
+                text.appendChild(sub);
+            }
+
+            label.appendChild(cb);
+            label.appendChild(text);
+
+            aliasesList.appendChild(label);
         });
+
+        if (available === 0) {
+            aliasesList.innerHTML = '<p class="text-muted small mb-0 px-1">ไม่มีชื่อเพิ่มเติมในรหัสนี้ (หรือถูกใช้โดยแผนกอื่นแล้ว)</p>';
+        }
+        updateAliasCount();
     }
+
+    btnAliasAll?.addEventListener('click', () => {
+        aliasesList?.querySelectorAll('input[type="checkbox"]').forEach((cb) => { cb.checked = true; });
+        updateAliasCount();
+    });
+    btnAliasNone?.addEventListener('click', () => {
+        aliasesList?.querySelectorAll('input[type="checkbox"]').forEach((cb) => { cb.checked = false; });
+        updateAliasCount();
+    });
 
     function setHosxpMode(code) {
         if (codeH) codeH.value = code;
