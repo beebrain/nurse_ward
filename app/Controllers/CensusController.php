@@ -312,7 +312,7 @@ class CensusController extends BaseController
 
     private function getAvailableWardsForCurrentUser(): array
     {
-        $wards = $this->wardModel->getActiveWithDepartment();
+        $wards = $this->wardModel->getActiveWithDepartmentAssigned();
         $defaultWardId = null;
 
         if ($this->isNurse()) {

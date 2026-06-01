@@ -47,6 +47,30 @@ class WardModel extends Model
                     ->findAll();
     }
 
+    /**
+     * Ward ที่เปิดใช้งานและมี nurse ผูกใน user_ward_assignments แล้ว
+     * (รายการเดียวกับที่ใช้งานจริงใน Admin → จัดการผู้ใช้งาน)
+     */
+    public function getActiveWithDepartmentAssigned(): array
+    {
+        $assignedIds = array_column(
+            $this->db->table('user_ward_assignments')->select('ward_id')->distinct()->get()->getResultArray(),
+            'ward_id'
+        );
+
+        if ($assignedIds === []) {
+            return [];
+        }
+
+        return $this->select('wards.*, departments.short_name as department_name')
+                    ->join('departments', 'departments.id = wards.department_id', 'left')
+                    ->where('wards.is_active', true)
+                    ->whereIn('wards.id', $assignedIds)
+                    ->orderBy('departments.sort_order', 'ASC')
+                    ->orderBy('wards.code', 'ASC')
+                    ->findAll();
+    }
+
     public function getAllWithDepartment(): array
     {
         return $this->select('wards.*, departments.short_name as department_name')
