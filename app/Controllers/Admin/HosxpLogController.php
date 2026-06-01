@@ -4,7 +4,9 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\IpdApiFetchLogModel;
+use App\Models\WardModel;
 use App\Services\HosxpPayloadParser;
+use App\Services\HosxpWardMappingService;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class HosxpLogController extends BaseController
@@ -58,6 +60,15 @@ class HosxpLogController extends BaseController
         $parser = new HosxpPayloadParser();
         $tables = $parser->parse($payload);
 
+        $wardModel = new WardModel();
+        $dbWards   = $wardModel
+            ->select('id, name, code, api_ward_code, api_ward_name')
+            ->where('is_active', 1)
+            ->orderBy('code', 'ASC')
+            ->findAll();
+
+        $mapping = (new HosxpWardMappingService())->compare($tables['merged'], $dbWards);
+
         return $this->response->setJSON([
             'success' => true,
             'log'     => [
@@ -71,6 +82,7 @@ class HosxpLogController extends BaseController
             ],
             'payload' => $payload,
             'tables'  => $tables,
+            'mapping' => $mapping,
         ]);
     }
 

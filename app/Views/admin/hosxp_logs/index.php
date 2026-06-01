@@ -20,6 +20,11 @@
     .hosxp-detail-table td { vertical-align: middle; }
     #payloadModal { z-index: 2000; }
     .modal-backdrop { z-index: 1990; }
+    .map-ok { background: #dcfce7; color: #166534; }
+    .map-warn { background: #fef9c3; color: #854d0e; }
+    .map-bad { background: #fee2e2; color: #991b1b; }
+    .map-ambig { background: #e0e7ff; color: #3730a3; }
+    .hosxp-map-summary .badge { font-weight: 600; }
 </style>
 
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
@@ -114,6 +119,9 @@
                         <button class="nav-link" id="tab-move-btn" data-bs-toggle="tab" data-bs-target="#tab-move" type="button" role="tab">ย้ายเตียง</button>
                     </li>
                     <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-mapping-btn" data-bs-toggle="tab" data-bs-target="#tab-mapping" type="button" role="tab">ตรวจสอบ Map</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
                         <button class="nav-link" id="tab-json-btn" data-bs-toggle="tab" data-bs-target="#tab-json" type="button" role="tab">JSON</button>
                     </li>
                 </ul>
@@ -123,6 +131,7 @@
                     <div class="tab-pane fade" id="tab-adm" role="tabpanel"></div>
                     <div class="tab-pane fade" id="tab-dc" role="tabpanel"></div>
                     <div class="tab-pane fade" id="tab-move" role="tabpanel"></div>
+                    <div class="tab-pane fade" id="tab-mapping" role="tabpanel"></div>
                     <div class="tab-pane fade" id="tab-json" role="tabpanel">
                         <pre id="payload-json" class="hosxp-payload-pre"></pre>
                     </div>
@@ -303,13 +312,99 @@
         return tableWrap(`<table class="table table-sm table-bordered hosxp-detail-table mb-0">${head}<tbody>${body}</tbody></table>`);
     }
 
-    function renderDetailTables(tables) {
+    function mapStatusBadge(label, statusKey) {
+        const cls = {
+            matched: 'map-ok',
+            name_mismatch: 'map-warn',
+            ambiguous: 'map-ambig',
+            unmapped: 'map-bad',
+        }[statusKey] || 'bg-secondary';
+        return `<span class="badge ${cls}">${escapeHtml(label)}</span>`;
+    }
+
+    function renderMappingPanel(mapping) {
+        if (!mapping || !mapping.summary) {
+            return '<p class="text-muted small mb-0">ไม่มีข้อมูล mapping</p>';
+        }
+        const s = mapping.summary;
+        const summaryHtml = `
+            <div class="hosxp-map-summary d-flex flex-wrap gap-2 mb-3">
+                <span class="badge bg-light text-dark border">API ${s.api_total} แผนก</span>
+                <span class="badge map-ok">จับคู่แล้ว ${s.matched}</span>
+                <span class="badge map-bad">API ยังไม่ map ${s.unmapped_api}</span>
+                <span class="badge map-ambig">รหัสซ้ำ ${s.ambiguous_api}</span>
+                <span class="badge map-warn">ชื่อไม่ตรง ${s.name_mismatch_api}</span>
+                <span class="badge bg-light text-dark border">แผนกในระบบ ${s.db_active}</span>
+                <span class="badge map-warn">ยังไม่ตั้งค่า API ${s.db_missing_config}</span>
+                <span class="badge bg-secondary">ไม่พบใน API รอบนี้ ${s.db_not_in_api}</span>
+            </div>
+            <p class="small text-muted mb-2">ใช้ logic เดียวกับ cron ดึงข้อมูล: จับคู่ด้วย <code>api_ward_name</code> ก่อน แล้วรหัสเมื่อมีแผนกเดียว (เช่น ward 08 ต้องระบุชื่อย่อย)</p>`;
+
+        const apiRows = mapping.api_rows || [];
+        let apiTable = '<p class="text-muted small">ไม่มีแถวจาก API</p>';
+        if (apiRows.length) {
+            const head = `<thead><tr>
+                <th>สถานะ</th><th>รหัส API</th><th>ward_name (API)</th>
+                <th>แผนกในระบบ</th><th>api ที่ตั้งไว้</th><th class="text-end">ผู้ป่วย</th><th>หมายเหตุ</th>
+            </tr></thead>`;
+            const body = apiRows.map(r => {
+                const dbLabel = r.ward_id
+                    ? `[${r.ward_id}] ${escapeHtml(r.ward_name_db)}`
+                    : '<span class="text-danger">—</span>';
+                const configured = r.ward_id
+                    ? `${escapeHtml(r.api_ward_code_db)}/${escapeHtml(r.api_ward_name_db)}`
+                    : '—';
+                const rowClass = r.status === 'unmapped' || r.status === 'ambiguous' ? 'table-warning' : '';
+                return `<tr class="${rowClass}">
+                    <td>${mapStatusBadge(r.status_label || r.status, r.status)}</td>
+                    <td>${escapeHtml(r.ward)}</td>
+                    <td>${escapeHtml(r.ward_name)}</td>
+                    <td>${dbLabel}</td>
+                    <td class="small">${configured}</td>
+                    <td class="text-end">${r.patient_count ?? 0}</td>
+                    <td class="small text-muted">${escapeHtml(r.note)}</td>
+                </tr>`;
+            }).join('');
+            apiTable = tableWrap(`<table class="table table-sm table-bordered hosxp-detail-table mb-0">${head}<tbody>${body}</tbody></table>`);
+        }
+
+        const dbIssues = (mapping.db_issues || []).filter(i => i.issue === 'missing_config');
+        const dbNotInApi = (mapping.db_issues || []).filter(i => i.issue === 'not_in_api');
+        let dbSection = '';
+        if (dbIssues.length) {
+            const rows = dbIssues.map(w => `<tr>
+                <td>[${w.ward_id}] ${escapeHtml(w.name)}</td>
+                <td>${escapeHtml(w.code)}</td>
+                <td class="text-danger">${escapeHtml(w.api_ward_code) || '—'} / ${escapeHtml(w.api_ward_name) || '—'}</td>
+            </tr>`).join('');
+            dbSection += `<h6 class="mt-3 mb-2">แผนกในระบบที่ยังไม่ตั้งค่า mapping</h6>
+                ${tableWrap(`<table class="table table-sm table-bordered hosxp-detail-table mb-0">
+                <thead><tr><th>แผนก</th><th>รหัส</th><th>api_ward_code / api_ward_name</th></tr></thead>
+                <tbody>${rows}</tbody></table>`)}`;
+        }
+        if (dbNotInApi.length) {
+            const rows = dbNotInApi.map(w => `<tr>
+                <td>[${w.ward_id}] ${escapeHtml(w.name)}</td>
+                <td>${escapeHtml(w.api_ward_code)} / ${escapeHtml(w.api_ward_name)}</td>
+            </tr>`).join('');
+            dbSection += `<h6 class="mt-3 mb-2">แผนกที่ตั้งค่าแล้วแต่ไม่ปรากฏใน API รอบนี้</h6>
+                <p class="small text-muted mb-1">อาจไม่มีผู้ป่วยหรือไม่มีการเคลื่อนไหว — ไม่จำเป็นว่า map ผิด</p>
+                ${tableWrap(`<table class="table table-sm table-bordered hosxp-detail-table mb-0">
+                <thead><tr><th>แผนก</th><th>API ที่ตั้ง</th></tr></thead>
+                <tbody>${rows}</tbody></table>`)}`;
+        }
+
+        return summaryHtml + '<h6 class="mb-2">Ward จาก HOSxP → แผนกในระบบ</h6>' + apiTable + dbSection;
+    }
+
+    function renderDetailTables(tables, mapping) {
         const ep = tables.endpoints || {};
         document.getElementById('tab-merged').innerHTML = renderMergedTable(tables.merged || []);
         document.getElementById('tab-patients').innerHTML = renderSimpleEndpoint(ep['current-patients'] || [], 'value', 'จำนวนผู้ป่วย');
         document.getElementById('tab-adm').innerHTML = renderSimpleEndpoint(ep['admissions-today'] || [], 'value', 'รับใหม่วันนี้');
         document.getElementById('tab-dc').innerHTML = renderDischargeTable(ep['discharges-today'] || []);
         document.getElementById('tab-move').innerHTML = renderMoveTable(ep['bed-moves-today'] || []);
+        document.getElementById('tab-mapping').innerHTML = renderMappingPanel(mapping);
     }
 
     tbody.addEventListener('click', async (e) => {
@@ -327,7 +422,7 @@
             payloadMeta.innerHTML = `ดึงเมื่อ: <strong>${escapeHtml(log.fetched_at)}</strong> |
                 ช่วง: <strong>${escapeHtml(log.record_time)}</strong> |
                 แผนก: ${log.wards_saved} | ผู้ป่วยรวม: ${log.patient_total}`;
-            renderDetailTables(json.tables || { merged: [], endpoints: {} });
+            renderDetailTables(json.tables || { merged: [], endpoints: {} }, json.mapping);
             lastJsonText = JSON.stringify(json.payload, null, 2);
             payloadPre.textContent = lastJsonText;
             document.getElementById('btn-copy-json').classList.remove('d-none');

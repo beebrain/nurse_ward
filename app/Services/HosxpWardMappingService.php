@@ -1,0 +1,265 @@
+<?php
+
+namespace App\Services;
+
+/**
+ * จับคู่แผนกในฐานข้อมูลกับ ward จาก HOSxP API (logic เดียวกับ scripts/fetch_ipd_hourly.py)
+ */
+class HosxpWardMappingService
+{
+    /**
+     * @param list<array<string, mixed>> $apiRows แถวจาก HosxpPayloadParser::parse()['merged']
+     * @param list<array<string, mixed>> $dbWards  แถวจาก wards (is_active)
+     *
+     * @return array{
+     *     summary: array<string, int>,
+     *     api_rows: list<array<string, mixed>>,
+     *     db_issues: list<array<string, mixed>>
+     * }
+     */
+    public function compare(array $apiRows, array $dbWards): array
+    {
+        $lookup = $this->buildLookup($dbWards);
+        $apiResults = [];
+        $matchedWardIds = [];
+
+        foreach ($apiRows as $row) {
+            $apiCode = trim((string) ($row['ward'] ?? ''));
+            $apiName = trim((string) ($row['ward_name'] ?? ''));
+            $match   = $this->findWard($apiCode, $apiName, $lookup);
+            $status  = $this->resolveApiStatus($apiCode, $apiName, $match, $lookup);
+
+            if ($match !== null && $status === 'matched') {
+                $matchedWardIds[(int) $match['id']] = true;
+            }
+
+            $apiResults[] = [
+                'ward'              => $apiCode,
+                'ward_name'         => $apiName,
+                'ward_name_ward'    => (string) ($row['ward_name_ward'] ?? ''),
+                'patient_count'     => (int) ($row['patient_count'] ?? 0),
+                'status'            => $status,
+                'status_label'      => $this->apiStatusLabel($status),
+                'ward_id'           => $match['id'] ?? null,
+                'ward_name_db'      => $match['name'] ?? null,
+                'api_ward_code_db'  => $match['api_ward_code'] ?? null,
+                'api_ward_name_db'  => $match['api_ward_name'] ?? null,
+                'note'              => $this->apiNote($status, $apiCode, $apiName, $match, $lookup),
+            ];
+        }
+
+        $dbIssues = [];
+        foreach ($dbWards as $ward) {
+            $id = (int) $ward['id'];
+            $code = trim((string) ($ward['api_ward_code'] ?? ''));
+            $name = trim((string) ($ward['api_ward_name'] ?? ''));
+
+            if ($code === '' || $name === '') {
+                $dbIssues[] = $this->dbIssueRow($ward, 'missing_config', 'ยังไม่ตั้ง api_ward_code / api_ward_name');
+
+                continue;
+            }
+
+            if (! isset($matchedWardIds[$id])) {
+                $dbIssues[] = $this->dbIssueRow($ward, 'not_in_api', 'ไม่พบใน API รอบนี้ (หรือไม่มีผู้ป่วย/การเคลื่อนไหว)');
+            }
+        }
+
+        $summary = $this->buildSummary($apiResults, $dbWards, $dbIssues);
+
+        return [
+            'summary'   => $summary,
+            'api_rows'  => $apiResults,
+            'db_issues' => $dbIssues,
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $dbWards
+     *
+     * @return array{
+     *     name_to_ward: array<string, array<string, mixed>>,
+     *     db_name_to_ward: array<string, array<string, mixed>>,
+     *     code_to_wards: array<string, list<array<string, mixed>>>
+     * }
+     */
+    public function buildLookup(array $dbWards): array
+    {
+        $nameToWard = [];
+        $dbNameToWard = [];
+        $codeToWards = [];
+
+        foreach ($dbWards as $ward) {
+            $apiName = trim((string) ($ward['api_ward_name'] ?? ''));
+            if ($apiName !== '') {
+                $nameToWard[$apiName] = $ward;
+            }
+            $dbName = trim((string) ($ward['name'] ?? ''));
+            if ($dbName !== '') {
+                $dbNameToWard[$dbName] = $ward;
+            }
+            $code = trim((string) ($ward['api_ward_code'] ?? ''));
+            if ($code !== '') {
+                $codeToWards[$code][] = $ward;
+            }
+        }
+
+        return [
+            'name_to_ward'    => $nameToWard,
+            'db_name_to_ward' => $dbNameToWard,
+            'code_to_wards'   => $codeToWards,
+        ];
+    }
+
+    /**
+     * @param array{name_to_ward: array<string, array<string, mixed>>, db_name_to_ward: array<string, array<string, mixed>>, code_to_wards: array<string, list<array<string, mixed>>>} $lookup
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findWard(string $apiCode, string $apiName, array $lookup): ?array
+    {
+        if ($apiName !== '') {
+            if (isset($lookup['name_to_ward'][$apiName])) {
+                return $lookup['name_to_ward'][$apiName];
+            }
+            if (isset($lookup['db_name_to_ward'][$apiName])) {
+                return $lookup['db_name_to_ward'][$apiName];
+            }
+        }
+
+        if ($apiCode === '') {
+            return null;
+        }
+
+        $matches = $lookup['code_to_wards'][$apiCode] ?? [];
+        if (count($matches) === 1) {
+            return $matches[0];
+        }
+
+        if (count($matches) > 1 && $apiName !== '') {
+            foreach ($matches as $ward) {
+                if (trim((string) ($ward['api_ward_name'] ?? '')) === $apiName) {
+                    return $ward;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array{name_to_ward: array<string, array<string, mixed>>, db_name_to_ward: array<string, array<string, mixed>>, code_to_wards: array<string, list<array<string, mixed>>>} $lookup
+     */
+    private function resolveApiStatus(string $apiCode, string $apiName, ?array $match, array $lookup): string
+    {
+        if ($match === null) {
+            if ($apiCode !== '' && count($lookup['code_to_wards'][$apiCode] ?? []) > 1) {
+                return 'ambiguous';
+            }
+
+            return 'unmapped';
+        }
+
+        $dbApiName = trim((string) ($match['api_ward_name'] ?? ''));
+        if ($apiName !== '' && $dbApiName !== '' && $apiName !== $dbApiName) {
+            return 'name_mismatch';
+        }
+
+        return 'matched';
+    }
+
+    /**
+     * @param array{name_to_ward: array<string, array<string, mixed>>, db_name_to_ward: array<string, array<string, mixed>>, code_to_wards: array<string, list<array<string, mixed>>>} $lookup
+     */
+    private function apiNote(string $status, string $apiCode, string $apiName, ?array $match, array $lookup): string
+    {
+        if ($status === 'ambiguous') {
+            $names = array_map(
+                static fn ($w) => (string) ($w['api_ward_name'] ?? $w['name'] ?? ''),
+                $lookup['code_to_wards'][$apiCode] ?? []
+            );
+
+            return 'รหัส ' . $apiCode . ' มีหลายแผนกในระบบ: ' . implode(', ', $names);
+        }
+
+        if ($status === 'unmapped') {
+            return 'เพิ่ม/แก้ api_ward_name ใน Admin → จัดการแผนก';
+        }
+
+        if ($status === 'name_mismatch' && $match !== null) {
+            return 'จับคู่ได้แต่ชื่อ API ไม่ตรงกับที่ตั้งไว้ (' . ($match['api_ward_name'] ?? '') . ')';
+        }
+
+        return '';
+    }
+
+    private function apiStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'matched'        => 'จับคู่แล้ว',
+            'name_mismatch'  => 'จับคู่แล้ว (ชื่อไม่ตรง)',
+            'ambiguous'      => 'รหัสซ้ำ — ต้องระบุชื่อ',
+            'unmapped'       => 'ยังไม่ map',
+            default          => $status,
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $ward
+     *
+     * @return array<string, mixed>
+     */
+    private function dbIssueRow(array $ward, string $issue, string $label): array
+    {
+        return [
+            'ward_id'       => (int) $ward['id'],
+            'name'          => (string) ($ward['name'] ?? ''),
+            'code'          => (string) ($ward['code'] ?? ''),
+            'api_ward_code' => (string) ($ward['api_ward_code'] ?? ''),
+            'api_ward_name' => (string) ($ward['api_ward_name'] ?? ''),
+            'issue'         => $issue,
+            'issue_label'   => $label,
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $apiResults
+     * @param list<array<string, mixed>> $dbWards
+     * @param list<array<string, mixed>> $dbIssues
+     *
+     * @return array<string, int>
+     */
+    private function buildSummary(array $apiResults, array $dbWards, array $dbIssues): array
+    {
+        $counts = [
+            'api_total'         => count($apiResults),
+            'matched'           => 0,
+            'unmapped_api'      => 0,
+            'ambiguous_api'     => 0,
+            'name_mismatch_api' => 0,
+            'db_active'         => count($dbWards),
+            'db_missing_config' => 0,
+            'db_not_in_api'     => 0,
+        ];
+
+        foreach ($apiResults as $row) {
+            match ($row['status']) {
+                'matched'       => $counts['matched']++,
+                'unmapped'      => $counts['unmapped_api']++,
+                'ambiguous'     => $counts['ambiguous_api']++,
+                'name_mismatch' => $counts['name_mismatch_api']++,
+                default         => null,
+            };
+        }
+
+        foreach ($dbIssues as $issue) {
+            if ($issue['issue'] === 'missing_config') {
+                $counts['db_missing_config']++;
+            } elseif ($issue['issue'] === 'not_in_api') {
+                $counts['db_not_in_api']++;
+            }
+        }
+
+        return $counts;
+    }
+}
