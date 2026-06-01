@@ -397,6 +397,7 @@ if (auth()->loggedIn()) {
         $navItems[] = ['label' => 'จัดการแผนก', 'icon' => 'domain', 'url' => base_url('admin/wards')];
     }
     if (auth()->user()->inGroup('superadmin')) {
+        $navItems[] = ['label' => 'บันทึกดิบ HOSxP', 'icon' => 'receipt_long', 'url' => base_url('admin/hosxp-logs'), 'hint' => 'Raw log จาก API ที่ดึงเข้าระบบ'];
         $navItems[] = ['label' => 'จัดการผู้ใช้', 'icon' => 'group', 'url' => base_url('admin/users')];
         $navItems[] = ['label' => 'นำเข้า/ส่งออก', 'icon' => 'import_export', 'url' => base_url('admin/import-export')];
         $navItems[] = ['label' => 'สำรองข้อมูล', 'icon' => 'database', 'url' => base_url('admin/backup')];

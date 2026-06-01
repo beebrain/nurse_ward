@@ -106,4 +106,10 @@ $routes->group('admin', ['filter' => 'group:superadmin'], static function ($rout
         $routes->post('delete', '\App\Controllers\Admin\BackupController::delete');
         $routes->post('import', '\App\Controllers\Admin\BackupController::importSql');
     });
+
+    $routes->group('hosxp-logs', static function ($routes) {
+        $routes->get('/', '\App\Controllers\Admin\HosxpLogController::index');
+        $routes->get('data', '\App\Controllers\Admin\HosxpLogController::data');
+        $routes->get('detail/(:num)', '\App\Controllers\Admin\HosxpLogController::detail/$1');
+    });
 });

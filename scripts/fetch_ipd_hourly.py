@@ -126,24 +126,50 @@ def log_unmapped_api_wards(api_items, find_ward_fn):
         if len(missing) > 20:
             log(f"  ... and {len(missing) - 20} more")
 
-# 4. Fetch Data from API endpoints
+# 4. Fetch Data from API endpoints — returns (items, raw_response dict for logging)
 def fetch_api_data(endpoint):
     url = f"{api_base_url}/{endpoint}"
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {api_token}"})
-    
-    # Disable SSL verification for hospital servers
+
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
-    
+
     try:
         with urllib.request.urlopen(req, context=ctx, timeout=15) as response:
             res = json.loads(response.read().decode())
+            items = []
             if res.get("success") and "data" in res:
-                return res["data"].get("items", [])
+                items = res["data"].get("items", []) or []
+            return items, res
     except Exception as e:
         log_error(f"API Error fetching {endpoint}: {e}")
-    return []
+        return [], {"success": False, "endpoint": endpoint, "error": str(e)}
+
+
+def save_fetch_log(conn, fetched_at, record_time_str, api_raw, wards_saved, patient_total, success=1, error_message=None):
+    """บันทึก raw JSON จาก HOSxP API สำหรับหน้า admin/hosxp-logs (superadmin)."""
+    try:
+        payload = json.dumps({
+            "source": "HOSxP IPD API",
+            "base_url": api_base_url,
+            "interval_minutes": RECORD_INTERVAL_MINUTES,
+            "endpoints": api_raw,
+        }, ensure_ascii=False)
+        cursor = conn.cursor()
+        cursor.execute(
+            """INSERT INTO ipd_api_fetch_logs
+               (fetched_at, record_time, success, wards_saved, patient_total, payload_json, error_message, created_at, updated_at)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (
+                fetched_at, record_time_str, 1 if success else 0, wards_saved, patient_total,
+                payload, error_message, fetched_at, fetched_at,
+            ),
+        )
+        conn.commit()
+        cursor.close()
+    except Exception as e:
+        log_error(f"Could not save ipd_api_fetch_logs: {e}")
 
 def load_wards_from_db(conn):
     cursor = conn.cursor()
@@ -251,7 +277,8 @@ def run_fetch(dry_run=False):
             raise
 
     find_ward, _, _ = build_ward_lookup(db_wards)
-    
+    api_raw = {}
+
     # Initialize data dictionary for mapped wards
     census_data = {}
     for w in db_wards:
@@ -266,7 +293,7 @@ def run_fetch(dry_run=False):
 
     # 1. Fetch current patients count
     log("Fetching current patients...")
-    curr_patients = fetch_api_data("current-patients")
+    curr_patients, api_raw["current-patients"] = fetch_api_data("current-patients")
     if not curr_patients and not dry_run:
         raise Exception("API current-patients returned no data")
     log_unmapped_api_wards(curr_patients, find_ward)
@@ -279,7 +306,7 @@ def run_fetch(dry_run=False):
 
     # 2. Fetch admissions today
     log("Fetching admissions today...")
-    admissions = fetch_api_data("admissions-today")
+    admissions, api_raw["admissions-today"] = fetch_api_data("admissions-today")
     for item in admissions:
         code = item.get("ward")
         name = item.get("ward_name")
@@ -289,7 +316,7 @@ def run_fetch(dry_run=False):
 
     # 3. Fetch discharges and deaths today
     log("Fetching discharges today...")
-    discharges = fetch_api_data("discharges-today")
+    discharges, api_raw["discharges-today"] = fetch_api_data("discharges-today")
     for item in discharges:
         code = item.get("ward")
         name = item.get("ward_name")
@@ -300,7 +327,7 @@ def run_fetch(dry_run=False):
 
     # 4. Fetch bed moves today
     log("Fetching bed moves today...")
-    moves = fetch_api_data("bed-moves-today")
+    moves, api_raw["bed-moves-today"] = fetch_api_data("bed-moves-today")
     for item in moves:
         code = item.get("nward")
         name = item.get("ward_name")
@@ -369,6 +396,9 @@ def run_fetch(dry_run=False):
         
     conn.commit()
     cursor.close()
+
+    patient_total = sum(int(s['patient_count']) for s in census_data.values())
+    save_fetch_log(conn, now_str, record_time_str, api_raw, records_saved, patient_total, success=1)
     conn.close()
 
     wards_with_patients = sum(1 for s in census_data.values() if s['patient_count'] > 0)
@@ -400,6 +430,17 @@ def main():
         run_fetch(dry_run=args.dry_run)
     except Exception as e:
         log_error(f"FATAL: {e}")
+        if not args.dry_run:
+            try:
+                conn = get_db_connection()
+                bangkok_tz = timezone(timedelta(hours=7))
+                now = datetime.now(bangkok_tz)
+                now_str = now.strftime('%Y-%m-%d %H:%M:%S')
+                slot_str = truncate_record_time(now).strftime('%Y-%m-%d %H:%M:%S')
+                save_fetch_log(conn, now_str, slot_str, {}, 0, 0, success=0, error_message=str(e))
+                conn.close()
+            except Exception:
+                pass
         sys.exit(1)
 
 
