@@ -32,6 +32,9 @@ config_path = os.path.join(project_root, 'app', 'Config', 'ward_mappings.json')
 
 env = load_env(env_path)
 
+# ช่วงบันทึก (นาที) — 30 = ดึงทุก 30 นาที ปัดเวลาเป็น :00 / :30
+RECORD_INTERVAL_MINUTES = 30
+
 QUIET = False
 
 
@@ -197,6 +200,15 @@ def build_ward_lookup(db_wards):
     return find_ward, name_to_ward, code_to_wards
 
 
+def truncate_record_time(now: datetime) -> datetime:
+    """ปัดเวลาเป็นช่วง RECORD_INTERVAL_MINUTES (เช่น 30 → :00 / :30)."""
+    interval = RECORD_INTERVAL_MINUTES
+    if interval <= 0 or interval > 60 or 60 % interval != 0:
+        raise ValueError(f'Invalid RECORD_INTERVAL_MINUTES: {interval}')
+    minute_slot = (now.minute // interval) * interval
+    return now.replace(minute=minute_slot, second=0, microsecond=0)
+
+
 def print_dry_run_summary(db_wards, census_data, record_time_str):
     print(f"\n=== DRY RUN — ไม่บันทึก DB (record_time={record_time_str}) ===")
     ward_by_id = {w['id']: w for w in db_wards}
@@ -300,13 +312,11 @@ def run_fetch(dry_run=False):
     # Get local Thailand time (UTC+7)
     bangkok_tz = timezone(timedelta(hours=7))
     now = datetime.now(bangkok_tz)
-    
-    # Truncate to the current hour
-    record_time = now.replace(minute=0, second=0, microsecond=0)
+    record_time = truncate_record_time(now)
     record_time_str = record_time.strftime('%Y-%m-%d %H:%M:%S')
     now_str = now.strftime('%Y-%m-%d %H:%M:%S')
-    
-    log(f"Recording census data for hour: {record_time_str}")
+
+    log(f"Recording census data for slot ({RECORD_INTERVAL_MINUTES} min): {record_time_str}")
 
     if dry_run:
         print_dry_run_summary(db_wards, census_data, record_time_str)
@@ -371,7 +381,9 @@ def run_fetch(dry_run=False):
 
 def main():
     global QUIET
-    parser = argparse.ArgumentParser(description='Fetch hourly IPD census from hospital API')
+    parser = argparse.ArgumentParser(
+        description='Fetch IPD census from hospital API (default: 30-minute record slots)',
+    )
     parser.add_argument(
         '--dry-run',
         action='store_true',

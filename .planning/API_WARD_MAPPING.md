@@ -27,10 +27,10 @@ FROM wards
 WHERE api_ward_code = '08';
 ```
 
-## ดึงข้อมูลรายชั่วโมง (อัตโนมัติทุกชั่วโมง)
+## ดึงข้อมูลอัตโนมัติ (ทุก 30 นาที)
 
 ```bash
-# ติดตั้ง cron บน server/local (รันทุกชั่วโมง น. 0 ตามเวลาไทย)
+# ติดตั้ง cron (รันทุก 30 นาที — น. :00 และ :30 ตามเวลาไทย)
 bash scripts/install-hourly-cron.sh
 
 # ทดสอบด้วยมือ
@@ -38,7 +38,7 @@ bash scripts/run_ipd_hourly_fetch.sh
 ```
 
 Log: `writable/logs/ipd_hourly_fetch.log`  
-ข้อมูลบันทึกใน `hourly_patient_census` (ทุก ward × ทุกชั่วโมง)
+ข้อมูลบันทึกใน `hourly_patient_census` (ทุก ward × ทุกช่วง 30 นาที — `record_time` เป็น :00 หรือ :30)
 
 ```bash
 python3 scripts/fetch_ipd_hourly.py

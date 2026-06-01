@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# รันดึง IPD census รายชั่วโมง — ใช้กับ cron: 0 * * * *
+# รันดึง IPD census — ใช้กับ cron: */30 * * * * (ทุก 30 นาที)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
