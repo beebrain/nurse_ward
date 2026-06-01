@@ -59,7 +59,7 @@ api_token = env.get('IPD_API_TOKEN', 'ipd-prod-key-2026')
 def get_db_connection():
     # If running outside container, 'shared_mysql' will fail. We automatically fallback to '127.0.0.1'.
     hosts_to_try = [db_host]
-    if db_host == 'shared_mysql':
+    if db_host in ('shared_mysql', 'mariadb'):
         hosts_to_try.append('127.0.0.1')
         
     for host in hosts_to_try:
