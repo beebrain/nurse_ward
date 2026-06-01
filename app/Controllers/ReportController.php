@@ -318,31 +318,30 @@ class ReportController extends BaseController
         $builder->where('YEAR(record_time)', $year);
         $builder->where('MONTH(record_time)', $month);
         $builder->orderBy('record_time', 'ASC');
-        $results = $builder->get()->getResultArray();
+        $results    = $builder->get()->getResultArray();
+        $hourlyModel = new \App\Models\HourlyCensusModel();
+        $aggregated  = $hourlyModel->aggregateTimelineByRecordTime($results);
 
         $daily = [];
-        foreach ($results as $row) {
+        foreach ($aggregated as $row) {
             $date = date('Y-m-d', strtotime($row['record_time']));
-            if (!isset($daily[$date])) {
+            if (! isset($daily[$date])) {
                 $daily[$date] = [
-                    'date' => $date,
-                    'patient_count' => [],
-                    'admissions' => 0,
-                    'discharges' => 0,
-                    'transfers_in' => 0,
-                    'transfers_out' => 0,
-                    'deaths' => 0,
+                    'date'           => $date,
+                    'patient_count'  => [],
+                    'admissions'     => 0,
+                    'discharges'     => 0,
+                    'transfers_in'   => 0,
+                    'transfers_out'  => 0,
+                    'deaths'         => 0,
                 ];
             }
-            $daily[$date]['patient_count'][] = (int)$row['patient_count'];
-            
-            // To get net movements for the day we need max values or delta.
-            // Since API gives cumulative "today", the max value of the day is the total.
-            $daily[$date]['admissions'] = max($daily[$date]['admissions'], (int)$row['admissions_today']);
-            $daily[$date]['discharges'] = max($daily[$date]['discharges'], (int)$row['discharges_today']);
-            $daily[$date]['transfers_in'] = max($daily[$date]['transfers_in'], (int)$row['moves_in_today']);
-            $daily[$date]['transfers_out'] = max($daily[$date]['transfers_out'], (int)$row['moves_out_today']);
-            $daily[$date]['deaths'] = max($daily[$date]['deaths'], (int)$row['deaths_today']);
+            $daily[$date]['patient_count'][] = (int) $row['patient_count'];
+            $daily[$date]['admissions']    = max($daily[$date]['admissions'], (int) $row['admissions_today']);
+            $daily[$date]['discharges']    = max($daily[$date]['discharges'], (int) $row['discharges_today']);
+            $daily[$date]['transfers_in']  = max($daily[$date]['transfers_in'], (int) $row['moves_in_today']);
+            $daily[$date]['transfers_out'] = max($daily[$date]['transfers_out'], (int) $row['moves_out_today']);
+            $daily[$date]['deaths']        = max($daily[$date]['deaths'], (int) $row['deaths_today']);
         }
 
         return $this->response->setJSON([

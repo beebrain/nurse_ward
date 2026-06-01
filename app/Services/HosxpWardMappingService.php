@@ -305,7 +305,7 @@ class HosxpWardMappingService
     private function apiNote(string $status, string $apiCode, string $apiName, ?array $match, array $lookup, string $matchedVia = ''): string
     {
         if ($status === 'matched' && $matchedVia === 'alias' && $match !== null) {
-            return 'รวมยอดเข้า [' . ($match['name'] ?? '') . '] (ชื่อเพิ่มเติม)';
+            return 'map เข้า [' . ($match['name'] ?? '') . '] (ชื่อเพิ่มเติม — แสดงผลรวม)';
         }
 
         if ($status === 'ambiguous') {

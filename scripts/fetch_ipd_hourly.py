@@ -256,27 +256,44 @@ def truncate_record_time(now: datetime) -> datetime:
     return now.replace(minute=minute_slot, second=0, microsecond=0)
 
 
-def print_dry_run_summary(db_wards, census_data, record_time_str):
+def empty_census_stats():
+    return {
+        'patient_count': 0,
+        'admissions_today': 0,
+        'discharges_today': 0,
+        'moves_in_today': 0,
+        'moves_out_today': 0,
+        'deaths_today': 0,
+    }
+
+
+def census_slot(census_by_key, ward_id, source_name):
+    """คีย์แยกตามชื่อ API — ไม่รวมตอนบันทึก"""
+    key = (int(ward_id), (source_name or '').strip())
+    if key not in census_by_key:
+        census_by_key[key] = empty_census_stats()
+    return census_by_key[key]
+
+
+def print_dry_run_summary(db_wards, census_by_key, record_time_str):
     print(f"\n=== DRY RUN — ไม่บันทึก DB (record_time={record_time_str}) ===")
     ward_by_id = {w['id']: w for w in db_wards}
-    matched = [(ward_by_id[wid], stats) for wid, stats in census_data.items()
-               if stats.get('patient_count') or stats.get('admissions_today') or stats.get('discharges_today')]
-    matched.sort(key=lambda x: (x[0].get('api_ward_code') or '', x[0].get('api_ward_name') or ''))
+    matched = []
+    for (wid, source), stats in census_by_key.items():
+        if not (stats.get('patient_count') or stats.get('admissions_today') or stats.get('discharges_today')):
+            continue
+        w = ward_by_id.get(wid, {'id': wid, 'name': f'ward-{wid}'})
+        matched.append((w, source, stats))
+    matched.sort(key=lambda x: (str(x[0].get('api_ward_code') or ''), x[1]))
 
-    print(f"แผนกที่มีข้อมูลจาก API: {len(matched)} / {len(db_wards)} wards ในระบบ\n")
-    for w, stats in matched:
+    print(f"แถว API ที่บันทึกแยก: {len(matched)} (รวมยอดตอนแสดงผลในระบบ)\n")
+    for w, source, stats in matched:
         print(
-            f"  [{w['id']}] {w.get('name')} | API {w.get('api_ward_code')}/{w.get('api_ward_name')} "
+            f"  [{w['id']}] {w.get('name')} | source={source!r} "
             f"=> patients={stats['patient_count']} adm={stats['admissions_today']} "
             f"dis={stats['discharges_today']} death={stats['deaths_today']} "
             f"in={stats['moves_in_today']} out={stats['moves_out_today']}"
         )
-
-    code08 = [x for x in matched if str(x[0].get('api_ward_code')) == '08']
-    if code08:
-        print("\n--- Ward 08 (ศัลยกรรมหญิง) แยกย่อย ---")
-        for w, stats in code08:
-            print(f"  {w.get('api_ward_name')}: {stats['patient_count']} คน")
 
 
 def run_fetch(dry_run=False):
@@ -301,17 +318,8 @@ def run_fetch(dry_run=False):
     find_ward, _, _ = build_ward_lookup(db_wards, alias_rows)
     api_raw = {}
 
-    # Initialize data dictionary for mapped wards
-    census_data = {}
-    for w in db_wards:
-        census_data[w['id']] = {
-            'patient_count': 0,
-            'admissions_today': 0,
-            'discharges_today': 0,
-            'moves_in_today': 0,
-            'moves_out_today': 0,
-            'deaths_today': 0
-        }
+    # แยกบันทึกตาม (ward_id, source_api_ward_name) — ไม่รวมตอน cron
+    census_by_key = {}
 
     # 1. Fetch current patients count
     log("Fetching current patients...")
@@ -324,7 +332,8 @@ def run_fetch(dry_run=False):
         name = item.get("ward_name")
         ward = find_ward(code, name)
         if ward:
-            census_data[ward['id']]['patient_count'] += int(item.get("count_an", 0))
+            src = (name or '').strip()
+            census_slot(census_by_key, ward['id'], src)['patient_count'] = int(item.get("count_an", 0))
 
     # 2. Fetch admissions today
     log("Fetching admissions today...")
@@ -334,7 +343,8 @@ def run_fetch(dry_run=False):
         name = item.get("ward_name")
         ward = find_ward(code, name)
         if ward:
-            census_data[ward['id']]['admissions_today'] += int(item.get("total_admissions", 0))
+            src = (name or '').strip()
+            census_slot(census_by_key, ward['id'], src)['admissions_today'] = int(item.get("total_admissions", 0))
 
     # 3. Fetch discharges and deaths today
     log("Fetching discharges today...")
@@ -344,8 +354,10 @@ def run_fetch(dry_run=False):
         name = item.get("ward_name")
         ward = find_ward(code, name)
         if ward:
-            census_data[ward['id']]['discharges_today'] += int(item.get("total_discharges", 0))
-            census_data[ward['id']]['deaths_today'] += int(item.get("count_dead", 0))
+            src = (name or '').strip()
+            slot = census_slot(census_by_key, ward['id'], src)
+            slot['discharges_today'] = int(item.get("total_discharges", 0))
+            slot['deaths_today'] = int(item.get("count_dead", 0))
 
     # 4. Fetch bed moves today
     log("Fetching bed moves today...")
@@ -355,8 +367,10 @@ def run_fetch(dry_run=False):
         name = item.get("ward_name")
         ward = find_ward(code, name)
         if ward:
-            census_data[ward['id']]['moves_in_today'] += int(item.get("count_receive", 0))
-            census_data[ward['id']]['moves_out_today'] += int(item.get("count_move", 0))
+            src = (name or '').strip()
+            slot = census_slot(census_by_key, ward['id'], src)
+            slot['moves_in_today'] = int(item.get("count_receive", 0))
+            slot['moves_out_today'] = int(item.get("count_move", 0))
 
     # Get local Thailand time (UTC+7)
     bangkok_tz = timezone(timedelta(hours=7))
@@ -368,62 +382,60 @@ def run_fetch(dry_run=False):
     log(f"Recording census data for slot ({RECORD_INTERVAL_MINUTES} min): {record_time_str}")
 
     if dry_run:
-        print_dry_run_summary(db_wards, census_data, record_time_str)
+        print_dry_run_summary(db_wards, census_by_key, record_time_str)
         if conn:
             conn.close()
-        return record_time_str, len(census_data), sum(1 for s in census_data.values() if s['patient_count'] > 0)
+        return record_time_str, len(census_by_key), sum(1 for s in census_by_key.values() if s['patient_count'] > 0)
 
     if not conn:
         raise Exception("Database connection required (use --dry-run to test API only)")
 
     cursor = conn.cursor()
 
-    # Save/Upsert records in database
+    # Save/Upsert — แยกแถวตาม source_api_ward_name
     records_saved = 0
-    for ward_id, stats in census_data.items():
-        # Check if record already exists for this ward and hour
+    for (ward_id, source_name), stats in census_by_key.items():
         cursor.execute(
-            "SELECT id FROM hourly_patient_census WHERE ward_id = %s AND record_time = %s",
-            (ward_id, record_time_str)
+            """SELECT id FROM hourly_patient_census
+               WHERE ward_id = %s AND record_time = %s AND source_api_ward_name = %s""",
+            (ward_id, record_time_str, source_name),
         )
         existing = cursor.fetchone()
-        
+
         if existing:
-            # Update
             cursor.execute(
-                """UPDATE hourly_patient_census 
-                   SET patient_count = %s, admissions_today = %s, discharges_today = %s, 
+                """UPDATE hourly_patient_census
+                   SET patient_count = %s, admissions_today = %s, discharges_today = %s,
                        moves_in_today = %s, moves_out_today = %s, deaths_today = %s, updated_at = %s
                    WHERE id = %s""",
                 (
                     stats['patient_count'], stats['admissions_today'], stats['discharges_today'],
                     stats['moves_in_today'], stats['moves_out_today'], stats['deaths_today'],
-                    now_str, existing['id']
-                )
+                    now_str, existing['id'],
+                ),
             )
         else:
-            # Insert
             cursor.execute(
-                """INSERT INTO hourly_patient_census 
-                   (ward_id, record_time, patient_count, admissions_today, discharges_today, 
-                    moves_in_today, moves_out_today, deaths_today, created_at, updated_at)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                """INSERT INTO hourly_patient_census
+                   (ward_id, record_time, source_api_ward_name, patient_count, admissions_today,
+                    discharges_today, moves_in_today, moves_out_today, deaths_today, created_at, updated_at)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 (
-                    ward_id, record_time_str, stats['patient_count'], stats['admissions_today'],
+                    ward_id, record_time_str, source_name, stats['patient_count'], stats['admissions_today'],
                     stats['discharges_today'], stats['moves_in_today'], stats['moves_out_today'],
-                    stats['deaths_today'], now_str, now_str
-                )
+                    stats['deaths_today'], now_str, now_str,
+                ),
             )
         records_saved += 1
-        
+
     conn.commit()
     cursor.close()
 
-    patient_total = sum(int(s['patient_count']) for s in census_data.values())
+    patient_total = sum(int(s['patient_count']) for s in census_by_key.values())
     save_fetch_log(conn, now_str, record_time_str, api_raw, records_saved, patient_total, success=1)
     conn.close()
 
-    wards_with_patients = sum(1 for s in census_data.values() if s['patient_count'] > 0)
+    wards_with_patients = len({wid for (wid, _), s in census_by_key.items() if s['patient_count'] > 0})
     msg = (
         f"Completed! Upserted {records_saved} ward census records for {record_time_str} "
         f"({wards_with_patients} wards with patients)."

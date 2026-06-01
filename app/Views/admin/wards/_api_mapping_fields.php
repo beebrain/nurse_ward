@@ -169,8 +169,8 @@ foreach ($apiWardOptions as $opt) {
         <?php endforeach; ?>
     </select>
     <div class="form-text">
-        รหัสเดียวกัน หลายชื่อ — เลือกชื่อหลักด้านบน แล้วติ๊กชื่อที่ต้องการ<strong>รวมยอด</strong>
-        (เช่น หลัก A + เพิ่ม B | แผนกอื่นเลือก C)
+        Cron บันทึก<strong>แยก</strong>ตามชื่อ API — หน้าจอ Handover / รายงานจะ<strong>รวมยอด</strong>ชื่อหลัก + ชื่อที่ติ๊กไว้
+        (เช่น หลัก A + เพิ่ม B แสดงรวม | แผนกอื่นเลือก C)
     </div>
 </div>
 

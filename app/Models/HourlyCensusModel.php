@@ -15,6 +15,7 @@ class HourlyCensusModel extends Model
     protected $allowedFields    = [
         'ward_id',
         'record_time',
+        'source_api_ward_name',
         'patient_count',
         'admissions_today',
         'discharges_today',
@@ -29,16 +30,55 @@ class HourlyCensusModel extends Model
     protected $updatedField  = 'updated_at';
 
     /**
-     * Get shift timeline and compute net movement totals for a specific ward, date, and shift.
+     * รวมแถวหลาย source_api_ward_name (ชื่อหลัก + alias) ต่อ record_time สำหรับแสดงผล
      *
-     * @param int    $wardId
-     * @param string $date  Format: YYYY-MM-DD
-     * @param string $shift 'Night', 'Morning', or 'Afternoon'
-     * @return array
+     * @param list<array<string, mixed>> $rows
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function aggregateTimelineByRecordTime(array $rows): array
+    {
+        $byTime = [];
+
+        foreach ($rows as $row) {
+            $t = (string) ($row['record_time'] ?? '');
+            if ($t === '') {
+                continue;
+            }
+
+            if (! isset($byTime[$t])) {
+                $byTime[$t] = [
+                    'record_time'       => $t,
+                    'patient_count'     => 0,
+                    'admissions_today'  => 0,
+                    'discharges_today'  => 0,
+                    'moves_in_today'    => 0,
+                    'moves_out_today'   => 0,
+                    'deaths_today'      => 0,
+                ];
+            }
+
+            $byTime[$t]['patient_count']    += (int) ($row['patient_count'] ?? 0);
+            $byTime[$t]['admissions_today'] += (int) ($row['admissions_today'] ?? 0);
+            $byTime[$t]['discharges_today'] += (int) ($row['discharges_today'] ?? 0);
+            $byTime[$t]['moves_in_today']   += (int) ($row['moves_in_today'] ?? 0);
+            $byTime[$t]['moves_out_today']  += (int) ($row['moves_out_today'] ?? 0);
+            $byTime[$t]['deaths_today']     += (int) ($row['deaths_today'] ?? 0);
+        }
+
+        ksort($byTime);
+
+        return array_values($byTime);
+    }
+
+    /**
+     * Get shift timeline and compute net movement totals for a specific ward, date, and shift.
+     * รวมยอดจากทุก source_api_ward_name ที่บันทึกแยกตาม config
+     *
+     * @return array{timeline: list<array<string, mixed>>, totals: array<string, int>}
      */
     public function getShiftTotals(int $wardId, string $date, string $shift): array
     {
-        // Define times for shifts
         switch ($shift) {
             case 'Night':
                 $startTime = "{$date} 00:00:00";
@@ -58,40 +98,35 @@ class HourlyCensusModel extends Model
             default:
                 return [
                     'timeline' => [],
-                    'totals'   => $this->getEmptyTotals()
+                    'totals'   => $this->getEmptyTotals(),
                 ];
         }
 
-        // Fetch all hourly census records within the shift
-        $timeline = $this->where('ward_id', $wardId)
-                         ->where('record_time >=', $startTime)
-                         ->where('record_time <=', $endTime)
-                         ->orderBy('record_time', 'ASC')
-                         ->findAll();
+        $rawRows = $this->where('ward_id', $wardId)
+            ->where('record_time >=', $startTime)
+            ->where('record_time <=', $endTime)
+            ->orderBy('record_time', 'ASC')
+            ->findAll();
 
-        if (empty($timeline)) {
+        $timeline = $this->aggregateTimelineByRecordTime($rawRows);
+
+        if ($timeline === []) {
             return [
                 'timeline' => [],
-                'totals'   => $this->getEmptyTotals()
+                'totals'   => $this->getEmptyTotals(),
             ];
         }
 
         $first = $timeline[0];
         $last  = $timeline[count($timeline) - 1];
 
-        // Shift calculation
         if ($isNight) {
-            // For Night shift (00:00 - 08:00), cumulative stats start from 00:00.
-            // If the first snapshot is close to 00:00, we subtract it.
-            // If there's only one record (e.g. at 08:00), we treat the start as 0.
             $startAdmissions = (strtotime($first['record_time']) - strtotime($startTime) < 3600) ? $first['admissions_today'] : 0;
             $startDischarges = (strtotime($first['record_time']) - strtotime($startTime) < 3600) ? $first['discharges_today'] : 0;
             $startMovesIn    = (strtotime($first['record_time']) - strtotime($startTime) < 3600) ? $first['moves_in_today'] : 0;
             $startMovesOut   = (strtotime($first['record_time']) - strtotime($startTime) < 3600) ? $first['moves_out_today'] : 0;
             $startDeaths     = (strtotime($first['record_time']) - strtotime($startTime) < 3600) ? $first['deaths_today'] : 0;
         } else {
-            // For Morning and Afternoon, we subtract the start hour snapshot (e.g., 08:00 or 16:00)
-            // if it exists, or default to 0 if it doesn't.
             $startAdmissions = $first['admissions_today'];
             $startDischarges = $first['discharges_today'];
             $startMovesIn    = $first['moves_in_today'];
@@ -105,15 +140,18 @@ class HourlyCensusModel extends Model
             'transfers_in'  => max(0, $last['moves_in_today'] - $startMovesIn),
             'transfers_out' => max(0, $last['moves_out_today'] - $startMovesOut),
             'deaths'        => max(0, $last['deaths_today'] - $startDeaths),
-            'patient_count' => $last['patient_count'], // current/end count
+            'patient_count' => $last['patient_count'],
         ];
 
         return [
             'timeline' => $timeline,
-            'totals'   => $totals
+            'totals'   => $totals,
         ];
     }
 
+    /**
+     * @return array<string, int>
+     */
     private function getEmptyTotals(): array
     {
         return [
