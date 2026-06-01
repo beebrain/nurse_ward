@@ -8,6 +8,103 @@ namespace App\Services;
 class HosxpWardMappingService
 {
     /**
+     * สรุปสถานะ mapping สำหรับรายการแผนกใน Admin (ไม่ต้องมี payload API)
+     *
+     * @param list<array<string, mixed>> $wards
+     *
+     * @return array{
+     *     wards: list<array<string, mixed>>,
+     *     summary: array{total: int, configured: int, missing: int, duplicate: int}
+     * }
+     */
+    public function annotateAdminWards(array $wards): array
+    {
+        $duplicateNames = $this->findDuplicateApiNames($wards);
+        $annotated      = [];
+        $counts         = ['total' => count($wards), 'configured' => 0, 'missing' => 0, 'duplicate' => 0];
+
+        foreach ($wards as $ward) {
+            $code = trim((string) ($ward['api_ward_code'] ?? ''));
+            $name = trim((string) ($ward['api_ward_name'] ?? ''));
+
+            if ($code === '' || $name === '') {
+                $status = 'missing';
+                $counts['missing']++;
+            } elseif (isset($duplicateNames[$name])) {
+                $status = 'duplicate';
+                $counts['duplicate']++;
+            } else {
+                $status = 'ok';
+                $counts['configured']++;
+            }
+
+            $ward['mapping_status']       = $status;
+            $ward['mapping_status_label'] = $this->adminStatusLabel($status);
+            $annotated[]                  = $ward;
+        }
+
+        return [
+            'wards'   => $annotated,
+            'summary' => $counts,
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $merged
+     *
+     * @return list<array{ward: string, ward_name: string}>
+     */
+    public function uniqueApiWardsFromMerged(array $merged): array
+    {
+        $seen = [];
+        $out  = [];
+
+        foreach ($merged as $row) {
+            $code = trim((string) ($row['ward'] ?? ''));
+            $name = trim((string) ($row['ward_name'] ?? ''));
+            $key  = $code . '|' . $name;
+            if ($key === '|' || isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[]      = ['ward' => $code, 'ward_name' => $name];
+        }
+
+        usort($out, static fn ($a, $b) => [$a['ward'], $a['ward_name']] <=> [$b['ward'], $b['ward_name']]);
+
+        return $out;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $wards
+     *
+     * @return array<string, true> api_ward_name => true when duplicated
+     */
+    public function findDuplicateApiNames(array $wards): array
+    {
+        $counts = [];
+        foreach ($wards as $ward) {
+            if (! ($ward['is_active'] ?? true)) {
+                continue;
+            }
+            $name = trim((string) ($ward['api_ward_name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $counts[$name] = ($counts[$name] ?? 0) + 1;
+        }
+
+        $dupes = [];
+        foreach ($counts as $name => $count) {
+            if ($count > 1) {
+                $dupes[$name] = true;
+            }
+        }
+
+        return $dupes;
+    }
+
+    /**
      * @param list<array<string, mixed>> $apiRows แถวจาก HosxpPayloadParser::parse()['merged']
      * @param list<array<string, mixed>> $dbWards  แถวจาก wards (is_active)
      *
@@ -261,5 +358,49 @@ class HosxpWardMappingService
         }
 
         return $counts;
+    }
+
+    private function adminStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'ok'        => 'ตั้งค่าแล้ว',
+            'missing'   => 'ยังไม่ตั้ง API',
+            'duplicate' => 'ชื่อ API ซ้ำ',
+            default     => $status,
+        };
+    }
+
+    /**
+     * @return array{valid: bool, message: string}
+     */
+    public function validateApiMappingFields(?string $apiCode, ?string $apiName, ?int $excludeWardId = null): array
+    {
+        $code = trim((string) $apiCode);
+        $name = trim((string) $apiName);
+
+        if ($code === '' && $name === '') {
+            return ['valid' => true, 'message' => ''];
+        }
+
+        if ($code === '' || $name === '') {
+            return [
+                'valid'   => false,
+                'message' => 'ต้องกรอกทั้ง API Ward Code และ API Ward Name หรือเว้นว่างทั้งคู่',
+            ];
+        }
+
+        $model = model(\App\Models\WardModel::class);
+        $builder = $model->where('api_ward_name', $name)->where('is_active', 1);
+        if ($excludeWardId !== null) {
+            $builder->where('id !=', $excludeWardId);
+        }
+        if ($builder->first() !== null) {
+            return [
+                'valid'   => false,
+                'message' => 'API Ward Name "' . $name . '" ถูกใช้โดยแผนกอื่นแล้ว',
+            ];
+        }
+
+        return ['valid' => true, 'message' => ''];
     }
 }

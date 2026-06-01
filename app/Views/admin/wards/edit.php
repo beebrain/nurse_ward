@@ -2,7 +2,7 @@
 
 <?= $this->section('content') ?>
 <div class="row justify-content-center">
-    <div class="col-md-7">
+    <div class="col-md-8">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>แก้ไข Ward</h1>
             <a href="<?= base_url('admin/wards') ?>" class="btn btn-outline-secondary">กลับรายการ</a>
@@ -68,30 +68,7 @@
                         <?php endif; ?>
                     </div>
 
-                    <hr class="my-4">
-                    <h5 class="mb-3 text-muted">การตั้งค่าเชื่อมโยงข้อมูล API (Uttaradt Hospital API Mapping)</h5>
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label for="api_ward_code" class="form-label">API Ward Code (รหัสวอร์ดใน API)</label>
-                            <input type="text" name="api_ward_code" id="api_ward_code"
-                                   class="form-control <?= session('errors.api_ward_code') ? 'is-invalid' : '' ?>"
-                                   value="<?= old('api_ward_code', $ward['api_ward_code'] ?? '') ?>"
-                                   placeholder="เช่น 09">
-                            <?php if (session('errors.api_ward_code')): ?>
-                                <div class="invalid-feedback"><?= session('errors.api_ward_code') ?></div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="col-md-8">
-                            <label for="api_ward_name" class="form-label">API Ward Name (ชื่อวอร์ดใน API)</label>
-                            <input type="text" name="api_ward_name" id="api_ward_name"
-                                   class="form-control <?= session('errors.api_ward_name') ? 'is-invalid' : '' ?>"
-                                   value="<?= old('api_ward_name', $ward['api_ward_name'] ?? '') ?>"
-                                   placeholder="เช่น ศญ1_สามัญ (ต้องตรง ward_name จาก API)">
-                            <?php if (session('errors.api_ward_name')): ?>
-                                <div class="invalid-feedback"><?= session('errors.api_ward_name') ?></div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                    <?= view('admin/wards/_api_mapping_fields', ['api_ward_options' => $api_ward_options ?? [], 'ward' => $ward]) ?>
 
                     <div class="mb-3 form-check">
                         <input type="checkbox" name="is_active" id="is_active" class="form-check-input"

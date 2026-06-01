@@ -4,7 +4,10 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\DepartmentModel;
+use App\Models\IpdApiFetchLogModel;
 use App\Models\WardModel;
+use App\Services\HosxpPayloadParser;
+use App\Services\HosxpWardMappingService;
 
 class WardController extends BaseController
 {
@@ -19,9 +22,13 @@ class WardController extends BaseController
 
     public function index()
     {
+        $wards   = $this->wardModel->getAllWithDepartment();
+        $mapping = (new HosxpWardMappingService())->annotateAdminWards($wards);
+
         $data = [
-            'wards' => $this->wardModel->getAllWithDepartment(),
-            'title' => 'จัดการ Ward',
+            'wards'           => $mapping['wards'],
+            'mapping_summary' => $mapping['summary'],
+            'title'           => 'จัดการ Ward',
         ];
 
         return view('admin/wards/index', $data);
@@ -30,8 +37,9 @@ class WardController extends BaseController
     public function create()
     {
         $data = [
-            'title'       => 'เพิ่ม Ward ใหม่',
-            'departments' => $this->departmentModel->getActiveOrdered(),
+            'title'          => 'เพิ่ม Ward ใหม่',
+            'departments'    => $this->departmentModel->getActiveOrdered(),
+            'api_ward_options' => $this->loadLatestApiWardOptions(),
         ];
 
         return view('admin/wards/create', $data);
@@ -48,8 +56,13 @@ class WardController extends BaseController
             'api_ward_name' => 'permit_empty|max_length[100]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $apiError = $this->validateApiMapping();
+        if ($apiError !== null) {
+            return redirect()->back()->withInput()->with('errors', ['api_ward_name' => $apiError]);
         }
 
         $this->wardModel->save([
@@ -58,8 +71,8 @@ class WardController extends BaseController
             'department_id' => $this->request->getPost('department_id') ?: null,
             'total_beds'    => $this->request->getPost('total_beds'),
             'is_active'     => $this->request->getPost('is_active') ? true : false,
-            'api_ward_code' => $this->request->getPost('api_ward_code') ?: null,
-            'api_ward_name' => $this->request->getPost('api_ward_name') ?: null,
+            'api_ward_code' => $this->normalizeApiField('api_ward_code'),
+            'api_ward_name' => $this->normalizeApiField('api_ward_name'),
         ]);
 
         return redirect()->to('admin/wards')->with('message', 'Ward created successfully.');
@@ -69,14 +82,15 @@ class WardController extends BaseController
     {
         $ward = $this->wardModel->find($id);
 
-        if (!$ward) {
+        if (! $ward) {
             return redirect()->to('admin/wards')->with('error', 'Ward not found.');
         }
 
         $data = [
-            'ward'        => $ward,
-            'title'       => 'แก้ไข Ward',
-            'departments' => $this->departmentModel->getActiveOrdered(),
+            'ward'             => $ward,
+            'title'            => 'แก้ไข Ward',
+            'departments'      => $this->departmentModel->getActiveOrdered(),
+            'api_ward_options' => $this->loadLatestApiWardOptions(),
         ];
 
         return view('admin/wards/edit', $data);
@@ -93,8 +107,13 @@ class WardController extends BaseController
             'api_ward_name' => 'permit_empty|max_length[100]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $apiError = $this->validateApiMapping((int) $id);
+        if ($apiError !== null) {
+            return redirect()->back()->withInput()->with('errors', ['api_ward_name' => $apiError]);
         }
 
         $this->wardModel->update($id, [
@@ -103,8 +122,8 @@ class WardController extends BaseController
             'department_id' => $this->request->getPost('department_id') ?: null,
             'total_beds'    => $this->request->getPost('total_beds'),
             'is_active'     => $this->request->getPost('is_active') ? true : false,
-            'api_ward_code' => $this->request->getPost('api_ward_code') ?: null,
-            'api_ward_name' => $this->request->getPost('api_ward_name') ?: null,
+            'api_ward_code' => $this->normalizeApiField('api_ward_code'),
+            'api_ward_name' => $this->normalizeApiField('api_ward_name'),
         ]);
 
         return redirect()->to('admin/wards')->with('message', 'Ward updated successfully.');
@@ -117,5 +136,43 @@ class WardController extends BaseController
         }
 
         return redirect()->to('admin/wards')->with('error', 'Failed to delete ward.');
+    }
+
+    /**
+     * @return list<array{ward: string, ward_name: string}>
+     */
+    private function loadLatestApiWardOptions(): array
+    {
+        $log = (new IpdApiFetchLogModel())->getLatestSuccessfulWithPayload();
+        if ($log === null) {
+            return [];
+        }
+
+        $payload = json_decode($log['payload_json'] ?? '{}', true);
+        if (! is_array($payload)) {
+            return [];
+        }
+
+        $tables = (new HosxpPayloadParser())->parse($payload);
+
+        return (new HosxpWardMappingService())->uniqueApiWardsFromMerged($tables['merged']);
+    }
+
+    private function validateApiMapping(?int $excludeWardId = null): ?string
+    {
+        $result = (new HosxpWardMappingService())->validateApiMappingFields(
+            $this->request->getPost('api_ward_code'),
+            $this->request->getPost('api_ward_name'),
+            $excludeWardId
+        );
+
+        return $result['valid'] ? null : $result['message'];
+    }
+
+    private function normalizeApiField(string $field): ?string
+    {
+        $value = trim((string) ($this->request->getPost($field) ?? ''));
+
+        return $value === '' ? null : $value;
     }
 }

@@ -338,6 +338,9 @@
                 <span class="badge map-warn">ยังไม่ตั้งค่า API ${s.db_missing_config}</span>
                 <span class="badge bg-secondary">ไม่พบใน API รอบนี้ ${s.db_not_in_api}</span>
             </div>
+            <div class="d-flex flex-wrap gap-2 mb-2">
+                <a href="${wardsListUrl}" class="btn btn-sm btn-outline-primary">จัดการ Ward ทั้งหมด</a>
+            </div>
             <p class="small text-muted mb-2">ใช้ logic เดียวกับ cron ดึงข้อมูล: จับคู่ด้วย <code>api_ward_name</code> ก่อน แล้วรหัสเมื่อมีแผนกเดียว (เช่น ward 08 ต้องระบุชื่อย่อย)</p>`;
 
         const apiRows = mapping.api_rows || [];
@@ -345,7 +348,7 @@
         if (apiRows.length) {
             const head = `<thead><tr>
                 <th>สถานะ</th><th>รหัส API</th><th>ward_name (API)</th>
-                <th>แผนกในระบบ</th><th>api ที่ตั้งไว้</th><th class="text-end">ผู้ป่วย</th><th>หมายเหตุ</th>
+                <th>แผนกในระบบ</th><th>api ที่ตั้งไว้</th><th class="text-end">ผู้ป่วย</th><th>หมายเหตุ</th><th></th>
             </tr></thead>`;
             const body = apiRows.map(r => {
                 const dbLabel = r.ward_id
@@ -355,6 +358,9 @@
                     ? `${escapeHtml(r.api_ward_code_db)}/${escapeHtml(r.api_ward_name_db)}`
                     : '—';
                 const rowClass = r.status === 'unmapped' || r.status === 'ambiguous' ? 'table-warning' : '';
+                const action = r.ward_id
+                    ? `<a href="${wardEditBase}${r.ward_id}" class="btn btn-sm btn-outline-primary">แก้ไข</a>`
+                    : `<a href="${wardsListUrl}" class="btn btn-sm btn-outline-secondary">ตั้งค่า</a>`;
                 return `<tr class="${rowClass}">
                     <td>${mapStatusBadge(r.status_label || r.status, r.status)}</td>
                     <td>${escapeHtml(r.ward)}</td>
@@ -363,6 +369,7 @@
                     <td class="small">${configured}</td>
                     <td class="text-end">${r.patient_count ?? 0}</td>
                     <td class="small text-muted">${escapeHtml(r.note)}</td>
+                    <td class="text-nowrap">${action}</td>
                 </tr>`;
             }).join('');
             apiTable = tableWrap(`<table class="table table-sm table-bordered hosxp-detail-table mb-0">${head}<tbody>${body}</tbody></table>`);
@@ -376,21 +383,23 @@
                 <td>[${w.ward_id}] ${escapeHtml(w.name)}</td>
                 <td>${escapeHtml(w.code)}</td>
                 <td class="text-danger">${escapeHtml(w.api_ward_code) || '—'} / ${escapeHtml(w.api_ward_name) || '—'}</td>
+                <td><a href="${wardEditBase}${w.ward_id}" class="btn btn-sm btn-outline-primary">แก้ไข</a></td>
             </tr>`).join('');
             dbSection += `<h6 class="mt-3 mb-2">แผนกในระบบที่ยังไม่ตั้งค่า mapping</h6>
                 ${tableWrap(`<table class="table table-sm table-bordered hosxp-detail-table mb-0">
-                <thead><tr><th>แผนก</th><th>รหัส</th><th>api_ward_code / api_ward_name</th></tr></thead>
+                <thead><tr><th>แผนก</th><th>รหัส</th><th>api_ward_code / api_ward_name</th><th></th></tr></thead>
                 <tbody>${rows}</tbody></table>`)}`;
         }
         if (dbNotInApi.length) {
             const rows = dbNotInApi.map(w => `<tr>
                 <td>[${w.ward_id}] ${escapeHtml(w.name)}</td>
                 <td>${escapeHtml(w.api_ward_code)} / ${escapeHtml(w.api_ward_name)}</td>
+                <td><a href="${wardEditBase}${w.ward_id}" class="btn btn-sm btn-outline-secondary">แก้ไข</a></td>
             </tr>`).join('');
             dbSection += `<h6 class="mt-3 mb-2">แผนกที่ตั้งค่าแล้วแต่ไม่ปรากฏใน API รอบนี้</h6>
                 <p class="small text-muted mb-1">อาจไม่มีผู้ป่วยหรือไม่มีการเคลื่อนไหว — ไม่จำเป็นว่า map ผิด</p>
                 ${tableWrap(`<table class="table table-sm table-bordered hosxp-detail-table mb-0">
-                <thead><tr><th>แผนก</th><th>API ที่ตั้ง</th></tr></thead>
+                <thead><tr><th>แผนก</th><th>API ที่ตั้ง</th><th></th></tr></thead>
                 <tbody>${rows}</tbody></table>`)}`;
         }
 
@@ -456,6 +465,9 @@
         e.preventDefault();
         loadLogs();
     });
+
+    const wardEditBase = <?= json_encode(rtrim(base_url('admin/wards/edit'), '/') . '/') ?>;
+    const wardsListUrl = <?= json_encode(base_url('admin/wards')) ?>;
 
     const today = new Date().toISOString().slice(0, 10);
     document.getElementById('date_to').value = today;

@@ -46,4 +46,13 @@ class IpdApiFetchLogModel extends Model
     {
         return $this->find($id);
     }
+
+    public function getLatestSuccessfulWithPayload(): ?array
+    {
+        return $this->where('success', 1)
+            ->where('payload_json IS NOT NULL')
+            ->where('payload_json !=', '')
+            ->orderBy('fetched_at', 'DESC')
+            ->first();
+    }
 }
