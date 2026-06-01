@@ -976,7 +976,10 @@
       <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #1e3a8a, #0d9488) !important; color: #fff !important; padding: 14px 18px !important;">
         <span class="d-flex align-items-center gap-2">
           <span class="material-symbols-outlined" style="font-size:1.3rem;">clinical_notes</span>
-          <span class="fw-bold">แนวทางการส่งเวรรายชั่วโมง (Handover Guidelines)</span>
+          <span>
+            <span class="fw-bold d-block">แนวทางการส่งเวรรายชั่วโมง (Handover Guidelines)</span>
+            <span class="badge bg-warning text-dark mt-1" style="font-size:0.7rem;font-weight:700;">อยู่ในช่วงทดสอบการเชื่อมต่อ</span>
+          </span>
         </span>
         <button type="button" id="btn_apply_hourly" class="btn btn-sm btn-light fw-bold text-primary d-flex align-items-center gap-1 py-1 px-2 border-0">
           <span class="material-symbols-outlined" style="font-size:1rem;">install_desktop</span>
@@ -984,6 +987,10 @@
         </button>
       </div>
       <div class="card-body">
+        <div class="alert alert-warning py-2 px-3 mb-3 small d-flex align-items-start gap-2" role="status">
+          <span class="material-symbols-outlined flex-shrink-0" style="font-size:1.15rem;">info</span>
+          <span><strong>อยู่ในช่วงทดสอบการเชื่อมต่อ</strong> กับ HOSxP — ข้อมูลจาก API ใช้เป็นข้อมูลอ้างอิงเท่านั้น กรุณาตรวจสอบก่อนนำเข้าฟอร์มบันทึก</span>
+        </div>
         <div class="row align-items-stretch">
           <!-- Stats Summary -->
           <div class="col-lg-5 col-12 mb-3 mb-lg-0">
