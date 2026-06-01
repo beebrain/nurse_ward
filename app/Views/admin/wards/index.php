@@ -103,6 +103,11 @@ $canHosxpLogs = auth()->loggedIn() && auth()->user()->inGroup('superadmin');
                                         <td class="small">
                                             <?php if (! empty($ward['api_ward_name'])): ?>
                                                 <?= esc($ward['api_ward_name']) ?>
+                                                <?php if (! empty($ward['api_aliases'])): ?>
+                                                    <div class="text-muted" style="font-size:.8rem;">
+                                                        + <?= esc(implode(', ', $ward['api_aliases'])) ?>
+                                                    </div>
+                                                <?php endif; ?>
                                             <?php else: ?>
                                                 <span class="text-danger">—</span>
                                             <?php endif; ?>

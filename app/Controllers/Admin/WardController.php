@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\DepartmentModel;
 use App\Models\IpdApiFetchLogModel;
+use App\Models\WardApiAliasModel;
 use App\Models\WardModel;
 use App\Services\HosxpPayloadParser;
 use App\Services\HosxpWardMappingService;
@@ -22,8 +23,9 @@ class WardController extends BaseController
 
     public function index()
     {
-        $wards   = $this->wardModel->getAllWithDepartment();
-        $mapping = (new HosxpWardMappingService())->annotateAdminWards($wards);
+        $wards          = $this->wardModel->getAllWithDepartment();
+        $aliasesByWard  = (new WardApiAliasModel())->getAliasesGroupedByWardId();
+        $mapping        = (new HosxpWardMappingService())->annotateAdminWards($wards, $aliasesByWard);
 
         $data = [
             'wards'           => $mapping['wards'],
@@ -36,11 +38,14 @@ class WardController extends BaseController
 
     public function create()
     {
-        $data = [
-            'title'          => 'เพิ่ม Ward ใหม่',
-            'departments'    => $this->departmentModel->getActiveOrdered(),
-            'api_ward_options' => $this->loadLatestApiWardOptions(),
-        ];
+        $data = array_merge(
+            $this->apiMappingFormData(null),
+            [
+                'title'       => 'เพิ่ม Ward ใหม่',
+                'departments' => $this->departmentModel->getActiveOrdered(),
+                'ward'        => [],
+            ]
+        );
 
         return view('admin/wards/create', $data);
     }
@@ -75,6 +80,13 @@ class WardController extends BaseController
             'api_ward_name' => $this->normalizeApiField('api_ward_name'),
         ]);
 
+        $wardId = (int) $this->wardModel->getInsertID();
+        $this->saveApiAliases(
+            $wardId,
+            $this->normalizeApiField('api_ward_code') ?? '',
+            $this->normalizeApiField('api_ward_name') ?? ''
+        );
+
         return redirect()->to('admin/wards')->with('message', 'Ward created successfully.');
     }
 
@@ -86,12 +98,14 @@ class WardController extends BaseController
             return redirect()->to('admin/wards')->with('error', 'Ward not found.');
         }
 
-        $data = [
-            'ward'             => $ward,
-            'title'            => 'แก้ไข Ward',
-            'departments'      => $this->departmentModel->getActiveOrdered(),
-            'api_ward_options' => $this->loadLatestApiWardOptions(),
-        ];
+        $data = array_merge(
+            $this->apiMappingFormData((int) $id),
+            [
+                'ward'        => $ward,
+                'title'       => 'แก้ไข Ward',
+                'departments' => $this->departmentModel->getActiveOrdered(),
+            ]
+        );
 
         return view('admin/wards/edit', $data);
     }
@@ -126,6 +140,12 @@ class WardController extends BaseController
             'api_ward_name' => $this->normalizeApiField('api_ward_name'),
         ]);
 
+        $this->saveApiAliases(
+            (int) $id,
+            $this->normalizeApiField('api_ward_code') ?? '',
+            $this->normalizeApiField('api_ward_name') ?? ''
+        );
+
         return redirect()->to('admin/wards')->with('message', 'Ward updated successfully.');
     }
 
@@ -136,6 +156,52 @@ class WardController extends BaseController
         }
 
         return redirect()->to('admin/wards')->with('error', 'Failed to delete ward.');
+    }
+
+    /**
+     * @return array{
+     *     api_ward_options: list<array{ward: string, ward_name: string}>,
+     *     ward_aliases: list<string>,
+     *     used_api_names: array<string, true>
+     * }
+     */
+    private function apiMappingFormData(?int $wardId): array
+    {
+        $aliases = $wardId !== null
+            ? (new WardApiAliasModel())->where('ward_id', $wardId)->findAll()
+            : [];
+
+        return [
+            'api_ward_options' => $this->loadLatestApiWardOptions(),
+            'ward_aliases'     => array_map(
+                static fn ($a) => (string) ($a['api_ward_name'] ?? ''),
+                $aliases
+            ),
+            'used_api_names'   => $this->getUsedApiNamesExcept($wardId),
+        ];
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    private function getUsedApiNamesExcept(?int $excludeWardId): array
+    {
+        $used = [];
+        $wards = $this->wardModel->select('id, api_ward_name')->where('is_active', 1)->findAll();
+        foreach ($wards as $w) {
+            if ($excludeWardId !== null && (int) $w['id'] === $excludeWardId) {
+                continue;
+            }
+            $name = trim((string) ($w['api_ward_name'] ?? ''));
+            if ($name !== '') {
+                $used[$name] = true;
+            }
+        }
+        foreach ((new WardApiAliasModel())->getNameToWardIdMap($excludeWardId) as $name => $_wid) {
+            $used[$name] = true;
+        }
+
+        return $used;
     }
 
     /**
@@ -160,13 +226,41 @@ class WardController extends BaseController
 
     private function validateApiMapping(?int $excludeWardId = null): ?string
     {
+        $aliases = $this->request->getPost('api_aliases');
+        if (! is_array($aliases)) {
+            $aliases = [];
+        }
+
         $result = (new HosxpWardMappingService())->validateApiMappingFields(
             $this->request->getPost('api_ward_code'),
             $this->request->getPost('api_ward_name'),
-            $excludeWardId
+            $excludeWardId,
+            $aliases
         );
 
         return $result['valid'] ? null : $result['message'];
+    }
+
+    /**
+     * @param list<string>|null $postedAliases
+     */
+    private function saveApiAliases(int $wardId, string $apiWardCode, string $primaryName): void
+    {
+        $posted = $this->request->getPost('api_aliases');
+        if (! is_array($posted)) {
+            $posted = [];
+        }
+
+        $names = [];
+        foreach ($posted as $name) {
+            $name = trim((string) $name);
+            if ($name === '' || $name === $primaryName) {
+                continue;
+            }
+            $names[] = $name;
+        }
+
+        (new WardApiAliasModel())->syncForWard($wardId, $apiWardCode, $names);
     }
 
     private function normalizeApiField(string $field): ?string

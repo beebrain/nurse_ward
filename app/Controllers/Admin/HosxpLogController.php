@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\IpdApiFetchLogModel;
+use App\Models\WardApiAliasModel;
 use App\Models\WardModel;
 use App\Services\HosxpPayloadParser;
 use App\Services\HosxpWardMappingService;
@@ -67,7 +68,8 @@ class HosxpLogController extends BaseController
             ->orderBy('code', 'ASC')
             ->findAll();
 
-        $mapping = (new HosxpWardMappingService())->compare($tables['merged'], $dbWards);
+        $aliasesByWard = (new WardApiAliasModel())->getAliasesGroupedByWardId();
+        $mapping         = (new HosxpWardMappingService())->compare($tables['merged'], $dbWards, $aliasesByWard);
 
         return $this->response->setJSON([
             'success' => true,

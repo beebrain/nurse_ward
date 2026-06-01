@@ -139,6 +139,41 @@ $uid         = 'api-map-' . uniqid();
 })();
 </script>
 
+<?php
+$wardAliases  = $ward_aliases ?? [];
+if ($posted = old('api_aliases')) {
+    $wardAliases = is_array($posted) ? $posted : $wardAliases;
+}
+$usedApiNames = $used_api_names ?? [];
+$aliasOptions = [];
+foreach ($apiWardOptions as $opt) {
+    $name = trim((string) ($opt['ward_name'] ?? ''));
+    $code = trim((string) ($opt['ward'] ?? ''));
+    if ($name === '' || $name === $currentName || isset($usedApiNames[$name])) {
+        continue;
+    }
+    if ($currentCode !== '' && $code !== $currentCode) {
+        continue;
+    }
+    $aliasOptions[] = $opt;
+}
+?>
+<div class="mb-3 border-top pt-3">
+    <label for="<?= esc($uid) ?>-aliases" class="form-label">ชื่อ API เพิ่มเติม <span class="text-muted fw-normal">(รวมยอดเข้าแผนกนี้)</span></label>
+    <select name="api_aliases[]" id="<?= esc($uid) ?>-aliases" class="form-select" multiple size="<?= min(8, max(4, count($aliasOptions) ?: 4)) ?>">
+        <?php foreach ($aliasOptions as $opt): ?>
+            <?php $name = trim((string) $opt['ward_name']); ?>
+            <option value="<?= esc($name, 'attr') ?>" <?= in_array($name, $wardAliases, true) ? 'selected' : '' ?>>
+                <?= esc($name) ?> (รหัส <?= esc($opt['ward']) ?>)
+            </option>
+        <?php endforeach; ?>
+    </select>
+    <div class="form-text">
+        รหัสเดียวกัน หลายชื่อ — เลือกชื่อหลักด้านบน แล้วติ๊กชื่อที่ต้องการ<strong>รวมยอด</strong>
+        (เช่น หลัก A + เพิ่ม B | แผนกอื่นเลือก C)
+    </div>
+</div>
+
 <?php else: ?>
 <p class="small text-muted mb-3">
     ยังไม่มี log ดึง HOSxP สำเร็จ — พิมพ์เองหรือดูรายการที่

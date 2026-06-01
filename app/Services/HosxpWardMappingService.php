@@ -17,20 +17,30 @@ class HosxpWardMappingService
      *     summary: array{total: int, configured: int, missing: int, duplicate: int}
      * }
      */
-    public function annotateAdminWards(array $wards): array
+    /**
+     * @param array<int, list<array<string, mixed>>> $aliasesByWardId
+     */
+    public function annotateAdminWards(array $wards, array $aliasesByWardId = []): array
     {
-        $duplicateNames = $this->findDuplicateApiNames($wards);
+        $duplicateNames = $this->findDuplicateApiNames($wards, $aliasesByWardId);
         $annotated      = [];
         $counts         = ['total' => count($wards), 'configured' => 0, 'missing' => 0, 'duplicate' => 0];
 
         foreach ($wards as $ward) {
-            $code = trim((string) ($ward['api_ward_code'] ?? ''));
-            $name = trim((string) ($ward['api_ward_name'] ?? ''));
+            $code    = trim((string) ($ward['api_ward_code'] ?? ''));
+            $name    = trim((string) ($ward['api_ward_name'] ?? ''));
+            $aliases = $aliasesByWardId[(int) $ward['id']] ?? [];
+            $hasMap  = ($code !== '' && $name !== '') || $aliases !== [];
 
-            if ($code === '' || $name === '') {
+            $ward['api_aliases'] = array_map(
+                static fn ($a) => (string) ($a['api_ward_name'] ?? ''),
+                $aliases
+            );
+
+            if (! $hasMap) {
                 $status = 'missing';
                 $counts['missing']++;
-            } elseif (isset($duplicateNames[$name])) {
+            } elseif ($name !== '' && isset($duplicateNames[$name])) {
                 $status = 'duplicate';
                 $counts['duplicate']++;
             } else {
@@ -80,18 +90,26 @@ class HosxpWardMappingService
      *
      * @return array<string, true> api_ward_name => true when duplicated
      */
-    public function findDuplicateApiNames(array $wards): array
+    /**
+     * @param array<int, list<array<string, mixed>>> $aliasesByWardId
+     */
+    public function findDuplicateApiNames(array $wards, array $aliasesByWardId = []): array
     {
         $counts = [];
         foreach ($wards as $ward) {
             if (! ($ward['is_active'] ?? true)) {
                 continue;
             }
-            $name = trim((string) ($ward['api_ward_name'] ?? ''));
-            if ($name === '') {
-                continue;
+            $names = [trim((string) ($ward['api_ward_name'] ?? ''))];
+            foreach ($aliasesByWardId[(int) $ward['id']] ?? [] as $alias) {
+                $names[] = trim((string) ($alias['api_ward_name'] ?? ''));
             }
-            $counts[$name] = ($counts[$name] ?? 0) + 1;
+            foreach ($names as $name) {
+                if ($name === '') {
+                    continue;
+                }
+                $counts[$name] = ($counts[$name] ?? 0) + 1;
+            }
         }
 
         $dupes = [];
@@ -114,9 +132,12 @@ class HosxpWardMappingService
      *     db_issues: list<array<string, mixed>>
      * }
      */
-    public function compare(array $apiRows, array $dbWards): array
+    /**
+     * @param array<int, list<array<string, mixed>>> $aliasesByWardId
+     */
+    public function compare(array $apiRows, array $dbWards, array $aliasesByWardId = []): array
     {
-        $lookup = $this->buildLookup($dbWards);
+        $lookup = $this->buildLookup($dbWards, $aliasesByWardId);
         $apiResults = [];
         $matchedWardIds = [];
 
@@ -126,9 +147,13 @@ class HosxpWardMappingService
             $match   = $this->findWard($apiCode, $apiName, $lookup);
             $status  = $this->resolveApiStatus($apiCode, $apiName, $match, $lookup);
 
-            if ($match !== null && $status === 'matched') {
+            if ($match !== null && in_array($status, ['matched', 'name_mismatch'], true)) {
                 $matchedWardIds[(int) $match['id']] = true;
             }
+
+            $matchedVia = ($apiName !== '' && isset($lookup['name_to_ward'][$apiName]))
+                ? ($apiName === trim((string) ($match['api_ward_name'] ?? '')) ? 'primary' : 'alias')
+                : '';
 
             $apiResults[] = [
                 'ward'              => $apiCode,
@@ -141,17 +166,18 @@ class HosxpWardMappingService
                 'ward_name_db'      => $match['name'] ?? null,
                 'api_ward_code_db'  => $match['api_ward_code'] ?? null,
                 'api_ward_name_db'  => $match['api_ward_name'] ?? null,
-                'note'              => $this->apiNote($status, $apiCode, $apiName, $match, $lookup),
+                'note'              => $this->apiNote($status, $apiCode, $apiName, $match, $lookup, $matchedVia),
             ];
         }
 
         $dbIssues = [];
         foreach ($dbWards as $ward) {
-            $id = (int) $ward['id'];
-            $code = trim((string) ($ward['api_ward_code'] ?? ''));
-            $name = trim((string) ($ward['api_ward_name'] ?? ''));
+            $id      = (int) $ward['id'];
+            $code    = trim((string) ($ward['api_ward_code'] ?? ''));
+            $name    = trim((string) ($ward['api_ward_name'] ?? ''));
+            $aliases = $aliasesByWardId[$id] ?? [];
 
-            if ($code === '' || $name === '') {
+            if ($code === '' || ($name === '' && $aliases === [])) {
                 $dbIssues[] = $this->dbIssueRow($ward, 'missing_config', 'ยังไม่ตั้ง api_ward_code / api_ward_name');
 
                 continue;
@@ -180,7 +206,10 @@ class HosxpWardMappingService
      *     code_to_wards: array<string, list<array<string, mixed>>>
      * }
      */
-    public function buildLookup(array $dbWards): array
+    /**
+     * @param array<int, list<array<string, mixed>>> $aliasesByWardId
+     */
+    public function buildLookup(array $dbWards, array $aliasesByWardId = []): array
     {
         $nameToWard = [];
         $dbNameToWard = [];
@@ -190,6 +219,12 @@ class HosxpWardMappingService
             $apiName = trim((string) ($ward['api_ward_name'] ?? ''));
             if ($apiName !== '') {
                 $nameToWard[$apiName] = $ward;
+            }
+            foreach ($aliasesByWardId[(int) $ward['id']] ?? [] as $alias) {
+                $aliasName = trim((string) ($alias['api_ward_name'] ?? ''));
+                if ($aliasName !== '') {
+                    $nameToWard[$aliasName] = $ward;
+                }
             }
             $dbName = trim((string) ($ward['name'] ?? ''));
             if ($dbName !== '') {
@@ -257,9 +292,8 @@ class HosxpWardMappingService
             return 'unmapped';
         }
 
-        $dbApiName = trim((string) ($match['api_ward_name'] ?? ''));
-        if ($apiName !== '' && $dbApiName !== '' && $apiName !== $dbApiName) {
-            return 'name_mismatch';
+        if ($apiName !== '' && isset($lookup['name_to_ward'][$apiName])) {
+            return 'matched';
         }
 
         return 'matched';
@@ -268,8 +302,12 @@ class HosxpWardMappingService
     /**
      * @param array{name_to_ward: array<string, array<string, mixed>>, db_name_to_ward: array<string, array<string, mixed>>, code_to_wards: array<string, list<array<string, mixed>>>} $lookup
      */
-    private function apiNote(string $status, string $apiCode, string $apiName, ?array $match, array $lookup): string
+    private function apiNote(string $status, string $apiCode, string $apiName, ?array $match, array $lookup, string $matchedVia = ''): string
     {
+        if ($status === 'matched' && $matchedVia === 'alias' && $match !== null) {
+            return 'รวมยอดเข้า [' . ($match['name'] ?? '') . '] (ชื่อเพิ่มเติม)';
+        }
+
         if ($status === 'ambiguous') {
             $names = array_map(
                 static fn ($w) => (string) ($w['api_ward_name'] ?? $w['name'] ?? ''),
@@ -373,34 +411,57 @@ class HosxpWardMappingService
     /**
      * @return array{valid: bool, message: string}
      */
-    public function validateApiMappingFields(?string $apiCode, ?string $apiName, ?int $excludeWardId = null): array
+    /**
+     * @param list<string> $extraAliasNames
+     *
+     * @return array{valid: bool, message: string}
+     */
+    public function validateApiMappingFields(?string $apiCode, ?string $apiName, ?int $excludeWardId = null, array $extraAliasNames = []): array
     {
         $code = trim((string) $apiCode);
         $name = trim((string) $apiName);
 
-        if ($code === '' && $name === '') {
+        if ($code === '' && $name === '' && $extraAliasNames === []) {
             return ['valid' => true, 'message' => ''];
         }
 
         if ($code === '' || $name === '') {
             return [
                 'valid'   => false,
-                'message' => 'ต้องกรอกทั้ง API Ward Code และ API Ward Name หรือเว้นว่างทั้งคู่',
+                'message' => 'ต้องกรอกทั้ง API Ward Code และ API Ward Name หลัก (ชื่อเพิ่มเติมเลือกได้ภายหลัง)',
             ];
         }
 
-        $model = model(\App\Models\WardModel::class);
-        $builder = $model->where('api_ward_name', $name)->where('is_active', 1);
+        $allNames = array_unique(array_filter(array_merge([$name], array_map('trim', $extraAliasNames))));
+
+        foreach ($allNames as $checkName) {
+            if ($checkName === '') {
+                continue;
+            }
+            if ($this->isApiNameTaken($checkName, $excludeWardId)) {
+                return [
+                    'valid'   => false,
+                    'message' => 'ชื่อ API "' . $checkName . '" ถูกใช้โดยแผนกอื่นแล้ว',
+                ];
+            }
+        }
+
+        return ['valid' => true, 'message' => ''];
+    }
+
+    private function isApiNameTaken(string $name, ?int $excludeWardId): bool
+    {
+        $wardModel = model(\App\Models\WardModel::class);
+        $builder   = $wardModel->where('api_ward_name', $name)->where('is_active', 1);
         if ($excludeWardId !== null) {
             $builder->where('id !=', $excludeWardId);
         }
         if ($builder->first() !== null) {
-            return [
-                'valid'   => false,
-                'message' => 'API Ward Name "' . $name . '" ถูกใช้โดยแผนกอื่นแล้ว',
-            ];
+            return true;
         }
 
-        return ['valid' => true, 'message' => ''];
+        $aliasMap = model(\App\Models\WardApiAliasModel::class)->getNameToWardIdMap($excludeWardId);
+
+        return isset($aliasMap[$name]);
     }
 }

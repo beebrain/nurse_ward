@@ -179,6 +179,19 @@ def load_wards_from_db(conn):
     return rows
 
 
+def load_aliases_from_db(conn):
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT ward_id, api_ward_code, api_ward_name FROM ward_api_aliases"
+        )
+        rows = cursor.fetchall()
+        cursor.close()
+        return rows
+    except Exception:
+        return []
+
+
 def load_wards_from_mapping_file():
     """Fallback เมื่อไม่มี DB — ใช้ ward_mappings.json สำหรับ dry-run"""
     if not os.path.exists(config_path):
@@ -196,7 +209,9 @@ def load_wards_from_mapping_file():
     return wards
 
 
-def build_ward_lookup(db_wards):
+def build_ward_lookup(db_wards, alias_rows=None):
+    alias_rows = alias_rows or []
+    ward_by_id = {w['id']: w for w in db_wards}
     name_to_ward = {}
     db_name_to_ward = {}
     code_to_wards = {}
@@ -208,6 +223,12 @@ def build_ward_lookup(db_wards):
         code = w.get('api_ward_code')
         if code:
             code_to_wards.setdefault(str(code).strip(), []).append(w)
+    for a in alias_rows:
+        wid = a.get('ward_id')
+        w = ward_by_id.get(wid)
+        alias_name = (a.get('api_ward_name') or '').strip()
+        if w and alias_name:
+            name_to_ward[alias_name] = w
 
     def find_ward(api_code, api_name):
         clean_name = api_name.strip() if api_name else ''
@@ -276,7 +297,8 @@ def run_fetch(dry_run=False):
         else:
             raise
 
-    find_ward, _, _ = build_ward_lookup(db_wards)
+    alias_rows = load_aliases_from_db(conn) if conn else []
+    find_ward, _, _ = build_ward_lookup(db_wards, alias_rows)
     api_raw = {}
 
     # Initialize data dictionary for mapped wards
@@ -302,7 +324,7 @@ def run_fetch(dry_run=False):
         name = item.get("ward_name")
         ward = find_ward(code, name)
         if ward:
-            census_data[ward['id']]['patient_count'] = int(item.get("count_an", 0))
+            census_data[ward['id']]['patient_count'] += int(item.get("count_an", 0))
 
     # 2. Fetch admissions today
     log("Fetching admissions today...")
@@ -312,7 +334,7 @@ def run_fetch(dry_run=False):
         name = item.get("ward_name")
         ward = find_ward(code, name)
         if ward:
-            census_data[ward['id']]['admissions_today'] = int(item.get("total_admissions", 0))
+            census_data[ward['id']]['admissions_today'] += int(item.get("total_admissions", 0))
 
     # 3. Fetch discharges and deaths today
     log("Fetching discharges today...")
@@ -322,8 +344,8 @@ def run_fetch(dry_run=False):
         name = item.get("ward_name")
         ward = find_ward(code, name)
         if ward:
-            census_data[ward['id']]['discharges_today'] = int(item.get("total_discharges", 0))
-            census_data[ward['id']]['deaths_today'] = int(item.get("count_dead", 0))
+            census_data[ward['id']]['discharges_today'] += int(item.get("total_discharges", 0))
+            census_data[ward['id']]['deaths_today'] += int(item.get("count_dead", 0))
 
     # 4. Fetch bed moves today
     log("Fetching bed moves today...")
@@ -333,8 +355,8 @@ def run_fetch(dry_run=False):
         name = item.get("ward_name")
         ward = find_ward(code, name)
         if ward:
-            census_data[ward['id']]['moves_in_today'] = int(item.get("count_receive", 0))
-            census_data[ward['id']]['moves_out_today'] = int(item.get("count_move", 0))
+            census_data[ward['id']]['moves_in_today'] += int(item.get("count_receive", 0))
+            census_data[ward['id']]['moves_out_today'] += int(item.get("count_move", 0))
 
     # Get local Thailand time (UTC+7)
     bangkok_tz = timezone(timedelta(hours=7))
