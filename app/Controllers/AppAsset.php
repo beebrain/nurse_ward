@@ -16,6 +16,7 @@ class AppAsset extends BaseController
 
     private const ALLOWED_CSS = [
         'app.css',
+        'login.css',
         'census-layout.css',
     ];
 

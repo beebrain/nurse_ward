@@ -210,7 +210,7 @@
                     <h5 class="modal-title" id="shiftDetailModalLabel">รายละเอียดเวร</h5>
                     <div class="text-muted small" id="shiftDetailSubtitle"></div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
             </div>
             <div class="modal-body" id="shiftDetailBody"></div>
             <div class="modal-footer">
@@ -225,7 +225,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="dailyProdModalLabel">Productivity รายวัน</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
             </div>
             <div class="modal-body" id="dailyProdBody"></div>
             <div class="modal-footer">

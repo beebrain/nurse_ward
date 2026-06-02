@@ -581,8 +581,17 @@ textarea:focus {
   }
 }
 
-/* Login page (standalone) */
-.login-input:focus-visible {
+/* Modal close buttons — Thai labels via aria-label in views */
+.btn-close:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+
+/* Flash alerts in main layout */
+.alert[role="alert"] {
+  border-radius: 1rem;
+}
+
+.alert[role="status"] {
+  border-radius: 1rem;
 }

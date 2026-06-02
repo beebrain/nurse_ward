@@ -13,6 +13,7 @@ $name = basename((string) ($_GET['f'] ?? ''));
 $allowed = [
     'css' => [
         'app.css'            => ['path' => __DIR__ . '/css/app.css', 'mime' => 'text/css'],
+        'login.css'          => ['path' => __DIR__ . '/css/login.css', 'mime' => 'text/css'],
         'census-layout.css'  => ['path' => __DIR__ . '/css/census-layout.css', 'mime' => 'text/css'],
     ],
     'js' => [
