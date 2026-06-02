@@ -20,7 +20,11 @@ if (! function_exists('asset_url')) {
 
         // Route through AppAsset when proxy sends all non-.php files to index.php
         if (preg_match('#^(css|js)/([^/]+)$#', $path, $m)) {
-            return rtrim(base_url(), '/') . '/app-asset/' . $m[1] . '/' . $m[2];
+            $viaIndexPhp = filter_var(env('app.assetsViaIndexPhp', '1'), FILTER_VALIDATE_BOOLEAN);
+
+            return rtrim(base_url(), '/')
+                . ($viaIndexPhp ? '/index.php' : '')
+                . '/app-asset/' . $m[1] . '/' . $m[2];
         }
 
         $prefix = (string) env('app.publicAssetsPrefix', '');

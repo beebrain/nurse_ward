@@ -29,11 +29,15 @@ $routes->get('debug/check-user', '\App\Controllers\DebugLoginController::checkUs
 $routes->get('account/change-password', '\App\Controllers\AccountController::changePasswordView', ['filter' => 'session']);
 $routes->post('account/change-password', '\App\Controllers\AccountController::changePasswordAction', ['filter' => 'session']);
 
-// Static assets via PHP (Caddy subpath rewrites non-.php URIs to index.php)
+// Static assets via PHP (Caddy subpath rewrites non-.php URIs to /index.php{uri})
 $routes->get('app-asset/js/(:segment)', '\App\Controllers\AppAsset::javascript/$1');
 $routes->get('app-asset/css/(:segment)', '\App\Controllers\AppAsset::stylesheet/$1');
+$routes->get('index.php/app-asset/js/(:segment)', '\App\Controllers\AppAsset::javascript/$1');
+$routes->get('index.php/app-asset/css/(:segment)', '\App\Controllers\AppAsset::stylesheet/$1');
 $routes->get('public/js/(:segment)', '\App\Controllers\AppAsset::javascript/$1');
 $routes->get('public/css/(:segment)', '\App\Controllers\AppAsset::stylesheet/$1');
+$routes->get('index.php/public/js/(:segment)', '\App\Controllers\AppAsset::javascript/$1');
+$routes->get('index.php/public/css/(:segment)', '\App\Controllers\AppAsset::stylesheet/$1');
 
 $routes->group('census', ['filter' => 'permission:census.record'], static function ($routes) {
     $routes->get('/', '\App\Controllers\CensusController::index');
