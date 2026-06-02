@@ -17,6 +17,12 @@ if (! function_exists('asset_url')) {
     function asset_url(string $path): string
     {
         $path = ltrim($path, '/');
+
+        // Route through AppAsset when proxy sends all non-.php files to index.php
+        if (preg_match('#^(css|js)/([^/]+)$#', $path, $m)) {
+            return rtrim(base_url(), '/') . '/app-asset/' . $m[1] . '/' . $m[2];
+        }
+
         $prefix = (string) env('app.publicAssetsPrefix', '');
         if ($prefix !== '') {
             $prefix = rtrim($prefix, '/') . '/';

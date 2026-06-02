@@ -29,10 +29,11 @@ $routes->get('debug/check-user', '\App\Controllers\DebugLoginController::checkUs
 $routes->get('account/change-password', '\App\Controllers\AccountController::changePasswordView', ['filter' => 'session']);
 $routes->post('account/change-password', '\App\Controllers\AccountController::changePasswordAction', ['filter' => 'session']);
 
-// Static JS via PHP (avoids 404 when reverse proxy does not serve public/js/*)
+// Static assets via PHP (Caddy subpath rewrites non-.php URIs to index.php)
 $routes->get('app-asset/js/(:segment)', '\App\Controllers\AppAsset::javascript/$1');
-// Same file when browser requests .../public/js/... (e.g. app.publicAssetsPrefix = public + all requests via index.php)
+$routes->get('app-asset/css/(:segment)', '\App\Controllers\AppAsset::stylesheet/$1');
 $routes->get('public/js/(:segment)', '\App\Controllers\AppAsset::javascript/$1');
+$routes->get('public/css/(:segment)', '\App\Controllers\AppAsset::stylesheet/$1');
 
 $routes->group('census', ['filter' => 'permission:census.record'], static function ($routes) {
     $routes->get('/', '\App\Controllers\CensusController::index');
