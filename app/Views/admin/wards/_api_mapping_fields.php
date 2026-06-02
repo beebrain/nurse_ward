@@ -95,9 +95,18 @@ $uid = 'api-map-' . uniqid();
             <option value="">— เลือกรหัส ward —</option>
             <?php foreach ($namesByCode as $code => $names):
                 $group = $groupLabelForCode($names);
+                $namePreview = implode(', ', array_slice(array_column($names, 'ward_name'), 0, 3));
+                if (count($names) > 3) {
+                    $namePreview .= '…';
+                }
                 $label = 'รหัส ' . $code;
                 if ($group !== '') {
                     $label .= ' — ' . $group;
+                    if (count($names) === 1) {
+                        $label .= ' · ' . $names[0]['ward_name'];
+                    }
+                } elseif ($namePreview !== '') {
+                    $label .= ' — ' . $namePreview;
                 }
                 $label .= ' (' . count($names) . ' ชื่อ)';
                 ?>

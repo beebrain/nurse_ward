@@ -1,5 +1,7 @@
 <?= $this->extend('layout/main') ?>
 
+<?= $this->section('layout_class') ?>layout-fluid<?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
 <style>
     .hosxp-log-table td { vertical-align: middle; font-size: 0.9rem; }

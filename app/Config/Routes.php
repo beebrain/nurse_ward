@@ -72,6 +72,7 @@ $routes->group('admin', ['filter' => 'group:superadmin'], static function ($rout
         $routes->post('store', '\App\Controllers\Admin\WardController::store');
         $routes->get('edit/(:num)', '\App\Controllers\Admin\WardController::edit/$1');
         $routes->post('update/(:num)', '\App\Controllers\Admin\WardController::update/$1');
+        $routes->post('api-mapping/(:num)', '\App\Controllers\Admin\WardController::updateApiMapping/$1');
         $routes->post('delete/(:num)', '\App\Controllers\Admin\WardController::delete/$1');
     });
 

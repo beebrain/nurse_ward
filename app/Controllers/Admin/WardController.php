@@ -25,15 +25,89 @@ class WardController extends BaseController
     {
         $wards          = $this->wardModel->getAllWithDepartment();
         $aliasesByWard  = (new WardApiAliasModel())->getAliasesGroupedByWardId();
-        $mapping        = (new HosxpWardMappingService())->annotateAdminWards($wards, $aliasesByWard);
+        $mappingService = new HosxpWardMappingService();
+        $mapping        = $mappingService->annotateAdminWards($wards, $aliasesByWard);
+        $apiOptions     = $this->loadLatestApiWardOptions();
+        $mappingGraph   = $mappingService->buildAdminMappingGraph(
+            $mapping['wards'],
+            $aliasesByWard,
+            $apiOptions
+        );
+        $mappingList    = $mappingService->buildAdminMappingList(
+            $mapping['wards'],
+            $aliasesByWard,
+            $apiOptions
+        );
+
+        $apiSnapshotAt = null;
+        $log           = (new IpdApiFetchLogModel())->getLatestSuccessfulWithPayload();
+        if ($log !== null) {
+            $apiSnapshotAt = $log['fetched_at'] ?? $log['created_at'] ?? null;
+        }
+
+        $usedNameToWardId = $this->buildUsedApiNameToWardIdMap($mapping['wards']);
+        $namesByCode      = $this->buildNamesByCode($apiOptions);
 
         $data = [
-            'wards'           => $mapping['wards'],
-            'mapping_summary' => $mapping['summary'],
-            'title'           => 'จัดการ Ward',
+            'wards'               => $mapping['wards'],
+            'mapping_summary'     => $mapping['summary'],
+            'mapping_graph'       => $mappingGraph,
+            'mapping_list'        => $mappingList,
+            'api_snapshot_at'     => $apiSnapshotAt,
+            'api_names_by_code'   => $namesByCode,
+            'api_options_count'   => count($apiOptions),
+            'used_name_to_ward'   => $usedNameToWardId,
+            'title'               => 'จัดการ Ward',
         ];
 
         return view('admin/wards/index', $data);
+    }
+
+    /**
+     * บันทึก mapping API จากหน้ารายการจับคู่ (AJAX)
+     */
+    public function updateApiMapping($id = null)
+    {
+        $wardId = (int) $id;
+        $ward   = $this->wardModel->find($wardId);
+
+        if (! $ward) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'ok'      => false,
+                'message' => 'ไม่พบแผนก',
+            ]);
+        }
+
+        $code  = trim((string) ($this->request->getPost('api_ward_code') ?? ''));
+        $names = $this->getPostedApiWardNames();
+        $clear = $this->request->getPost('clear_mapping') === '1'
+            || $this->request->getPost('clear_mapping') === 'true';
+
+        if ($clear) {
+            $code  = '';
+            $names = [];
+        }
+
+        $error = $this->validateApiMappingPayload($code, $names, $wardId);
+        if ($error !== null) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'ok'      => false,
+                'message' => $error,
+            ]);
+        }
+
+        $this->saveApiMapping($wardId, $code, $names);
+
+        $row = $this->buildMappingListRowPayload($wardId);
+        if ($row === null) {
+            return $this->response->setJSON(['ok' => true, 'message' => 'บันทึกแล้ว']);
+        }
+
+        return $this->response->setJSON([
+            'ok'      => true,
+            'message' => 'บันทึกการเชื่อม API แล้ว',
+            'row'     => $row,
+        ]);
     }
 
     public function create()
@@ -63,7 +137,9 @@ class WardController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $apiError = $this->validateApiMapping();
+        $code  = trim((string) ($this->request->getPost('api_ward_code') ?? ''));
+        $names = $this->getPostedApiWardNames();
+        $apiError = $this->validateApiMappingPayload($code, $names, null);
         if ($apiError !== null) {
             return redirect()->back()->withInput()->with('errors', ['api_ward_name' => $apiError]);
         }
@@ -76,7 +152,7 @@ class WardController extends BaseController
             'is_active'     => $this->request->getPost('is_active') ? true : false,
         ]);
 
-        $this->saveApiMappingFromRequest((int) $this->wardModel->getInsertID());
+        $this->saveApiMapping((int) $this->wardModel->getInsertID(), $code, $names);
 
         return redirect()->to('admin/wards')->with('message', 'Ward created successfully.');
     }
@@ -114,7 +190,9 @@ class WardController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $apiError = $this->validateApiMapping((int) $id);
+        $code  = trim((string) ($this->request->getPost('api_ward_code') ?? ''));
+        $names = $this->getPostedApiWardNames();
+        $apiError = $this->validateApiMappingPayload($code, $names, (int) $id);
         if ($apiError !== null) {
             return redirect()->back()->withInput()->with('errors', ['api_ward_name' => $apiError]);
         }
@@ -127,7 +205,7 @@ class WardController extends BaseController
             'is_active'     => $this->request->getPost('is_active') ? true : false,
         ]);
 
-        $this->saveApiMappingFromRequest((int) $id);
+        $this->saveApiMapping((int) $id, $code, $names);
 
         return redirect()->to('admin/wards')->with('message', 'Ward updated successfully.');
     }
@@ -272,11 +350,11 @@ class WardController extends BaseController
         return (new HosxpWardMappingService())->uniqueApiWardsFromMerged($tables['merged']);
     }
 
-    private function validateApiMapping(?int $excludeWardId = null): ?string
+    /**
+     * @param list<string> $names
+     */
+    private function validateApiMappingPayload(string $code, array $names, ?int $excludeWardId): ?string
     {
-        $code  = trim((string) ($this->request->getPost('api_ward_code') ?? ''));
-        $names = $this->getPostedApiWardNames();
-
         if ($code === '' && $names === []) {
             return null;
         }
@@ -299,11 +377,11 @@ class WardController extends BaseController
         return $result['valid'] ? null : $result['message'];
     }
 
-    private function saveApiMappingFromRequest(int $wardId): void
+    /**
+     * @param list<string> $names
+     */
+    private function saveApiMapping(int $wardId, string $code, array $names): void
     {
-        $code  = $this->normalizeApiField('api_ward_code') ?? '';
-        $names = $this->getPostedApiWardNames();
-
         if ($code === '' && $names === []) {
             $this->wardModel->update($wardId, [
                 'api_ward_code' => null,
@@ -325,10 +403,108 @@ class WardController extends BaseController
         (new WardApiAliasModel())->syncForWard($wardId, $code, $extras);
     }
 
-    private function normalizeApiField(string $field): ?string
+    /**
+     * @param list<array<string, mixed>> $apiOptions
+     *
+     * @return array<string, list<array{ward: string, ward_name: string, ward_name_ward: string}>>
+     */
+    private function buildNamesByCode(array $apiOptions): array
     {
-        $value = trim((string) ($this->request->getPost($field) ?? ''));
+        $namesByCode = [];
+        foreach ($apiOptions as $opt) {
+            $code = trim((string) ($opt['ward'] ?? ''));
+            $name = trim((string) ($opt['ward_name'] ?? ''));
+            if ($code === '' || $name === '') {
+                continue;
+            }
+            $namesByCode[$code][] = [
+                'ward'            => $code,
+                'ward_name'       => $name,
+                'ward_name_ward'  => trim((string) ($opt['ward_name_ward'] ?? '')),
+            ];
+        }
+        ksort($namesByCode);
 
-        return $value === '' ? null : $value;
+        return $namesByCode;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $wards
+     *
+     * @return array<string, int>
+     */
+    private function buildUsedApiNameToWardIdMap(array $wards): array
+    {
+        $map = [];
+        foreach ($wards as $ward) {
+            $wardId = (int) $ward['id'];
+            $names  = $ward['api_mapped_names'] ?? [];
+            if ($names === [] && ! empty($ward['api_ward_name'])) {
+                $names = [(string) $ward['api_ward_name']];
+            }
+            foreach ($names as $name) {
+                $name = trim((string) $name);
+                if ($name !== '') {
+                    $map[$name] = $wardId;
+                }
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function buildMappingListRowPayload(int $wardId): ?array
+    {
+        $wards         = $this->wardModel->getAllWithDepartment();
+        $aliasesByWard = (new WardApiAliasModel())->getAliasesGroupedByWardId();
+        $apiOptions    = $this->loadLatestApiWardOptions();
+        $mapping       = (new HosxpWardMappingService())->annotateAdminWards($wards, $aliasesByWard);
+
+        $target = null;
+        foreach ($mapping['wards'] as $w) {
+            if ((int) $w['id'] === $wardId) {
+                $target = $w;
+                break;
+            }
+        }
+
+        if ($target === null) {
+            return null;
+        }
+
+        $list = (new HosxpWardMappingService())->buildAdminMappingList(
+            [$target],
+            $aliasesByWard,
+            $apiOptions
+        );
+
+        if ($list['rows'] === []) {
+            return null;
+        }
+
+        $row = $list['rows'][0];
+        $db  = $row['db'];
+
+        return [
+            'ward_id'      => $wardId,
+            'api_code'     => (string) ($db['api_code'] ?? ''),
+            'mapped_names' => $db['mapped_names'] ?? [],
+            'apis'         => $row['apis'],
+            'status'       => (string) ($db['status'] ?? 'missing'),
+            'status_label' => (string) ($db['status_label'] ?? ''),
+            'is_issue'     => in_array($db['status'] ?? '', ['missing', 'duplicate', 'not_in_snapshot'], true),
+            'is_ok'        => ($db['status'] ?? '') === 'ok' && $row['apis'] !== [],
+            'search'       => mb_strtolower(implode(' ', array_filter([
+                $db['name'] ?? '',
+                $db['code'] ?? '',
+                $db['department'] ?? '',
+                $db['api_code'] ?? '',
+                implode(' ', $db['mapped_names'] ?? []),
+                implode(' ', array_column($row['apis'], 'name')),
+            ]))),
+        ];
     }
 }

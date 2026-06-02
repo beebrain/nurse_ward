@@ -14,10 +14,11 @@ $allowed = [
     'css' => [
         'app.css'            => ['path' => __DIR__ . '/css/app.css', 'mime' => 'text/css'],
         'login.css'          => ['path' => __DIR__ . '/css/login.css', 'mime' => 'text/css'],
-        'census-layout.css'  => ['path' => __DIR__ . '/css/census-layout.css', 'mime' => 'text/css'],
+        'census-layout.css'      => ['path' => __DIR__ . '/css/census-layout.css', 'mime' => 'text/css'],
+        'ward-mapping-graph.css' => ['path' => __DIR__ . '/css/ward-mapping-graph.css', 'mime' => 'text/css'],
     ],
     'js' => [
-        'census_entry.js' => ['path' => __DIR__ . '/js/census_entry.js', 'mime' => 'application/javascript'],
+        'ward_mapping_inline.js' => ['path' => __DIR__ . '/js/ward_mapping_inline.js', 'mime' => 'application/javascript'],
     ],
 ];
 

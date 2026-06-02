@@ -48,9 +48,11 @@ foreach (array_slice($navItems, 4) as $item) {
         break;
     }
 }
+
+$layoutClass = trim($this->renderSection('layout_class')) ?: 'layout-default';
 ?>
 
-<body>
+<body class="app-body <?= esc($layoutClass) ?><?= auth()->loggedIn() ? ' has-sidebar' : '' ?>">
     <a class="skip-link" href="#main-content">ข้ามไปเนื้อหาหลัก</a>
     <div class="bg-orb-top" aria-hidden="true"></div>
     <div class="bg-orb-bottom" aria-hidden="true"></div>
@@ -106,10 +108,19 @@ foreach (array_slice($navItems, 4) as $item) {
 
     <div class="page-shell">
         <?php if (auth()->loggedIn()): ?>
-            <aside class="side-shell" aria-label="เมนูด้านข้าง">
+            <aside class="side-shell" id="appSidebar" aria-label="เมนูด้านข้าง">
                 <div class="side-card">
-                    <div class="side-title">The Sanctuary</div>
-                    <div class="side-subtitle">Clinical Portal</div>
+                    <div class="side-card-head">
+                        <div>
+                            <div class="side-title">The Sanctuary</div>
+                            <div class="side-subtitle">Clinical Portal</div>
+                        </div>
+                        <button type="button" class="sidebar-collapse-btn d-none d-lg-inline-flex"
+                            id="sidebarCollapseBtn" aria-label="ซ่อนเมนูด้านข้าง" aria-expanded="true"
+                            aria-controls="appSidebar">
+                            <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                        </button>
+                    </div>
                     <nav>
                         <?php foreach ($navItems as $item): ?>
                             <?php $isActive = str_starts_with($currentUrl, $item['url']); ?>
@@ -167,6 +178,29 @@ foreach (array_slice($navItems, 4) as $item) {
     <?php endif; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      (function () {
+        const key = 'nw_sidebar_collapsed';
+        const body = document.body;
+        const btn = document.getElementById('sidebarCollapseBtn');
+        if (localStorage.getItem(key) === '1') {
+          body.classList.add('sidebar-collapsed');
+        }
+        if (btn) {
+          const sync = function () {
+            const collapsed = body.classList.contains('sidebar-collapsed');
+            btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            btn.setAttribute('aria-label', collapsed ? 'แสดงเมนูด้านข้าง' : 'ซ่อนเมนูด้านข้าง');
+          };
+          sync();
+          btn.addEventListener('click', function () {
+            body.classList.toggle('sidebar-collapsed');
+            localStorage.setItem(key, body.classList.contains('sidebar-collapsed') ? '1' : '0');
+            sync();
+          });
+        }
+      })();
+    </script>
     <?= $this->renderSection('scripts') ?>
 </body>
 

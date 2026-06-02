@@ -1,5 +1,7 @@
 <?= $this->extend('layout/main') ?>
 
+<?= $this->section('layout_class') ?>layout-form<?= $this->endSection() ?>
+
 <?= $this->section('styles') ?>
 <link href="<?= asset_url('css/census-layout.css') ?>" rel="stylesheet">
 <?= $this->endSection() ?>

@@ -12,12 +12,14 @@ class AppAsset extends BaseController
 {
     private const ALLOWED_JS = [
         'census_entry.js',
+        'ward_mapping_inline.js',
     ];
 
     private const ALLOWED_CSS = [
         'app.css',
         'login.css',
         'census-layout.css',
+        'ward-mapping-graph.css',
     ];
 
     public function javascript(string $name): ResponseInterface

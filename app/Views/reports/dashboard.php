@@ -1,5 +1,7 @@
 <?= $this->extend('layout/main') ?>
 
+<?= $this->section('layout_class') ?>layout-fluid<?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
 <?php
 $thaiMonths = [
@@ -93,10 +95,7 @@ $thaiMonths = [
     }
 
     .comparison-table-scroll {
-        max-height: calc(100vh - 20rem);
-        overflow: auto;
-        -webkit-overflow-scrolling: touch;
-        border-radius: 1rem;
+        max-height: calc(100dvh - 14rem);
     }
 
     .comparison-table thead th {
@@ -105,13 +104,6 @@ $thaiMonths = [
         z-index: 2;
         background-color: #f8f9fa;
         box-shadow: 0 1px 0 #dee2e6;
-        white-space: nowrap;
-    }
-
-    .comparison-table th,
-    .comparison-table td {
-        vertical-align: middle;
-        white-space: nowrap;
     }
 
     .prod-good { color: #0c7521; font-weight: 700; }
@@ -119,8 +111,7 @@ $thaiMonths = [
     .prod-low  { color: #93000a; font-weight: 700; }
 
     .snapshot-table-wrap {
-        overflow-x: auto;
-        border-radius: 1rem;
+        max-height: calc(100dvh - 14rem);
     }
 
     .util-high { color: var(--danger-text); font-weight: 800; }
@@ -159,8 +150,8 @@ $thaiMonths = [
     <?php if ($isSuperAdmin): ?>
         <div class="tab-pane fade show active" id="tab-monthly" role="tabpanel">
             <div class="dashboard-card mb-4">
-                <form id="dashboard-filter" class="row g-3 align-items-end">
-                    <div class="col-md-4">
+                <form id="dashboard-filter" class="dashboard-filter-bar">
+                    <div class="filter-field">
                         <label for="month" class="form-label fw-bold">เดือน</label>
                         <select name="month" id="month" class="form-select" required>
                             <?php foreach ($thaiMonths as $m => $name): ?>
@@ -168,7 +159,7 @@ $thaiMonths = [
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="filter-field">
                         <label for="year" class="form-label fw-bold">ปี</label>
                         <select name="year" id="year" class="form-select" required>
                             <?php for ($y = $current_year; $y >= $current_year - 5; $y--): ?>
@@ -176,8 +167,8 @@ $thaiMonths = [
                             <?php endfor; ?>
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-primary w-100">โหลดข้อมูล</button>
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary">โหลดข้อมูล</button>
                     </div>
                 </form>
             </div>
@@ -195,14 +186,14 @@ $thaiMonths = [
                 <div class="dashboard-card mb-4">
                     <div class="dashboard-section-title">เปรียบเทียบทุกแผนก</div>
                     <div class="comparison-table-scroll">
-                        <table class="table table-hover comparison-table mb-0" id="ward-comparison-table">
+                        <table class="table table-hover comparison-table data-table-full mb-0" id="ward-comparison-table">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="ps-3">แผนก</th>
-                                    <th class="text-end">เตียง</th>
-                                    <th class="text-end">จำนวนผู้ป่วย<br><span class="fw-normal small text-muted">(สะสม)</span></th>
-                                    <th class="text-end">อัตราใช้เตียง %</th>
-                                    <th class="text-end pe-3">ประสิทธิภาพการพยาบาล %</th>
+                                    <th class="ps-3 col-ward">แผนก</th>
+                                    <th class="col-num">เตียง</th>
+                                    <th class="col-num">จำนวนผู้ป่วย<br><span class="fw-normal small text-muted">(สะสม)</span></th>
+                                    <th class="col-num">อัตราใช้เตียง %</th>
+                                    <th class="col-num pe-3">ประสิทธิภาพการพยาบาล %</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -274,15 +265,15 @@ $thaiMonths = [
             </div>
             <p class="text-muted small">Occupancy ณ ข้อมูล census ล่าสุดของแต่ละแผนก (ไม่ใช่สรุปรายเดือน)</p>
             <div class="snapshot-table-wrap">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle data-table-full mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>แผนก</th>
-                            <th class="text-center">เตียง</th>
-                            <th class="text-center">จำนวนผู้ป่วย</th>
-                            <th class="text-center">ใช้เตียง %</th>
-                            <th class="text-nowrap">วันที่ข้อมูล</th>
-                            <th class="text-center">เวรอ้างอิง</th>
+                            <th class="col-ward">แผนก</th>
+                            <th class="col-num">เตียง</th>
+                            <th class="col-num">จำนวนผู้ป่วย</th>
+                            <th class="col-num">ใช้เตียง %</th>
+                            <th class="col-num">วันที่ข้อมูล</th>
+                            <th class="col-num">เวรอ้างอิง</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -390,11 +381,11 @@ $(function() {
     function renderTable(wards) {
         const rows = wards.map(w => `
             <tr>
-                <td class="ps-3 fw-semibold">${escapeHtml(w.ward_name)}</td>
-                <td class="text-end">${fmtNum(w.beds)}</td>
-                <td class="text-end">${fmtNum(w.patient_days)}</td>
-                <td class="text-end ${prodClass(w.occupancy_productivity)}">${fmtPct(w.occupancy_productivity)}</td>
-                <td class="text-end pe-3 ${prodClass(w.nursing_productivity)}">${fmtPct(w.nursing_productivity)}</td>
+                <td class="ps-3 col-ward fw-semibold">${escapeHtml(w.ward_name)}</td>
+                <td class="col-num">${fmtNum(w.beds)}</td>
+                <td class="col-num">${fmtNum(w.patient_days)}</td>
+                <td class="col-num ${prodClass(w.occupancy_productivity)}">${fmtPct(w.occupancy_productivity)}</td>
+                <td class="col-num pe-3 ${prodClass(w.nursing_productivity)}">${fmtPct(w.nursing_productivity)}</td>
             </tr>
         `).join('');
         $('#ward-comparison-table tbody').html(rows || '<tr><td colspan="5" class="text-center text-muted py-4">ไม่มีข้อมูล</td></tr>');

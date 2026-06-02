@@ -418,6 +418,307 @@ class HosxpWardMappingService
     }
 
     /**
+     * คีย์สำหรับ node ฝั่ง API ในแผนภาพเชื่อมโยง
+     */
+    public static function apiNodeKey(string $code, string $name): string
+    {
+        return 'api_' . substr(md5($code . '|' . $name), 0, 12);
+    }
+
+    /**
+     * ข้อมูลแผนภาพ: ซ้าย = DB wards, ขวา = API wards, เส้น = การ map ตามชื่อ API
+     *
+     * @param list<array<string, mixed>> $wards แผนกที่ annotate แล้วจาก annotateAdminWards()
+     * @param array<int, list<array<string, mixed>>> $aliasesByWardId
+     * @param list<array{ward: string, ward_name: string, ward_name_ward?: string}> $apiWards
+     *
+     * @return array{
+     *     db_nodes: list<array<string, mixed>>,
+     *     api_nodes: list<array<string, mixed>>,
+     *     links: list<array<string, mixed>>
+     * }
+     */
+    public function buildAdminMappingGraph(array $wards, array $aliasesByWardId, array $apiWards): array
+    {
+        $duplicateNames = $this->findDuplicateApiNames($wards, $aliasesByWardId);
+        $lookup         = $this->buildLookup($wards, $aliasesByWardId);
+
+        $apiNodes = [];
+        $apiKeys  = [];
+        foreach ($apiWards as $row) {
+            $code = trim((string) ($row['ward'] ?? ''));
+            $name = trim((string) ($row['ward_name'] ?? ''));
+            if ($code === '' && $name === '') {
+                continue;
+            }
+            $key = self::apiNodeKey($code, $name);
+            if (isset($apiKeys[$key])) {
+                continue;
+            }
+            $apiKeys[$key] = true;
+
+            $match   = $lookup['name_to_ward'][$name] ?? null;
+            $dbId    = $match !== null ? (int) $match['id'] : null;
+            $mapped  = $dbId !== null;
+
+            $apiNodes[] = [
+                'key'    => $key,
+                'code'   => $code,
+                'name'   => $name,
+                'group'  => trim((string) ($row['ward_name_ward'] ?? '')),
+                'mapped' => $mapped,
+                'db_id'  => $dbId,
+            ];
+        }
+
+        usort($apiNodes, static fn ($a, $b) => [$a['code'], $a['name']] <=> [$b['code'], $b['name']]);
+
+        $links          = [];
+        $linkedByDb     = [];
+        $linkedApiKeys  = [];
+
+        foreach ($apiNodes as $node) {
+            if ($node['db_id'] === null) {
+                continue;
+            }
+            $status = isset($duplicateNames[$node['name']]) ? 'duplicate' : 'ok';
+            $links[] = [
+                'db_id'   => $node['db_id'],
+                'api_key' => $node['key'],
+                'status'  => $status,
+            ];
+            $linkedByDb[$node['db_id']]   = ($linkedByDb[$node['db_id']] ?? 0) + 1;
+            $linkedApiKeys[$node['key']] = true;
+        }
+
+        $dbNodes = [];
+        foreach ($wards as $ward) {
+            $id           = (int) $ward['id'];
+            $mappedNames  = $ward['api_mapped_names'] ?? [];
+            $hasConfig    = trim((string) ($ward['api_ward_code'] ?? '')) !== ''
+                || $mappedNames !== [];
+            $linkCount    = $linkedByDb[$id] ?? 0;
+            $graphStatus  = (string) ($ward['mapping_status'] ?? 'missing');
+
+            if ($hasConfig && $linkCount === 0 && $apiWards !== []) {
+                $graphStatus = 'not_in_snapshot';
+            } elseif ($hasConfig && $linkCount > 0 && $graphStatus === 'missing') {
+                $graphStatus = 'ok';
+            }
+
+            $dbNodes[] = [
+                'id'            => $id,
+                'name'          => (string) ($ward['name'] ?? ''),
+                'code'          => (string) ($ward['code'] ?? ''),
+                'department'    => (string) ($ward['department_name'] ?? ''),
+                'api_code'      => (string) ($ward['api_ward_code'] ?? ''),
+                'mapped_names'  => $mappedNames,
+                'is_active'     => (bool) ($ward['is_active'] ?? true),
+                'status'        => $graphStatus,
+                'status_label'  => $this->graphDbStatusLabel($graphStatus),
+                'link_count'    => $linkCount,
+            ];
+        }
+
+        usort($dbNodes, static fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+
+        return [
+            'db_nodes'  => $dbNodes,
+            'api_nodes' => $apiNodes,
+            'links'     => $links,
+        ];
+    }
+
+    /**
+     * รายการจับคู่แบบอ่านง่าย: หนึ่งแถวต่อแผนก DB + ชิปชื่อ API ที่เชื่อม
+     *
+     * @param list<array<string, mixed>> $wards
+     * @param array<int, list<array<string, mixed>>> $aliasesByWardId
+     * @param list<array{ward: string, ward_name: string, ward_name_ward?: string}> $apiWards
+     *
+     * @return array{
+     *     rows: list<array{db: array<string, mixed>, apis: list<array<string, mixed>>, sort: int}>,
+     *     unmapped_api: list<array<string, mixed>>,
+     *     counts: array{rows: int, issues: int, unmapped_api: int}
+     * }
+     */
+    public function buildAdminMappingList(array $wards, array $aliasesByWardId, array $apiWards): array
+    {
+        $graph    = $this->buildAdminMappingGraph($wards, $aliasesByWardId, $apiWards);
+        $apiByKey = [];
+        foreach ($graph['api_nodes'] as $node) {
+            $apiByKey[$node['key']] = $node;
+        }
+
+        $linksByDb = [];
+        foreach ($graph['links'] as $link) {
+            $linksByDb[$link['db_id']][] = $link;
+        }
+
+        $rows = [];
+        foreach ($graph['db_nodes'] as $db) {
+            $apis = [];
+            foreach ($linksByDb[$db['id']] ?? [] as $link) {
+                $api = $apiByKey[$link['api_key']] ?? null;
+                if ($api === null) {
+                    continue;
+                }
+                $apis[] = array_merge($api, ['link_status' => $link['status']]);
+            }
+
+            $linkedNames = array_column($apis, 'name');
+            foreach ($db['mapped_names'] as $name) {
+                if ($name === '' || in_array($name, $linkedNames, true)) {
+                    continue;
+                }
+                $apis[] = [
+                    'key'         => '',
+                    'code'        => $db['api_code'],
+                    'name'        => $name,
+                    'group'       => '',
+                    'mapped'      => true,
+                    'ghost'       => true,
+                    'link_status' => 'ghost',
+                ];
+            }
+
+            $mappedNames = $db['mapped_names'] ?? [];
+            $primaryName = $mappedNames !== [] ? (string) $mappedNames[0] : '';
+            foreach ($apis as $i => $api) {
+                $apis[$i]['is_primary'] = $primaryName !== '' && ($api['name'] ?? '') === $primaryName;
+            }
+            usort($apis, static function ($a, $b) {
+                if (($a['is_primary'] ?? false) !== ($b['is_primary'] ?? false)) {
+                    return ($b['is_primary'] ?? false) <=> ($a['is_primary'] ?? false);
+                }
+
+                return strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
+            });
+
+            $rows[] = [
+                'db'   => $db,
+                'apis' => $apis,
+                'sort' => $this->mappingRowSortKey($db),
+            ];
+        }
+
+        usort($rows, static function ($a, $b) {
+            if ($a['sort'] !== $b['sort']) {
+                return $a['sort'] <=> $b['sort'];
+            }
+
+            return strcasecmp($a['db']['name'], $b['db']['name']);
+        });
+
+        $unmappedApi = [];
+        foreach ($graph['api_nodes'] as $api) {
+            if ($api['mapped']) {
+                continue;
+            }
+            $suggest       = $this->suggestWardForApiName($api['name'], $graph['db_nodes']);
+            $unmappedApi[] = array_merge($api, [
+                'suggest_ward_id'   => $suggest['id'],
+                'suggest_ward_name' => $suggest['name'],
+            ]);
+        }
+
+        $issues = 0;
+        foreach ($rows as $row) {
+            if (in_array($row['db']['status'], ['missing', 'duplicate', 'not_in_snapshot'], true)) {
+                $issues++;
+            }
+        }
+
+        return [
+            'rows'         => $rows,
+            'unmapped_api' => $unmappedApi,
+            'counts'       => [
+                'rows'         => count($rows),
+                'issues'       => $issues,
+                'unmapped_api' => count($unmappedApi),
+            ],
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $dbNodes
+     *
+     * @return array{id: int|null, name: string|null, score: float}
+     */
+    private function suggestWardForApiName(string $apiName, array $dbNodes): array
+    {
+        $apiNorm = mb_strtolower(trim($apiName));
+        if ($apiNorm === '') {
+            return ['id' => null, 'name' => null, 'score' => 0.0];
+        }
+
+        $bestId    = null;
+        $bestName  = null;
+        $bestScore = 0.0;
+
+        foreach ($dbNodes as $db) {
+            if (! ($db['is_active'] ?? true)) {
+                continue;
+            }
+            $dbName = mb_strtolower(trim((string) ($db['name'] ?? '')));
+            if ($dbName === '') {
+                continue;
+            }
+
+            $score = 0.0;
+            if ($apiNorm === $dbName) {
+                $score = 100.0;
+            } elseif (str_contains($apiNorm, $dbName) || str_contains($dbName, $apiNorm)) {
+                $score = 85.0;
+            } else {
+                similar_text($apiNorm, $dbName, $pct);
+                $score = (float) $pct;
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestId    = (int) $db['id'];
+                $bestName  = (string) $db['name'];
+            }
+        }
+
+        if ($bestScore < 55.0) {
+            return ['id' => null, 'name' => null, 'score' => $bestScore];
+        }
+
+        return ['id' => $bestId, 'name' => $bestName, 'score' => $bestScore];
+    }
+
+    /**
+     * @param array<string, mixed> $db
+     */
+    private function mappingRowSortKey(array $db): int
+    {
+        if (! ($db['is_active'] ?? true)) {
+            return 100;
+        }
+
+        return match ($db['status'] ?? 'missing') {
+            'missing'         => 0,
+            'duplicate'       => 1,
+            'not_in_snapshot' => 2,
+            'ok'              => 3,
+            default           => 4,
+        };
+    }
+
+    private function graphDbStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'ok'              => 'เชื่อมแล้ว',
+            'missing'         => 'ยังไม่ตั้ง API',
+            'duplicate'       => 'ชื่อ API ซ้ำ',
+            'not_in_snapshot' => 'ตั้งค่าแล้ว — ไม่พบใน API ล่าสุด',
+            default           => $status,
+        };
+    }
+
+    /**
      * @return array{valid: bool, message: string}
      */
     /**

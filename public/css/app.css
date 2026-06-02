@@ -148,7 +148,7 @@ button:focus-visible,
 }
 
 .top-shell-inner {
-  max-width: var(--shell-max);
+  width: 100%;
   margin: 0 auto;
   padding: 1rem var(--page-gutter);
   display: flex;
@@ -284,7 +284,6 @@ button:focus-visible,
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: var(--shell-max);
   margin: 0 auto;
   display: flex;
   min-height: calc(100dvh - var(--header-height));
@@ -594,4 +593,168 @@ textarea:focus {
 
 .alert[role="status"] {
   border-radius: 1rem;
+}
+
+/* ── Layout modes (fluid / form / default) ─────────────────────────── */
+
+/* Default: centered shell (forms, settings) */
+body.layout-default .page-shell,
+body.layout-default .top-shell-inner {
+  max-width: var(--shell-max);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Fluid: reports, dashboards, wide tables — use full viewport */
+body.layout-fluid .page-shell,
+body.layout-fluid .top-shell-inner {
+  max-width: none;
+  width: 100%;
+}
+
+body.layout-fluid.has-sidebar .top-menu-wrap {
+  display: none;
+}
+
+body.layout-fluid .page-content {
+  padding-left: var(--page-gutter);
+  padding-right: var(--page-gutter);
+}
+
+@media (min-width: 1400px) {
+  body.layout-fluid {
+    --page-gutter: 20px;
+  }
+}
+
+@media (min-width: 1800px) {
+  body.layout-fluid {
+    --page-gutter: 24px;
+  }
+}
+
+/* Form: census entry — readable width for inputs, full toolbar width */
+body.layout-form .page-shell,
+body.layout-form .top-shell-inner {
+  max-width: none;
+  width: 100%;
+}
+
+body.layout-form .page-content {
+  padding-left: var(--page-gutter);
+  padding-right: var(--page-gutter);
+}
+
+/* ── Collapsible sidebar (desktop) ───────────────────────────────── */
+
+.side-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-collapse-btn {
+  border: 0;
+  background: var(--surface-low);
+  color: var(--text-muted);
+  border-radius: 0.65rem;
+  min-width: 36px;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sidebar-collapse-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+body.sidebar-collapsed .side-shell {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  overflow: hidden;
+}
+
+body.sidebar-collapsed .side-card {
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.sidebar-collapsed .page-content {
+  padding-left: var(--page-gutter);
+}
+
+body.sidebar-collapsed .sidebar-collapse-btn .material-symbols-outlined {
+  transform: rotate(180deg);
+}
+
+/* ── Data tables (fluid pages) ───────────────────────────────────── */
+
+.data-table-full {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.data-table-full th,
+.data-table-full td {
+  vertical-align: middle;
+}
+
+.data-table-full .col-ward {
+  width: 28%;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.data-table-full .col-num {
+  width: 12%;
+  white-space: nowrap;
+  text-align: end;
+}
+
+.data-table-full thead th.col-num {
+  text-align: end;
+}
+
+.comparison-table-scroll,
+.snapshot-table-wrap,
+.data-table-scroll {
+  width: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 1rem;
+}
+
+.dashboard-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+}
+
+.dashboard-filter-bar .filter-field {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+}
+
+.dashboard-filter-bar .filter-actions {
+  flex: 0 0 auto;
+  min-width: 8rem;
+}
+
+.dashboard-filter-bar .filter-actions .btn {
+  min-height: 50px;
+  width: 100%;
+  min-width: 10rem;
+}
+
+@media (min-width: 992px) {
+  .dashboard-filter-bar .filter-field {
+    flex: 0 1 14rem;
+  }
 }
