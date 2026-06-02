@@ -1,5 +1,9 @@
 <?= $this->extend('layout/main') ?>
 
+<?= $this->section('styles') ?>
+<link href="<?= asset_url('css/census-layout.css') ?>" rel="stylesheet">
+<?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
 
 <style>
@@ -51,9 +55,13 @@
     --c-other-bg: #eaeef5;
   }
 
-  /* Page background — stop "bright white" glare */
-  body {
-    background: var(--bg-page) !important;
+  /* Page background — align with app shell */
+  .daily-census-template {
+    --bg-page: var(--surface, #eef2f7);
+  }
+
+  .page-content:has(.daily-census-template) {
+    background: var(--bg-page);
   }
 
   /* ── Cards & section headers ───────────────────────────────────────── */
@@ -882,7 +890,7 @@
   }
 </style>
 
-<div class="container-fluid px-md-3 px-2 daily-census-template" style="max-width: 1400px;">
+<div class="container-fluid daily-census-template census-page-full">
 
   <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-end gap-4 mb-4">
     <div>
@@ -926,7 +934,7 @@
     <?= csrf_field() ?>
 
     <!-- ── Header: Ward / Date / Shift ──────────────────────────────── -->
-    <div class="daily-toolbar d-flex flex-wrap align-items-center gap-2 mb-4">
+    <div class="daily-toolbar daily-toolbar-sticky d-flex flex-wrap align-items-center gap-2 mb-4">
       <div class="toolbar-field flex-grow-1">
         <label>Ward <span class="text-danger">*</span></label>
         <select name="ward_id" id="ward_id" class="form-select" required>

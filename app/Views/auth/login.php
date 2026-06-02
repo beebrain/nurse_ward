@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 
 <head>
     <meta charset="UTF-8">
@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="<?= asset_url('css/app.css') ?>" rel="stylesheet">
     <style>
         :root {
             --surface: #f9f9ff;
@@ -303,12 +304,6 @@
                 <p class="text-center text-muted small mb-0 mt-3">
                     บัญชีผู้ใช้จัดทำโดยผู้ดูแลระบบเท่านั้น
                 </p>
-
-                <div class="debug-info">
-                    <small>ข้อมูลดีบัก:</small><br>
-                    <small>รหัสเซสชัน: <?= substr(session_id(), 0, 8) ?>...</small><br>
-                    <small>CSRF: <?= substr(csrf_hash(), 0, 8) ?>...</small>
-                </div>
             </div>
         </div>
     </main>

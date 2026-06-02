@@ -1,0 +1,38 @@
+/* Census daily entry — layout enhancements (Phase 3) */
+
+.census-page-full {
+  width: 100%;
+  max-width: none;
+  padding-left: var(--page-gutter, 12px);
+  padding-right: var(--page-gutter, 12px);
+}
+
+.daily-toolbar-sticky {
+  position: sticky;
+  top: calc(var(--header-height, 84px) + 0.35rem);
+  z-index: 1020;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 991.98px) {
+  .daily-census-template .quick-save-fab {
+    bottom: calc(var(--bottom-nav-height, 4.5rem) + env(safe-area-inset-bottom, 0px) + 1rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-census-template .stat-card:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .daily-census-template .card-body {
+    padding: 0.75rem !important;
+  }
+
+  .daily-census-template .stat-input {
+    min-height: 44px;
+    font-variant-numeric: tabular-nums;
+  }
+}
