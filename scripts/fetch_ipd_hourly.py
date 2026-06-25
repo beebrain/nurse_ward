@@ -259,12 +259,81 @@ def truncate_record_time(now: datetime) -> datetime:
 def empty_census_stats():
     return {
         'patient_count': 0,
+        'has_level_data': 0,
+        'patients_level_5': 0,
+        'patients_level_4': 0,
+        'patients_level_3': 0,
+        'patients_level_2': 0,
+        'patients_level_1': 0,
         'admissions_today': 0,
         'discharges_today': 0,
         'moves_in_today': 0,
         'moves_out_today': 0,
         'deaths_today': 0,
     }
+
+
+LEVEL_FIELD_PATTERNS = [
+    'patients_level_%d',
+    'patient_level_%d',
+    'level_%d',
+    'count_level_%d',
+    'nlevel_%d',
+    'nursing_level_%d',
+]
+NESTED_LEVEL_KEYS = ('levels', 'nursing_levels', 'patient_levels', 'level_counts')
+
+
+def _ward_level_from_code(code):
+    if code is None:
+        return None
+    s = str(code).strip().upper()
+    if s.startswith('L') and s[1:].isdigit():
+        n = int(s[1:])
+        return n if 1 <= n <= 5 else None
+    if s.isdigit():
+        n = int(s)
+        return n if 1 <= n <= 5 else None
+    return None
+
+
+def parse_item_levels(item):
+    """Extract patients_level_1..5 from flexible HosXP API keys."""
+    levels = {f'patients_level_{i}': 0 for i in range(1, 6)}
+
+    for lvl in range(1, 6):
+        for pattern in LEVEL_FIELD_PATTERNS:
+            key = pattern % lvl
+            if key in item and item[key] is not None and item[key] != '':
+                levels[f'patients_level_{lvl}'] += int(item[key] or 0)
+
+    for nested_key in NESTED_LEVEL_KEYS:
+        nested = item.get(nested_key)
+        if not isinstance(nested, dict):
+            continue
+        for code, count in nested.items():
+            wl = _ward_level_from_code(code)
+            if wl and count is not None:
+                levels[f'patients_level_{wl}'] += int(count or 0)
+
+    for level_item in item.get('level_items') or []:
+        if not isinstance(level_item, dict):
+            continue
+        code = level_item.get('level') or level_item.get('nursing_level') or level_item.get('level_code')
+        count = level_item.get('count') or level_item.get('patient_count') or level_item.get('total') or 0
+        wl = _ward_level_from_code(code)
+        if wl:
+            levels[f'patients_level_{wl}'] += int(count or 0)
+
+    has_level = 1 if sum(levels.values()) > 0 else 0
+    levels['has_level_data'] = has_level
+    return levels
+
+
+def apply_item_levels(slot, item):
+    parsed = parse_item_levels(item)
+    for key, val in parsed.items():
+        slot[key] = val
 
 
 def census_slot(census_by_key, ward_id, source_name):
@@ -333,7 +402,9 @@ def run_fetch(dry_run=False):
         ward = find_ward(code, name)
         if ward:
             src = (name or '').strip()
-            census_slot(census_by_key, ward['id'], src)['patient_count'] = int(item.get("count_an", 0))
+            slot = census_slot(census_by_key, ward['id'], src)
+            slot['patient_count'] = int(item.get("count_an", 0))
+            apply_item_levels(slot, item)
 
     # 2. Fetch admissions today
     log("Fetching admissions today...")
@@ -405,11 +476,17 @@ def run_fetch(dry_run=False):
         if existing:
             cursor.execute(
                 """UPDATE hourly_patient_census
-                   SET patient_count = %s, admissions_today = %s, discharges_today = %s,
+                   SET patient_count = %s, has_level_data = %s,
+                       patients_level_5 = %s, patients_level_4 = %s, patients_level_3 = %s,
+                       patients_level_2 = %s, patients_level_1 = %s,
+                       admissions_today = %s, discharges_today = %s,
                        moves_in_today = %s, moves_out_today = %s, deaths_today = %s, updated_at = %s
                    WHERE id = %s""",
                 (
-                    stats['patient_count'], stats['admissions_today'], stats['discharges_today'],
+                    stats['patient_count'], stats['has_level_data'],
+                    stats['patients_level_5'], stats['patients_level_4'], stats['patients_level_3'],
+                    stats['patients_level_2'], stats['patients_level_1'],
+                    stats['admissions_today'], stats['discharges_today'],
                     stats['moves_in_today'], stats['moves_out_today'], stats['deaths_today'],
                     now_str, existing['id'],
                 ),
@@ -417,12 +494,17 @@ def run_fetch(dry_run=False):
         else:
             cursor.execute(
                 """INSERT INTO hourly_patient_census
-                   (ward_id, record_time, source_api_ward_name, patient_count, admissions_today,
-                    discharges_today, moves_in_today, moves_out_today, deaths_today, created_at, updated_at)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                   (ward_id, record_time, source_api_ward_name, patient_count, has_level_data,
+                    patients_level_5, patients_level_4, patients_level_3, patients_level_2, patients_level_1,
+                    admissions_today, discharges_today, moves_in_today, moves_out_today, deaths_today,
+                    created_at, updated_at)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 (
-                    ward_id, record_time_str, source_name, stats['patient_count'], stats['admissions_today'],
-                    stats['discharges_today'], stats['moves_in_today'], stats['moves_out_today'],
+                    ward_id, record_time_str, source_name, stats['patient_count'], stats['has_level_data'],
+                    stats['patients_level_5'], stats['patients_level_4'], stats['patients_level_3'],
+                    stats['patients_level_2'], stats['patients_level_1'],
+                    stats['admissions_today'], stats['discharges_today'],
+                    stats['moves_in_today'], stats['moves_out_today'],
                     stats['deaths_today'], now_str, now_str,
                 ),
             )

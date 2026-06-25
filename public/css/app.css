@@ -23,7 +23,28 @@
   --z-header: 1030;
   --z-bottom-nav: 1030;
   --z-drawer: 1040;
+  --z-modal-backdrop: 1050;
+  --z-modal: 1055;
   --focus-ring: 0 0 0 3px rgba(0, 93, 172, 0.35);
+  --status-good: #15803d;
+  --status-warn: #c2410c;
+  --status-low: #b91c1c;
+  --status-none: #64748b;
+  --status-info: #475569;
+  --status-high: #ea580c;
+  --status-critical: #b91c1c;
+  --status-adequate: #15803d;
+  --status-critical-bg: #fef2f2;
+  --status-critical-border: #fecaca;
+  --status-high-bg: #fff7ed;
+  --status-high-border: #fed7aa;
+  --status-adequate-bg: #f0fdf4;
+  --status-adequate-border: #bbf7d0;
+  --status-low-bg: #f8fafc;
+  --status-low-border: #cbd5e1;
+  --status-none-bg: #f1f5f9;
+  --status-none-border: #e2e8f0;
+  --matrix-font-min: 0.875rem;
 }
 
 @media (min-width: 768px) {
@@ -355,6 +376,14 @@ button:focus-visible,
 
 /* ── Bootstrap overrides ──────────────────────────────────────────── */
 
+.modal-backdrop {
+  z-index: var(--z-modal-backdrop) !important;
+}
+
+.modal {
+  z-index: var(--z-modal) !important;
+}
+
 .content-card,
 .card,
 .alert,
@@ -552,8 +581,8 @@ textarea:focus {
 /* ── Desktop ─────────────────────────────────────────────────────── */
 
 @media (min-width: 992px) {
-  .top-menu-wrap {
-    display: block;
+  body.has-sidebar .top-menu-wrap {
+    display: none;
   }
 
   .side-shell {
@@ -612,10 +641,6 @@ body.layout-fluid .top-shell-inner {
   width: 100%;
 }
 
-body.layout-fluid.has-sidebar .top-menu-wrap {
-  display: none;
-}
-
 body.layout-fluid .page-content {
   padding-left: var(--page-gutter);
   padding-right: var(--page-gutter);
@@ -660,8 +685,8 @@ body.layout-form .page-content {
   background: var(--surface-low);
   color: var(--text-muted);
   border-radius: 0.65rem;
-  min-width: 36px;
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -751,6 +776,13 @@ body.sidebar-collapsed .sidebar-collapse-btn .material-symbols-outlined {
   min-height: 50px;
   width: 100%;
   min-width: 10rem;
+}
+
+@media (max-width: 767.98px) {
+  .matrix-filter-actions .btn,
+  .btn-sm.w-100 {
+    min-height: 44px;
+  }
 }
 
 @media (min-width: 992px) {

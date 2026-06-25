@@ -18,14 +18,7 @@ if (! function_exists('asset_url')) {
     {
         $path = ltrim($path, '/');
 
-        // Direct public/asset.php — works when Caddy rewrites non-.php URIs to index.php
         if (preg_match('#^(css|js)/([^/]+)$#', $path, $m)) {
-            if (filter_var(env('app.assetsUsePhpFile', '1'), FILTER_VALIDATE_BOOLEAN)) {
-                return rtrim(base_url(), '/')
-                    . '/asset.php?'
-                    . http_build_query(['t' => $m[1], 'f' => $m[2]]);
-            }
-
             $viaIndexPhp = filter_var(env('app.assetsViaIndexPhp', '0'), FILTER_VALIDATE_BOOLEAN);
 
             return rtrim(base_url(), '/')

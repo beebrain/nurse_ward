@@ -21,46 +21,39 @@ $routes->get('login/verify-magic-link', '\CodeIgniter\Shield\Controllers\MagicLi
 
 $routes->get('auth/pending', '\App\Controllers\AuthController::pending');
 $routes->get('auth/deactivated', '\App\Controllers\AuthController::deactivated');
-$routes->get('debug/auth', '\App\Controllers\DebugController::auth');
-$routes->get('debug/test-login', '\App\Controllers\DebugLoginController::test');
-$routes->get('debug/check-user', '\App\Controllers\DebugLoginController::checkUser');
-
 // Account settings
 $routes->get('account/change-password', '\App\Controllers\AccountController::changePasswordView', ['filter' => 'session']);
 $routes->post('account/change-password', '\App\Controllers\AccountController::changePasswordAction', ['filter' => 'session']);
 
-// Static assets via PHP (Caddy subpath rewrites non-.php URIs to /index.php{uri})
+// Static assets via CI for deployments where the web server does not serve public/ directly.
 $routes->get('app-asset/js/(:segment)', '\App\Controllers\AppAsset::javascript/$1');
 $routes->get('app-asset/css/(:segment)', '\App\Controllers\AppAsset::stylesheet/$1');
 $routes->get('index.php/app-asset/js/(:segment)', '\App\Controllers\AppAsset::javascript/$1');
 $routes->get('index.php/app-asset/css/(:segment)', '\App\Controllers\AppAsset::stylesheet/$1');
-$routes->get('public/js/(:segment)', '\App\Controllers\AppAsset::javascript/$1');
-$routes->get('public/css/(:segment)', '\App\Controllers\AppAsset::stylesheet/$1');
-$routes->get('index.php/public/js/(:segment)', '\App\Controllers\AppAsset::javascript/$1');
-$routes->get('index.php/public/css/(:segment)', '\App\Controllers\AppAsset::stylesheet/$1');
+
+$routes->group('census', ['filter' => 'session'], static function ($routes) {
+    $routes->get('productivity', '\App\Controllers\CensusController::productivity');
+    $routes->get('productivity-data', '\App\Controllers\CensusController::productivityData');
+});
 
 $routes->group('census', ['filter' => 'permission:census.record'], static function ($routes) {
     $routes->get('/', '\App\Controllers\CensusController::index');
     $routes->get('new', '\App\Controllers\CensusController::create');
     $routes->get('history', '\App\Controllers\CensusController::history');
     $routes->get('history-data', '\App\Controllers\CensusController::historyData');
-    $routes->get('productivity', '\App\Controllers\CensusController::productivity');
-    $routes->get('productivity-data', '\App\Controllers\CensusController::productivityData');
     $routes->get('movement-context', '\App\Controllers\CensusController::movementContext');
     $routes->get('hourly-guidelines', '\App\Controllers\CensusController::hourlyGuidelines');
+    $routes->post('productivity-preview', '\App\Controllers\CensusController::productivityPreview');
     $routes->post('store', '\App\Controllers\CensusController::store');
-    $routes->post('autosave', '\App\Controllers\CensusController::autosave');
+    $routes->post('confirm', '\App\Controllers\CensusController::confirmSave');
     $routes->get('behavior-dashboard', '\App\Controllers\ReportController::behaviorDashboard');
     $routes->get('behavior-dashboard-data', '\App\Controllers\ReportController::behaviorDashboardData');
 });
 
 $routes->group('reports', ['filter' => 'permission:reports.view'], static function ($routes) {
-    $routes->get('monthly', '\App\Controllers\ReportController::monthly');
     $routes->get('user-wards', '\App\Controllers\ReportController::userWards');
     $routes->get('daily-summary', '\App\Controllers\ReportController::dailySummary');
     $routes->get('daily-summary-data', '\App\Controllers\ReportController::dailySummaryData');
-    $routes->get('getData', '\App\Controllers\ReportController::getData');
-    $routes->get('export', '\App\Controllers\ReportController::export');
     $routes->get('dashboard', '\App\Controllers\ReportController::dashboard');
     $routes->get('dashboardData', '\App\Controllers\ReportController::dashboardData');
 });
@@ -96,12 +89,6 @@ $routes->group('admin', ['filter' => 'group:superadmin'], static function ($rout
         $routes->post('import', '\App\Controllers\Admin\ImportExportController::importCensus');
         $routes->get('export-csv', '\App\Controllers\Admin\ImportExportController::exportCsv');
         $routes->post('import-csv', '\App\Controllers\Admin\ImportExportController::importCsv');
-    });
-
-    $routes->group('nurse-wards', static function ($routes) {
-        $routes->get('/', '\App\Controllers\Admin\NurseWardController::index');
-        $routes->get('edit/(:num)', '\App\Controllers\Admin\NurseWardController::edit/$1');
-        $routes->post('update/(:num)', '\App\Controllers\Admin\NurseWardController::update/$1');
     });
 
     $routes->group('backup', static function ($routes) {

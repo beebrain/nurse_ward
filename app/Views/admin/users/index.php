@@ -17,7 +17,7 @@
         </div>
 
         <?php if (session()->getFlashdata('message')): ?>
-            <div class="alert alert-success alert-dismissible fade show">
+            <div class="alert alert-success alert-dismissible fade show" role="status">
                 <span class="material-symbols-outlined align-middle me-1">check_circle</span>
                 <?= esc(session()->getFlashdata('message')) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -25,7 +25,7 @@
         <?php endif; ?>
 
         <?php if (session()->getFlashdata('error')): ?>
-            <div class="alert alert-danger alert-dismissible fade show">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <span class="material-symbols-outlined align-middle me-1">error</span>
                 <?= esc(session()->getFlashdata('error')) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>

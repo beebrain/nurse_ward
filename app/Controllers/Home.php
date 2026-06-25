@@ -12,12 +12,8 @@ class Home extends BaseController
 
         $user = auth()->user();
 
-        if ($user->can('reports.view')) {
-            return redirect()->to(base_url('reports/dashboard'));
-        }
-
-        if ($user->can('census.record')) {
-            return redirect()->to(base_url('census'));
+        if ($user->can('census.record') || $user->can('reports.view')) {
+            return redirect()->to(base_url('census/productivity'));
         }
 
         return redirect()->to(base_url('auth/pending'));

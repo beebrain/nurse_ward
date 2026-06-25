@@ -19,6 +19,10 @@ class AppAsset extends BaseController
         'app.css',
         'login.css',
         'census-layout.css',
+        'census-create.css',
+        'census-history.css',
+        'reports-dashboard.css',
+        'ward-matrix.css',
         'ward-mapping-graph.css',
     ];
 

@@ -5,10 +5,11 @@
     <div class="col-md-6 text-center mt-5">
         <div class="card shadow">
             <div class="card-body py-5">
-                <h1 class="text-danger mb-4">Account Deactivated</h1>
-                <p class="lead mb-4">Your account has been deactivated by a Super Admin and you no longer have access to the system.</p>
-                <p>Please contact your administrator for more information.</p>
-                <a href="<?= base_url('logout') ?>" class="btn btn-outline-danger mt-3">Logout</a>
+                <span class="material-symbols-outlined text-danger mb-3" style="font-size:3rem;" aria-hidden="true">block</span>
+                <h1 class="h3 text-danger mb-4">บัญชีถูกปิดการใช้งาน</h1>
+                <p class="lead mb-4">บัญชีของคุณถูกปิดการใช้งานโดยผู้ดูแลระบบ และไม่สามารถเข้าใช้งานได้</p>
+                <p class="text-muted">กรุณาติดต่อผู้ดูแลระบบของหน่วยงาน</p>
+                <a href="<?= base_url('logout') ?>" class="btn btn-outline-danger mt-3">ออกจากระบบ</a>
             </div>
         </div>
     </div>

@@ -10,10 +10,12 @@ use App\Models\CensusModel;
 class ProductivityAggregateService
 {
     protected CensusModel $censusModel;
+    protected NursingProductivityService $productivityService;
 
-    public function __construct(?CensusModel $censusModel = null)
+    public function __construct(?CensusModel $censusModel = null, ?NursingProductivityService $productivityService = null)
     {
-        $this->censusModel = $censusModel ?? new CensusModel();
+        $this->censusModel         = $censusModel ?? new CensusModel();
+        $this->productivityService = $productivityService ?? new NursingProductivityService();
     }
 
     /**
@@ -28,12 +30,12 @@ class ProductivityAggregateService
      *   productivity: float|null
      * }
      */
-    public function getMonthlySummary(int $wardId, int $month, int $year): array
+    public function getMonthlySummary(int $wardId, int $month, int $year, ?array $ward = null): array
     {
         $dateFrom = sprintf('%04d-%02d-01', $year, $month);
         $dateTo   = date('Y-m-t', strtotime($dateFrom));
         $rows     = $this->censusModel->getHistoryForList($wardId, $dateFrom, $dateTo, 120);
-        $daily    = $this->buildDailyRows($rows);
+        $daily    = $this->buildDailyRows($rows, $ward);
 
         return $this->summarizeDailyRows(array_values($daily));
     }
@@ -43,11 +45,11 @@ class ProductivityAggregateService
      *
      * @return list<float|null>
      */
-    public function getYearlyNursingTrend(int $wardId, int $year): array
+    public function getYearlyNursingTrend(int $wardId, int $year, ?array $ward = null): array
     {
         $values = [];
         for ($month = 1; $month <= 12; $month++) {
-            $summary    = $this->getMonthlySummary($wardId, $month, $year);
+            $summary    = $this->getMonthlySummary($wardId, $month, $year, $ward);
             $values[]   = $summary['productivity'];
         }
 
@@ -65,7 +67,7 @@ class ProductivityAggregateService
             $out[] = [
                 'ward_id'      => $wid,
                 'ward_name'    => (string) $ward['name'],
-                'productivity' => $this->getYearlyNursingTrend($wid, $year),
+                'productivity' => $this->getYearlyNursingTrend($wid, $year, $ward),
             ];
         }
 
@@ -76,34 +78,67 @@ class ProductivityAggregateService
      * @param list<array<string, mixed>> $rows
      * @return array<string, array<string, mixed>>
      */
-    private function buildDailyRows(array $rows): array
+    public function buildDailyRows(
+        array $rows,
+        ?array $ward = null,
+        ?callable $dateLabel = null,
+        ?callable $weekdayLabel = null
+    ): array
     {
         $byDate = [];
         foreach ($rows as $row) {
             $byDate[$row['record_date']][$row['shift']] = $row;
         }
 
+        $mode = NursingProductivityService::modeForWard($ward);
+        $hosxp = new HosxpLevelDiffService();
+        $wardId = $ward ? (int) ($ward['id'] ?? 0) : null;
+
         ksort($byDate);
         $daily = [];
 
         foreach ($byDate as $date => $shifts) {
-            $patientDayRow = $this->pickShiftRow($shifts, ['Night', 'Afternoon', 'Morning']);
-            $careRow       = $this->pickShiftRow($shifts, ['Afternoon', 'Night', 'Morning']);
-            $requiredCareHours = $careRow ? $this->requiredCareHoursFromRow($careRow) : 0.0;
-            $workingHours      = 0.0;
+            $metrics = $this->productivityService->buildDailyMetrics(
+                $shifts,
+                $mode,
+                $wardId ?: null,
+                $date,
+                $hosxp
+            );
+
+            $admissions = 0;
+            $discharges = 0;
+            $transfersIn = 0;
+            $transfersOut = 0;
+            $deaths = 0;
 
             foreach ($shifts as $shiftRow) {
-                $workingHours += (float) ($shiftRow['working_hours'] ?? 0);
+                $admissions += (int) $shiftRow['admissions'];
+                $discharges += (int) $shiftRow['discharges'];
+                $transfersIn += (int) $shiftRow['transfers_in'];
+                $transfersOut += (int) $shiftRow['transfers_out'];
+                $deaths += (int) $shiftRow['deaths'];
             }
 
             $daily[$date] = [
-                'patient_days'          => (int) ($patientDayRow['total_patients'] ?? 0),
-                'recorded_shifts'       => count($shifts),
-                'required_care_hours'   => round($requiredCareHours, 2),
-                'working_hours'         => round($workingHours, 2),
-                'productivity'          => $workingHours > 0 && $requiredCareHours > 0
-                    ? round(($requiredCareHours * 100) / $workingHours, 2)
-                    : null,
+                'date'                => $date,
+                'day_label'           => $dateLabel ? $dateLabel($date) : $date,
+                'weekday_label'       => $weekdayLabel ? $weekdayLabel($date) : '',
+                'patient_days'        => $metrics['patient_days'],
+                'patient_day_shift'   => $metrics['patient_day_shift'],
+                'care_shift'          => $metrics['care_shift'],
+                'recorded_shifts'     => count($shifts),
+                'required_care_hours' => $metrics['required_care_hours'],
+                'working_hours'       => $metrics['working_hours'],
+                'productivity'        => $metrics['productivity'],
+                'turnover_cases'      => $metrics['turnover_cases'],
+                'level_source'        => $metrics['level_source'],
+                'productivity_mode'   => $mode,
+                'admissions'          => $admissions,
+                'discharges'          => $discharges,
+                'transfers_in'        => $transfersIn,
+                'transfers_out'       => $transfersOut,
+                'deaths'              => $deaths,
             ];
         }
 
@@ -113,7 +148,7 @@ class ProductivityAggregateService
     /**
      * @param list<array<string, mixed>> $dailyRows
      */
-    private function summarizeDailyRows(array $dailyRows): array
+    public function summarizeDailyRows(array $dailyRows): array
     {
         $summary = [
             'recorded_days'       => count($dailyRows),
@@ -122,6 +157,11 @@ class ProductivityAggregateService
             'required_care_hours' => 0.0,
             'working_hours'       => 0.0,
             'productivity'        => null,
+            'admissions'          => 0,
+            'discharges'          => 0,
+            'transfers_in'        => 0,
+            'transfers_out'       => 0,
+            'deaths'              => 0,
         ];
 
         foreach ($dailyRows as $row) {
@@ -129,6 +169,11 @@ class ProductivityAggregateService
             $summary['patient_days']        += $row['patient_days'];
             $summary['required_care_hours'] += $row['required_care_hours'];
             $summary['working_hours']       += $row['working_hours'];
+            $summary['admissions']          += $row['admissions'] ?? 0;
+            $summary['discharges']          += $row['discharges'] ?? 0;
+            $summary['transfers_in']        += $row['transfers_in'] ?? 0;
+            $summary['transfers_out']       += $row['transfers_out'] ?? 0;
+            $summary['deaths']              += $row['deaths'] ?? 0;
         }
 
         $summary['required_care_hours'] = round($summary['required_care_hours'], 2);
@@ -138,30 +183,5 @@ class ProductivityAggregateService
             : null;
 
         return $summary;
-    }
-
-    private function pickShiftRow(array $shifts, array $priority): ?array
-    {
-        foreach ($priority as $shift) {
-            if (isset($shifts[$shift])) {
-                return $shifts[$shift];
-            }
-        }
-
-        return null;
-    }
-
-    private function requiredCareHoursFromRow(array $row): float
-    {
-        if ((float) ($row['required_care_hours'] ?? 0) > 0) {
-            return (float) $row['required_care_hours'];
-        }
-
-        $hours = 0.0;
-        foreach (CensusModel::LEVEL_HOURS as $level => $hourPerPatient) {
-            $hours += (int) ($row["patients_level_{$level}"] ?? 0) * $hourPerPatient;
-        }
-
-        return $hours;
     }
 }

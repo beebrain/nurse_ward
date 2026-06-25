@@ -2,6 +2,10 @@
 
 <?= $this->section('layout_class') ?>layout-fluid<?= $this->endSection() ?>
 
+<?= $this->section('styles') ?>
+<link href="<?= asset_url('css/reports-dashboard.css') ?>" rel="stylesheet">
+<?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
 <?php
 $totalNurses = count(array_unique(array_column($assignments, 'id')));
@@ -29,30 +33,18 @@ foreach ($assignments as $assignment) {
             </div>
         </div>
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <div class="text-muted small">Nurse ทั้งหมด</div>
-                        <div class="display-6 fw-bold mb-0"><?= esc((string) $totalNurses) ?></div>
-                    </div>
-                </div>
+        <div class="dashboard-kpi-grid mb-4">
+            <div class="dashboard-kpi">
+                <div class="dashboard-kpi-label">Nurse ทั้งหมด</div>
+                <div class="dashboard-kpi-value"><?= esc((string) $totalNurses) ?></div>
             </div>
-            <div class="col-md-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <div class="text-muted small">กำหนดแผนกแล้ว</div>
-                        <div class="display-6 fw-bold text-success mb-0"><?= esc((string) $assignedCount) ?></div>
-                    </div>
-                </div>
+            <div class="dashboard-kpi">
+                <div class="dashboard-kpi-label">กำหนดแผนกแล้ว</div>
+                <div class="dashboard-kpi-value prod-good"><?= esc((string) $assignedCount) ?></div>
             </div>
-            <div class="col-md-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <div class="text-muted small">ยังไม่ได้กำหนด</div>
-                        <div class="display-6 fw-bold text-danger mb-0"><?= esc((string) $unassignedCount) ?></div>
-                    </div>
-                </div>
+            <div class="dashboard-kpi">
+                <div class="dashboard-kpi-label">ยังไม่ได้กำหนด</div>
+                <div class="dashboard-kpi-value prod-low"><?= esc((string) $unassignedCount) ?></div>
             </div>
         </div>
 

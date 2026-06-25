@@ -667,7 +667,7 @@ class ReportService
         foreach ($wards as $ward) {
             $wardId  = (int) $ward['id'];
             $report  = $this->getMonthlyReport($wardId, $month, $year);
-            $nursing = $aggregate->getMonthlySummary($wardId, $month, $year);
+            $nursing = $aggregate->getMonthlySummary($wardId, $month, $year, $ward);
             $beds    = (int) $ward['total_beds'];
 
             $wardRows[] = [

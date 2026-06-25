@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Services\NursingProductivityService;
+use App\Services\HosxpLevelDiffService;
+use App\Models\WardModel;
 use CodeIgniter\Model;
 
 class CensusModel extends Model
@@ -136,50 +139,65 @@ class CensusModel extends Model
 
     /**
      * Calculate and store productivity for the Afternoon shift of a given ward+date.
-     * Called after Afternoon shift is saved.
-     * Productivity uses Afternoon patient levels + sum of all 3 shifts' working hours.
+     * Standard wards: Afternoon acuity snapshot + all shifts' working hours.
+     * Turnover wards (LR): sum turnover-based required hours across all shifts.
      */
-    public function recalculateProductivity(int $wardId, string $date): void
+    public function recalculateProductivity(int $wardId, string $date, ?array $ward = null, ?string $savedShift = null): void
     {
-        // Get all shifts for this ward+date
         $shifts = $this->where('ward_id', $wardId)
                        ->where('record_date', $date)
                        ->findAll();
 
-        $shiftMap = [];
-        foreach ($shifts as $s) {
-            $shiftMap[$s['shift']] = $s;
+        if ($shifts === []) {
+            return;
         }
 
-        $afternoon = $shiftMap['Afternoon'] ?? null;
-        if (! $afternoon) {
-            return; // Cannot calculate without afternoon data
+        if ($ward === null) {
+            $ward = model(WardModel::class)->find($wardId);
         }
 
-        // Required care hours using Afternoon patient levels
-        $requiredHours = (self::LEVEL_HOURS[5] * (int)$afternoon['patients_level_5'])
-            + (self::LEVEL_HOURS[4] * (int)$afternoon['patients_level_4'])
-            + (self::LEVEL_HOURS[3] * (int)$afternoon['patients_level_3'])
-            + (self::LEVEL_HOURS[2] * (int)$afternoon['patients_level_2'])
-            + (self::LEVEL_HOURS[1] * (int)$afternoon['patients_level_1']);
+        $mode    = NursingProductivityService::modeForWard($ward);
+        $service = new NursingProductivityService();
+        $hosxp   = new HosxpLevelDiffService();
+        $metrics = $service->recalculateForDay($shifts, $mode, $wardId, $date, $hosxp);
 
-        // Working hours = sum of (RN+TN+PN) across all 3 shifts × 7
-        $totalProfNurses = 0;
-        foreach ($shifts as $s) {
-            $totalProfNurses += (int)$s['nurses_rn'] + (int)$s['nurses_tn'] + (int)$s['nurses_pn'];
+        $target = null;
+        foreach ($shifts as $shift) {
+            if ($shift['shift'] === 'Afternoon') {
+                $target = $shift;
+                break;
+            }
         }
-        $workingHours = $totalProfNurses * self::SHIFT_HOURS;
 
-        $productivity = ($workingHours > 0 && $requiredHours > 0)
-            ? round(($requiredHours * 100) / $workingHours, 4)
-            : null;
+        if ($target === null && $mode === NursingProductivityService::MODE_TURNOVER && $savedShift !== null) {
+            foreach ($shifts as $shift) {
+                if ($shift['shift'] === $savedShift) {
+                    $target = $shift;
+                    break;
+                }
+            }
+        }
 
-        // Store in Afternoon record
-        $this->update($afternoon['id'], [
-            'working_hours'       => $workingHours,
-            'required_care_hours' => $requiredHours,
-            'productivity'        => $productivity,
+        if ($target === null) {
+            return;
+        }
+
+        $this->update($target['id'], [
+            'working_hours'       => $metrics['working_hours'],
+            'required_care_hours' => $metrics['required_care_hours'],
+            'productivity'        => $metrics['productivity'] !== null
+                ? round($metrics['productivity'], 4)
+                : null,
         ]);
+    }
+
+    public function shouldRecalculateProductivityOnSave(?array $ward, string $shift): bool
+    {
+        if (NursingProductivityService::modeForWard($ward) === NursingProductivityService::MODE_TURNOVER) {
+            return true;
+        }
+
+        return $shift === 'Afternoon';
     }
 
     /**
@@ -248,7 +266,7 @@ class CensusModel extends Model
     }
 
     /**
-     * Existing census for a specific ward/date/shift (for autosave upsert).
+     * Existing census for a specific ward/date/shift (for confirm-save upsert).
      */
     public function findByShift(int $wardId, string $date, string $shift): ?array
     {

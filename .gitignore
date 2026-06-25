@@ -1,6 +1,7 @@
-#-------------------------
-# Operating Specific Junk Files
-#-------------------------
+# Node (Playwright browser tests / Cursor MCP)
+node_modules/
+package-lock.json
+
 
 # OS X
 .DS_Store
@@ -132,3 +133,7 @@ __pycache__/
 
 /results/
 /phpunit*.xml
+
+# Local database backups and design prototypes
+backups/*.sql
+stitch_nurse_reporting_portal/

@@ -7,6 +7,8 @@ namespace App\Services;
  */
 class HosxpPayloadParser
 {
+    private ?HosxpHourlyLevelParser $levelParser = null;
+
     /**
      * @return array{merged: list<array<string, mixed>>, endpoints: array<string, list<array<string, mixed>>>}
      */
@@ -23,6 +25,7 @@ class HosxpPayloadParser
             $key = $this->wardKey($item);
             $merged[$key] = $this->baseRow($item);
             $merged[$key]['patient_count'] = (int) ($item['count_an'] ?? 0);
+            $merged[$key] = array_merge($merged[$key], $this->levelFieldsFromItem($item));
         }
 
         foreach ($this->itemsFromEndpoint($endpoints, 'admissions-today') as $item) {
@@ -112,7 +115,36 @@ class HosxpPayloadParser
             'deaths_today'    => 0,
             'moves_in_today'  => 0,
             'moves_out_today' => 0,
+            'has_level_data'  => 0,
+            'patients_level_5' => 0,
+            'patients_level_4' => 0,
+            'patients_level_3' => 0,
+            'patients_level_2' => 0,
+            'patients_level_1' => 0,
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     * @return array<string, int>
+     */
+    private function levelFieldsFromItem(array $item): array
+    {
+        $parsed = $this->levelParser()->parseItemLevels($item);
+
+        return [
+            'has_level_data'   => (int) $parsed['has_level_data'],
+            'patients_level_5' => (int) $parsed['patients_level_5'],
+            'patients_level_4' => (int) $parsed['patients_level_4'],
+            'patients_level_3' => (int) $parsed['patients_level_3'],
+            'patients_level_2' => (int) $parsed['patients_level_2'],
+            'patients_level_1' => (int) $parsed['patients_level_1'],
+        ];
+    }
+
+    private function levelParser(): HosxpHourlyLevelParser
+    {
+        return $this->levelParser ??= new HosxpHourlyLevelParser();
     }
 
     /**

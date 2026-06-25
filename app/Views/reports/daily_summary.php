@@ -2,6 +2,10 @@
 
 <?= $this->section('layout_class') ?>layout-fluid<?= $this->endSection() ?>
 
+<?= $this->section('styles') ?>
+<link href="<?= asset_url('css/ward-matrix.css') ?>" rel="stylesheet">
+<?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
 <?php
 $months = [
@@ -15,10 +19,6 @@ $monthsFull = [
     9 => 'กันยายน', 10 => 'ตุลาคม', 11 => 'พฤศจิกายน', 12 => 'ธันวาคม',
 ];
 ?>
-<?= $this->include('partials/ward_matrix_styles') ?>
-<style>
-    .daily-none { color: #94a3b8; font-weight: 400; }
-</style>
 
 <div class="row">
     <div class="col-12">

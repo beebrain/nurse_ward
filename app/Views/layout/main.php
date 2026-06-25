@@ -17,11 +17,13 @@
 $currentUrl = current_url();
 $navItems = [];
 if (auth()->loggedIn()) {
-    $navItems[] = ['label' => 'บันทึกยอดรายวัน', 'icon' => 'clinical_notes', 'url' => base_url('census')];
+    if (auth()->user()->can('census.record') || auth()->user()->can('reports.view')) {
+        $navItems[] = ['label' => 'Productivity', 'icon' => 'monitoring', 'url' => base_url('census/productivity'), 'hint' => 'แดชบอร์ดประสิทธิภาพการพยาบาล'];
+    }
     if (auth()->user()->can('census.record')) {
+        $navItems[] = ['label' => 'บันทึกยอดรายวัน', 'icon' => 'clinical_notes', 'url' => base_url('census')];
         $navItems[] = ['label' => 'พฤติกรรมคนไข้', 'icon' => 'insights', 'url' => base_url('census/behavior-dashboard'), 'hint' => 'Dashboard แสดงพฤติกรรมคนไข้รายวอร์ด'];
         $navItems[] = ['label' => 'ประวัติย้อนหลัง', 'icon' => 'history', 'url' => base_url('census/history')];
-        $navItems[] = ['label' => 'Productivity', 'icon' => 'monitoring', 'url' => base_url('census/productivity'), 'hint' => 'ประสิทธิภาพการพยาบาล ทุกแผนก'];
     }
     if (auth()->user()->can('reports.view')) {
         $navItems[] = ['label' => 'สรุปรายวัน', 'icon' => 'table_chart', 'url' => base_url('reports/daily-summary'), 'hint' => 'การเคลื่อนไหวผู้ป่วย ทุกแผนก'];
@@ -178,6 +180,15 @@ $layoutClass = trim($this->renderSection('layout_class')) ?: 'layout-default';
     <?php endif; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      /* Modals must sit on body — inside .page-content they render under header/sidebar. */
+      document.addEventListener('show.bs.modal', function (event) {
+        const modal = event.target;
+        if (modal && modal.classList.contains('modal') && modal.parentElement !== document.body) {
+          document.body.appendChild(modal);
+        }
+      });
+    </script>
     <script>
       (function () {
         const key = 'nw_sidebar_collapsed';

@@ -68,7 +68,6 @@ class AuthGroups extends ShieldAuthGroups
         'users.manage'    => 'Can approve and manage users',
         'wards.manage'    => 'Can manage wards and departments',
         'reports.view'    => 'Can view monthly reports',
-        'dashboards.view' => 'Can view interactive dashboards',
         'census.record'   => 'Can record daily patient census',
     ];
 
@@ -86,12 +85,10 @@ class AuthGroups extends ShieldAuthGroups
             'users.manage',
             'wards.manage',
             'reports.view',
-            'dashboards.view',
             'census.record',
         ],
         'manager' => [
             'reports.view',
-            'dashboards.view',
         ],
         'nurse' => [
             'census.record',

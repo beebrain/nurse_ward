@@ -5,7 +5,7 @@
 <div class="container-fluid px-0" style="max-width: 720px;">
   <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
-      <h4 class="mb-1">เปลี่ยนรหัสผ่าน</h4>
+      <h1 class="h4 mb-1">เปลี่ยนรหัสผ่าน</h1>
       <div class="text-muted small">ตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ</div>
     </div>
   </div>
@@ -22,13 +22,13 @@
   ?>
 
   <?php if ($errorMsg !== ''): ?>
-    <div class="alert alert-danger">
+    <div class="alert alert-danger" role="alert">
       <?= esc($errorMsg) ?>
     </div>
   <?php endif; ?>
 
   <?php if (! empty($errors)): ?>
-    <div class="alert alert-danger">
+    <div class="alert alert-danger" role="alert">
       <div class="fw-semibold mb-1">กรุณาตรวจสอบข้อมูล</div>
       <ul class="mb-0">
         <?php foreach ($errors as $e): ?>
@@ -40,14 +40,15 @@
 
   <div class="card">
     <div class="card-body">
-      <form method="post" action="<?= base_url('account/change-password') ?>" autocomplete="off">
+      <form method="post" action="<?= base_url('account/change-password') ?>" autocomplete="off" aria-label="เปลี่ยนรหัสผ่าน">
         <?= csrf_field() ?>
 
         <div class="mb-3">
-          <label class="form-label">รหัสผ่านเดิม</label>
+          <label class="form-label" for="current_password">รหัสผ่านเดิม</label>
           <input
             type="password"
             name="current_password"
+            id="current_password"
             class="form-control"
             autocomplete="current-password"
             required
@@ -55,10 +56,11 @@
         </div>
 
         <div class="mb-3">
-          <label class="form-label">รหัสผ่านใหม่</label>
+          <label class="form-label" for="new_password">รหัสผ่านใหม่</label>
           <input
             type="password"
             name="new_password"
+            id="new_password"
             class="form-control"
             autocomplete="new-password"
             minlength="8"
@@ -68,10 +70,11 @@
         </div>
 
         <div class="mb-3">
-          <label class="form-label">ยืนยันรหัสผ่านใหม่</label>
+          <label class="form-label" for="confirm_password">ยืนยันรหัสผ่านใหม่</label>
           <input
             type="password"
             name="confirm_password"
+            id="confirm_password"
             class="form-control"
             autocomplete="new-password"
             minlength="8"
@@ -91,4 +94,3 @@
 </div>
 
 <?= $this->endSection() ?>
-

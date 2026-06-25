@@ -17,6 +17,12 @@ class HourlyCensusModel extends Model
         'record_time',
         'source_api_ward_name',
         'patient_count',
+        'has_level_data',
+        'patients_level_5',
+        'patients_level_4',
+        'patients_level_3',
+        'patients_level_2',
+        'patients_level_1',
         'admissions_today',
         'discharges_today',
         'moves_in_today',
@@ -50,6 +56,12 @@ class HourlyCensusModel extends Model
                 $byTime[$t] = [
                     'record_time'       => $t,
                     'patient_count'     => 0,
+                    'has_level_data'    => 0,
+                    'patients_level_5'  => 0,
+                    'patients_level_4'  => 0,
+                    'patients_level_3'  => 0,
+                    'patients_level_2'  => 0,
+                    'patients_level_1'  => 0,
                     'admissions_today'  => 0,
                     'discharges_today'  => 0,
                     'moves_in_today'    => 0,
@@ -59,6 +71,13 @@ class HourlyCensusModel extends Model
             }
 
             $byTime[$t]['patient_count']    += (int) ($row['patient_count'] ?? 0);
+            $byTime[$t]['has_level_data']    = max(
+                (int) $byTime[$t]['has_level_data'],
+                (int) ($row['has_level_data'] ?? 0)
+            );
+            foreach ([5, 4, 3, 2, 1] as $lv) {
+                $byTime[$t]["patients_level_{$lv}"] += (int) ($row["patients_level_{$lv}"] ?? 0);
+            }
             $byTime[$t]['admissions_today'] += (int) ($row['admissions_today'] ?? 0);
             $byTime[$t]['discharges_today'] += (int) ($row['discharges_today'] ?? 0);
             $byTime[$t]['moves_in_today']   += (int) ($row['moves_in_today'] ?? 0);
@@ -67,6 +86,17 @@ class HourlyCensusModel extends Model
         }
 
         ksort($byTime);
+
+        foreach ($byTime as &$slot) {
+            $levelSum = 0;
+            foreach ([1, 2, 3, 4, 5] as $lv) {
+                $levelSum += (int) $slot["patients_level_{$lv}"];
+            }
+            if ($levelSum > 0) {
+                $slot['has_level_data'] = 1;
+            }
+        }
+        unset($slot);
 
         return array_values($byTime);
     }

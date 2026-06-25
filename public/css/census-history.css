@@ -1,0 +1,82 @@
+.history-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+
+.history-detail-card {
+  border: 1px solid var(--surface-high);
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: var(--surface-low);
+}
+
+.history-detail-label {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.history-detail-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.history-table-scroll {
+  max-height: calc(100vh - 22rem);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.history-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--surface-low);
+  box-shadow: 0 1px 0 var(--surface-high);
+}
+
+.history-table th,
+.history-table td {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.history-table tr[data-shift-key] {
+  cursor: pointer;
+}
+
+.history-table tr[data-shift-key]:hover td {
+  filter: brightness(0.95);
+}
+
+.history-row-night td   { background: #eef2ff; }
+.history-row-morning td { background: #ecfdf5; }
+.history-row-afternoon td { background: #fff7ed; }
+.history-row-empty td   { background: var(--surface-low); color: var(--status-none); }
+
+.history-shift-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+  background: var(--surface-high);
+  color: var(--text-main);
+}
+
+.history-date-group-start td {
+  border-top: 2px solid var(--surface-high) !important;
+}
+
+#shiftDetailModal,
+#dailyProdModal {
+  z-index: var(--z-modal);
+}
+
+.modal-backdrop {
+  z-index: var(--z-modal-backdrop);
+}

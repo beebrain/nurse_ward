@@ -1,0 +1,14 @@
+{
+  "name": "nurse-ward",
+  "private": true,
+  "description": "Dev tooling for browser tests (Playwright + Cursor MCP)",
+  "scripts": {
+    "test:browser": "node scripts/web-smoke-test.cjs",
+    "test:browser:headless": "HEADED=0 node scripts/web-smoke-test.cjs",
+    "playwright:install": "playwright install chrome chromium"
+  },
+  "devDependencies": {
+    "@playwright/mcp": "^0.0.68",
+    "playwright": "^1.49.0"
+  }
+}

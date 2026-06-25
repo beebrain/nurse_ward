@@ -8,6 +8,9 @@ use App\Models\CensusQualityIndicatorModel;
 use App\Models\CensusEditLogModel;
 use App\Models\UserWardModel;
 use App\Models\WardModel;
+use App\Services\NursingProductivityService;
+use App\Services\HosxpLevelDiffService;
+use App\Services\ProductivityAggregateService;
 
 class CensusController extends BaseController
 {
@@ -81,10 +84,15 @@ class CensusController extends BaseController
             $this->qiModel->upsertForCensus((int)$censusId, $this->filterQiData($qi));
         }
 
-        if ($censusData['shift'] === 'Afternoon') {
+        if ($this->censusModel->shouldRecalculateProductivityOnSave(
+            $this->wardModel->find((int) $censusData['ward_id']),
+            $censusData['shift']
+        )) {
             $this->censusModel->recalculateProductivity(
-                (int)$censusData['ward_id'],
-                $censusData['record_date']
+                (int) $censusData['ward_id'],
+                $censusData['record_date'],
+                null,
+                $censusData['shift']
             );
         }
 
@@ -93,7 +101,7 @@ class CensusController extends BaseController
         return redirect()->to('census/new')->with('message', $msg);
     }
 
-    public function autosave()
+    public function confirmSave()
     {
         if (! $this->request->isAJAX()) {
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Invalid request']);
@@ -138,10 +146,15 @@ class CensusController extends BaseController
                 $this->qiModel->upsertForCensus((int)$censusId, $this->filterQiData($qi));
             }
 
-            if ($censusData['shift'] === 'Afternoon') {
+            if ($this->censusModel->shouldRecalculateProductivityOnSave(
+                $this->wardModel->find((int) $censusData['ward_id']),
+                $censusData['shift']
+            )) {
                 $this->censusModel->recalculateProductivity(
-                    (int)$censusData['ward_id'],
-                    $censusData['record_date']
+                    (int) $censusData['ward_id'],
+                    $censusData['record_date'],
+                    null,
+                    $censusData['shift']
                 );
             }
 
@@ -149,6 +162,7 @@ class CensusController extends BaseController
                 'success'   => true,
                 'census_id' => $censusId,
                 'updated'   => $isUpdate,
+                'message'   => $isUpdate ? 'ยืนยันการแก้ไขข้อมูลเรียบร้อยแล้ว' : 'ยืนยันข้อมูลเรียบร้อยแล้ว',
             ]);
         } catch (\Exception $e) {
             return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
@@ -231,6 +245,74 @@ class CensusController extends BaseController
         ]);
     }
 
+    public function productivityPreview()
+    {
+        if (! $this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Invalid request']);
+        }
+
+        $post = $this->request->getPost();
+        $draft = $this->buildCensusData($post);
+        if ($draft === null) {
+            return $this->response->setJSON(['success' => false, 'message' => 'ข้อมูลไม่ครบ']);
+        }
+
+        $wardId = (int) $draft['ward_id'];
+        $date   = $draft['record_date'];
+        $shift  = $draft['shift'];
+
+        if (! $this->canRecordForWard($wardId)) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'ไม่มีสิทธิ์ดู Ward นี้']);
+        }
+
+        $ward    = $this->wardModel->find($wardId);
+        $mode    = NursingProductivityService::modeForWard($ward);
+        $service = new NursingProductivityService();
+        $hosxp   = new HosxpLevelDiffService();
+
+        $shiftPreview = $service->previewShift($draft, $mode);
+
+        $shiftsByKey = [];
+        foreach ($this->censusModel->where('ward_id', $wardId)->where('record_date', $date)->findAll() as $row) {
+            $shiftsByKey[$row['shift']] = $row;
+        }
+        $shiftsByKey[$shift] = $draft;
+
+        $daily = $service->buildDailyMetrics($shiftsByKey, $mode, $wardId, $date, $hosxp);
+        $shiftLabels = $this->shiftLabelsTh();
+
+        $recordedShifts = $this->orderedShiftKeys(array_keys($shiftsByKey));
+        $recordedLabels = array_map(fn ($s) => $shiftLabels[$s] ?? $s, $recordedShifts);
+
+        $careFromShifts = $mode === NursingProductivityService::MODE_TURNOVER
+            ? $recordedLabels
+            : [($daily['care_shift'] ? ($shiftLabels[$daily['care_shift']] ?? $daily['care_shift']) : null)];
+
+        $careFromShifts = array_values(array_filter($careFromShifts));
+
+        return $this->response->setJSON([
+            'success' => true,
+            'productivity_mode' => $mode,
+            'level_source'      => $daily['level_source'],
+            'shift' => [
+                'key'                 => $shift,
+                'label'               => $shiftLabels[$shift] ?? $shift,
+                'required_care_hours' => $shiftPreview['required_care_hours'],
+                'working_hours'       => $shiftPreview['working_hours'],
+                'productivity'        => $shiftPreview['productivity'],
+            ],
+            'daily' => [
+                'required_care_hours' => $daily['required_care_hours'],
+                'working_hours'       => $daily['working_hours'],
+                'productivity'        => $daily['productivity'],
+                'recorded_shifts'     => $recordedLabels,
+                'care_from_shifts'    => $careFromShifts,
+                'working_from_shifts' => $recordedLabels,
+                'care_shift_key'      => $daily['care_shift'],
+            ],
+        ]);
+    }
+
     public function history()
     {
         [$wards, $defaultWardId] = $this->getAvailableWardsForCurrentUser();
@@ -268,21 +350,30 @@ class CensusController extends BaseController
 
     public function productivity()
     {
-        [$wards] = $this->getAvailableWardsForCurrentUser();
+        if ($redirect = $this->ensureProductivityAccess()) {
+            return $redirect;
+        }
+
+        [$wards, $defaultWardId] = $this->getAvailableWardsForCurrentUser();
 
         return view('census/productivity', [
-            'title'        => 'Productivity',
-            'wards'        => $wards,
+            'title'         => 'แดชบอร์ด Productivity',
+            'wards'         => $wards,
+            'defaultWardId' => $defaultWardId,
             'currentMonth' => (int) date('n'),
             'currentYear'  => (int) date('Y'),
             'isNurse'      => $this->isNurse(),
+            'canRecord'    => auth()->user()->can('census.record'),
+            'wardSubtitle' => $this->buildProductivityWardSubtitle($wards),
+            'levelHours'   => CensusModel::LEVEL_HOURS,
+            'shiftHours'   => CensusModel::SHIFT_HOURS,
         ]);
     }
 
     public function productivityData()
     {
-        if (! auth()->loggedIn()) {
-            return $this->response->setStatusCode(401)->setJSON(['error' => 'Unauthorized']);
+        if ($redirect = $this->ensureProductivityAccess(true)) {
+            return $redirect;
         }
 
         $mode  = (string) ($this->request->getGet('mode') ?? 'month');
@@ -312,7 +403,7 @@ class CensusController extends BaseController
 
     private function getAvailableWardsForCurrentUser(): array
     {
-        $wards = $this->wardModel->getActiveWithDepartmentAssigned();
+        $wards = $this->wardModel->getActiveWithDepartment();
         $defaultWardId = null;
 
         if ($this->isNurse()) {
@@ -387,8 +478,9 @@ class CensusController extends BaseController
     {
         $dateFrom = sprintf('%04d-%02d-01', $year, $month);
         $dateTo = date('Y-m-t', strtotime($dateFrom));
+        $ward = $this->wardModel->find($wardId);
         $rows = $this->censusModel->getHistoryForList($wardId, $dateFrom, $dateTo, 120);
-        $daily = $this->buildDailyProductivityRows($rows);
+        $daily = $this->buildDailyProductivityRows($rows, $ward);
 
         return [
             'mode' => 'month',
@@ -433,7 +525,7 @@ class CensusController extends BaseController
         foreach ($wards as $ward) {
             $wardId = (int) $ward['id'];
             $rows   = $this->censusModel->getHistoryForList($wardId, $dateFrom, date('Y-m-t', strtotime($dateFrom)), 120);
-            $daily  = $this->buildDailyProductivityRows($rows);
+            $daily  = $this->buildDailyProductivityRows($rows, $ward);
 
             foreach ($daily as $date => $dayRow) {
                 if (! isset($days[$date])) {
@@ -488,7 +580,7 @@ class CensusController extends BaseController
         foreach ($wards as $ward) {
             $wardId = (int) $ward['id'];
             $rows   = $this->censusModel->getHistoryForList($wardId, "{$year}-01-01", "{$year}-12-31", 1200);
-            $daily  = $this->buildDailyProductivityRows($rows);
+            $daily  = $this->buildDailyProductivityRows($rows, $ward);
 
             foreach ($daily as $dayRow) {
                 $allDailyRows[] = $dayRow;
@@ -538,8 +630,9 @@ class CensusController extends BaseController
 
     private function buildYearProductivityPayload(int $wardId, int $year): array
     {
+        $ward = $this->wardModel->find($wardId);
         $rows = $this->censusModel->getHistoryForList($wardId, "{$year}-01-01", "{$year}-12-31", 1200);
-        $daily = $this->buildDailyProductivityRows($rows);
+        $daily = $this->buildDailyProductivityRows($rows, $ward);
         $months = [];
 
         for ($month = 1; $month <= 12; $month++) {
@@ -592,119 +685,19 @@ class CensusController extends BaseController
         ];
     }
 
-    private function buildDailyProductivityRows(array $rows): array
+    private function buildDailyProductivityRows(array $rows, ?array $ward = null): array
     {
-        $byDate = [];
-        foreach ($rows as $row) {
-            $byDate[$row['record_date']][$row['shift']] = $row;
-        }
-
-        ksort($byDate);
-        $daily = [];
-        foreach ($byDate as $date => $shifts) {
-            $patientDayRow = $this->pickShiftRow($shifts, ['Night', 'Afternoon', 'Morning']);
-            $careRow = $this->pickShiftRow($shifts, ['Afternoon', 'Night', 'Morning']);
-            $requiredCareHours = $careRow ? $this->requiredCareHoursFromRow($careRow) : 0.0;
-            $workingHours = 0.0;
-            $admissions = 0;
-            $discharges = 0;
-            $transfersIn = 0;
-            $transfersOut = 0;
-            $deaths = 0;
-
-            foreach ($shifts as $shiftRow) {
-                $workingHours += (float)($shiftRow['working_hours'] ?? 0);
-                $admissions += (int)$shiftRow['admissions'];
-                $discharges += (int)$shiftRow['discharges'];
-                $transfersIn += (int)$shiftRow['transfers_in'];
-                $transfersOut += (int)$shiftRow['transfers_out'];
-                $deaths += (int)$shiftRow['deaths'];
-            }
-
-            $daily[$date] = [
-                'date' => $date,
-                'day_label' => $this->thaiDateShort($date),
-                'weekday_label' => $this->thaiWeekdayLabel($date),
-                'patient_days' => (int)($patientDayRow['total_patients'] ?? 0),
-                'patient_day_shift' => $patientDayRow['shift'] ?? null,
-                'care_shift' => $careRow['shift'] ?? null,
-                'recorded_shifts' => count($shifts),
-                'required_care_hours' => round($requiredCareHours, 2),
-                'working_hours' => round($workingHours, 2),
-                'productivity' => $workingHours > 0 && $requiredCareHours > 0
-                    ? round(($requiredCareHours * 100) / $workingHours, 2)
-                    : null,
-                'admissions' => $admissions,
-                'discharges' => $discharges,
-                'transfers_in' => $transfersIn,
-                'transfers_out' => $transfersOut,
-                'deaths' => $deaths,
-            ];
-        }
-
-        return $daily;
-    }
-
-    private function pickShiftRow(array $shifts, array $priority): ?array
-    {
-        foreach ($priority as $shift) {
-            if (isset($shifts[$shift])) {
-                return $shifts[$shift];
-            }
-        }
-
-        return null;
-    }
-
-    private function requiredCareHoursFromRow(array $row): float
-    {
-        if ((float)($row['required_care_hours'] ?? 0) > 0) {
-            return (float)$row['required_care_hours'];
-        }
-
-        $hours = 0.0;
-        foreach (CensusModel::LEVEL_HOURS as $level => $hourPerPatient) {
-            $hours += (int)($row["patients_level_{$level}"] ?? 0) * $hourPerPatient;
-        }
-
-        return $hours;
+        return (new ProductivityAggregateService($this->censusModel))->buildDailyRows(
+            $rows,
+            $ward,
+            fn(string $date): string => $this->thaiDateShort($date),
+            fn(string $date): string => $this->thaiWeekdayLabel($date),
+        );
     }
 
     private function summarizeProductivityRows(array $rows): array
     {
-        $summary = [
-            'recorded_days' => count($rows),
-            'recorded_shifts' => 0,
-            'patient_days' => 0,
-            'required_care_hours' => 0.0,
-            'working_hours' => 0.0,
-            'productivity' => null,
-            'admissions' => 0,
-            'discharges' => 0,
-            'transfers_in' => 0,
-            'transfers_out' => 0,
-            'deaths' => 0,
-        ];
-
-        foreach ($rows as $row) {
-            $summary['recorded_shifts'] += $row['recorded_shifts'];
-            $summary['patient_days'] += $row['patient_days'];
-            $summary['required_care_hours'] += $row['required_care_hours'];
-            $summary['working_hours'] += $row['working_hours'];
-            $summary['admissions'] += $row['admissions'];
-            $summary['discharges'] += $row['discharges'];
-            $summary['transfers_in'] += $row['transfers_in'];
-            $summary['transfers_out'] += $row['transfers_out'];
-            $summary['deaths'] += $row['deaths'];
-        }
-
-        $summary['required_care_hours'] = round($summary['required_care_hours'], 2);
-        $summary['working_hours'] = round($summary['working_hours'], 2);
-        $summary['productivity'] = $summary['working_hours'] > 0 && $summary['required_care_hours'] > 0
-            ? round(($summary['required_care_hours'] * 100) / $summary['working_hours'], 2)
-            : null;
-
-        return $summary;
+        return (new ProductivityAggregateService($this->censusModel))->summarizeDailyRows($rows);
     }
 
     private function formatHistoryShift(array $row): array
@@ -784,45 +777,68 @@ class CensusController extends BaseController
 
     private function thaiWeekdayLabel(string $date): string
     {
-        $labels = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
-        return $labels[(int)date('w', strtotime($date))] ?? '';
+        return thai_weekday_label($date);
     }
 
     private function thaiDateShort(string $date): string
     {
-        $timestamp = strtotime($date);
-        if ($timestamp === false) {
-            return $date;
-        }
-
-        $months = [
-            1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.',
-            5 => 'พ.ค.', 6 => 'มิ.ย.', 7 => 'ก.ค.', 8 => 'ส.ค.',
-            9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.',
-        ];
-
-        $day = (int)date('j', $timestamp);
-        $month = $months[(int)date('n', $timestamp)] ?? date('m', $timestamp);
-        $thaiYearShort = ((int)date('Y', $timestamp) + 543) % 100;
-
-        return sprintf('%d %s %02d', $day, $month, $thaiYearShort);
+        return thai_date_short($date);
     }
 
     private function thaiMonthLabel(int $month): string
     {
-        $labels = [
-            1 => 'มกราคม', 2 => 'กุมภาพันธ์', 3 => 'มีนาคม', 4 => 'เมษายน',
-            5 => 'พฤษภาคม', 6 => 'มิถุนายน', 7 => 'กรกฎาคม', 8 => 'สิงหาคม',
-            9 => 'กันยายน', 10 => 'ตุลาคม', 11 => 'พฤศจิกายน', 12 => 'ธันวาคม',
-        ];
-
-        return $labels[$month] ?? (string)$month;
+        return thai_month_label($month);
     }
 
     private function isNurse(): bool
     {
         $user = auth()->user();
         return $user && $user->inGroup('nurse') && ! $user->inGroup('superadmin') && ! $user->inGroup('manager');
+    }
+
+    private function ensureProductivityAccess(bool $json = false)
+    {
+        if (! auth()->loggedIn()) {
+            if ($json) {
+                return $this->response->setStatusCode(401)->setJSON(['error' => 'Unauthorized']);
+            }
+
+            return redirect()->to(base_url('login'));
+        }
+
+        $user = auth()->user();
+        if (! $user->can('census.record') && ! $user->can('reports.view')) {
+            if ($json) {
+                return $this->response->setStatusCode(403)->setJSON(['error' => 'Forbidden']);
+            }
+
+            return redirect()->to(base_url('auth/pending'));
+        }
+
+        return null;
+    }
+
+    private function buildProductivityWardSubtitle(array $wards): string
+    {
+        if ($wards === []) {
+            return 'ยังไม่มีแผนกที่คุณสามารถดูข้อมูลได้';
+        }
+
+        if (count($wards) === 1) {
+            $ward = $wards[0];
+            $name = trim((string) ($ward['name'] ?? ''));
+            $dept = trim((string) ($ward['department_name'] ?? ''));
+
+            return $dept !== '' && $name !== ''
+                ? "แผนก {$name} ({$dept})"
+                : ($name !== '' ? "แผนก {$name}" : 'แผนกที่รับผิดชอบ');
+        }
+
+        if ($this->isNurse()) {
+            return 'ประสิทธิภาพการพยาบาล — ' . count($wards) . ' แผนกที่รับผิดชอบ';
+        }
+
+        return 'ประสิทธิภาพการพยาบาล — ทุกแผนก (' . count($wards) . ')';
     }
 
     /**
@@ -938,5 +954,24 @@ class CensusController extends BaseController
             $out[$key] = (int)($qi[$key] ?? 0);
         }
         return $out;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function shiftLabelsTh(): array
+    {
+        return ['Night' => 'เวรดึก', 'Morning' => 'เวรเช้า', 'Afternoon' => 'เวรบ่าย'];
+    }
+
+    /**
+     * @param list<string> $shifts
+     * @return list<string>
+     */
+    private function orderedShiftKeys(array $shifts): array
+    {
+        $order = ['Night', 'Morning', 'Afternoon'];
+
+        return array_values(array_filter($order, static fn ($s) => in_array($s, $shifts, true)));
     }
 }

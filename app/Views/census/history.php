@@ -2,79 +2,11 @@
 
 <?= $this->section('layout_class') ?>layout-fluid<?= $this->endSection() ?>
 
+<?= $this->section('styles') ?>
+<link href="<?= asset_url('css/census-history.css') ?>" rel="stylesheet">
+<?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
-<style>
-    .history-detail-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-        gap: .75rem;
-    }
-
-    .history-detail-card {
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: .75rem;
-        background: #f8fafc;
-    }
-
-    .history-detail-label {
-        color: #64748b;
-        font-size: .78rem;
-        font-weight: 700;
-    }
-
-    .history-detail-value {
-        font-size: 1.35rem;
-        font-weight: 800;
-        color: #1e293b;
-    }
-
-    .history-table-scroll {
-        max-height: calc(100vh - 22rem);
-        overflow: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .history-table thead th {
-        position: sticky;
-        top: 0;
-        z-index: 3;
-        background-color: #f8f9fa;
-        box-shadow: 0 1px 0 #dee2e6;
-    }
-
-    .history-table th,
-    .history-table td {
-        vertical-align: middle;
-        white-space: nowrap;
-    }
-
-    .history-table tr[data-shift-key] {
-        cursor: pointer;
-    }
-
-    .history-table tr[data-shift-key]:hover td {
-        filter: brightness(.95);
-    }
-
-    .history-row-night td   { background: #eef2ff; }
-    .history-row-morning td { background: #ecfdf5; }
-    .history-row-afternoon td { background: #fff7ed; }
-    .history-row-empty td   { background: #f8fafc; color: #94a3b8; }
-
-    .history-date-group-start td {
-        border-top: 2px solid #dee2e6 !important;
-    }
-
-    #shiftDetailModal,
-    #dailyProdModal {
-        z-index: 2000;
-    }
-
-    .modal-backdrop {
-        z-index: 1990;
-    }
-</style>
 
 <div class="row">
     <div class="col-12">

@@ -1,0 +1,328 @@
+/* Ward productivity / daily summary matrix tables */
+
+.ward-matrix-scroll {
+  max-height: min(70vh, calc(100dvh - 16rem));
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 0 0 0.375rem 0.375rem;
+}
+
+.ward-matrix-table {
+  margin-bottom: 0;
+  font-size: 0.8rem;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.ward-matrix-table th,
+.ward-matrix-table td {
+  vertical-align: middle;
+  padding: 0.35rem 0.45rem;
+}
+
+.ward-matrix-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--surface-low);
+  box-shadow: 0 1px 0 var(--surface-high);
+}
+
+.ward-matrix-date-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface-card);
+  min-width: 3.75rem;
+  max-width: 4.25rem;
+  box-shadow: 2px 0 4px rgba(15, 23, 42, 0.06);
+  white-space: nowrap;
+}
+
+.ward-matrix-table thead th.ward-matrix-date-col {
+  z-index: 4;
+  background-color: var(--surface-low);
+}
+
+.ward-matrix-table thead th.ward-col {
+  min-width: 3.5rem;
+  text-align: center;
+  vertical-align: bottom;
+  padding-bottom: 0.35rem;
+  border-left: 1px solid var(--surface-high);
+}
+
+.ward-matrix-table tbody td.ward-cell {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.76rem;
+  min-width: 3.5rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  border-left: 1px solid var(--surface-high);
+  border-bottom: 1px solid var(--surface-high);
+  padding: 0.15rem 0.25rem;
+}
+
+.prod-matrix-cell-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 3rem;
+  min-height: 44px;
+  padding: 0.2rem 0.35rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.prod-matrix-cell-btn:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.prod-matrix-cell-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ward-matrix-table tbody td.ward-matrix-date-col {
+  border-bottom: 1px solid var(--surface-high);
+}
+
+.ward-matrix-table .matrix-pct {
+  display: inline-block;
+  min-width: 2.75rem;
+  text-align: center;
+}
+
+.ward-matrix-head {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.05;
+  max-height: 4.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ward-matrix-table .date-main {
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.ward-matrix-table .date-sub {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  line-height: 1.1;
+}
+
+.matrix-page-kpi {
+  border-radius: 12px;
+  border: 1px solid var(--surface-high);
+  background: var(--surface-card);
+}
+
+.matrix-page-kpi-label {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.matrix-page-kpi-value {
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix-page-kpi-value--metric {
+  color: var(--text-main);
+}
+
+.matrix-page-kpi--status {
+  border-left: 4px solid var(--surface-high);
+}
+
+.matrix-page-kpi--status.prod-status-critical {
+  background: var(--status-critical-bg);
+  border: 1px solid var(--status-critical-border);
+  border-left: 4px solid var(--status-critical);
+}
+
+.matrix-page-kpi--status.prod-status-high {
+  background: var(--status-high-bg);
+  border: 1px solid var(--status-high-border);
+  border-left: 4px solid var(--status-high);
+}
+
+.matrix-page-kpi--status.prod-status-adequate {
+  background: var(--status-adequate-bg);
+  border: 1px solid var(--status-adequate-border);
+  border-left: 4px solid var(--status-adequate);
+}
+
+.matrix-page-kpi--status.prod-status-low {
+  background: var(--status-low-bg);
+  border: 1px solid var(--status-low-border);
+  border-left: 4px solid var(--status-info);
+}
+
+.matrix-page-kpi--status.prod-status-none {
+  background: var(--status-none-bg);
+  border: 1px solid var(--status-none-border);
+  border-left: 4px solid var(--status-none);
+}
+
+.matrix-page-kpi-hint {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  line-height: 1.35;
+}
+
+.daily-none { color: var(--status-none); font-weight: 400; }
+
+/* Productivity / status color classes */
+.prod-critical { color: var(--status-critical); font-weight: 800; }
+.prod-high     { color: var(--status-high); font-weight: 800; }
+.prod-adequate { color: var(--status-adequate); font-weight: 800; }
+.prod-low      { color: var(--status-info); font-weight: 700; }
+.prod-none     { color: var(--status-none); font-weight: 500; }
+
+.prod-good { color: var(--status-good); font-weight: 700; }
+.prod-warn { color: var(--status-warn); font-weight: 700; }
+
+.ward-matrix-table tbody td.ward-cell.prod-heat-critical {
+  background: var(--status-critical-bg);
+  border-color: var(--status-critical-border);
+}
+
+.ward-matrix-table tbody td.ward-cell.prod-heat-high {
+  background: var(--status-high-bg);
+  border-color: var(--status-high-border);
+}
+
+.ward-matrix-table tbody td.ward-cell.prod-heat-adequate {
+  background: var(--status-adequate-bg);
+  border-color: var(--status-adequate-border);
+}
+
+.ward-matrix-table tbody td.ward-cell.prod-heat-low {
+  background: var(--status-low-bg);
+  border-color: var(--status-low-border);
+}
+
+.ward-matrix-table tbody td.ward-cell.prod-heat-none {
+  background: var(--status-none-bg);
+  color: var(--status-none);
+  font-weight: 500;
+}
+
+.status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.status-legend-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  border: 1px solid transparent;
+}
+
+.status-legend-chip--critical {
+  color: var(--status-critical);
+  background: var(--status-critical-bg);
+  border-color: var(--status-critical-border);
+}
+
+.status-legend-chip--high {
+  color: var(--status-high);
+  background: var(--status-high-bg);
+  border-color: var(--status-high-border);
+}
+
+.status-legend-chip--adequate {
+  color: var(--status-adequate);
+  background: var(--status-adequate-bg);
+  border-color: var(--status-adequate-border);
+}
+
+.status-legend-chip--low {
+  color: var(--status-info);
+  background: var(--status-low-bg);
+  border-color: var(--status-low-border);
+}
+
+.status-legend-chip--none {
+  color: var(--status-none);
+  background: var(--status-none-bg);
+  border-color: var(--status-none-border);
+  font-weight: 600;
+}
+
+/* Legacy dot legend (other pages) */
+.status-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.status-legend-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.status-legend-dot--critical { background: var(--status-critical); }
+.status-legend-dot--high     { background: var(--status-high); }
+.status-legend-dot--adequate { background: var(--status-adequate); }
+.status-legend-dot--info     { background: var(--status-info); }
+.status-legend-dot--good { background: var(--status-good); }
+.status-legend-dot--warn { background: var(--status-warn); }
+.status-legend-dot--low  { background: var(--status-low); }
+.status-legend-dot--none { background: var(--status-none); }
+
+@media (max-width: 767.98px) {
+  .ward-matrix-table {
+    font-size: max(0.875rem, var(--matrix-font-min));
+  }
+
+  .ward-matrix-head {
+    font-size: 0.75rem;
+  }
+
+  .ward-matrix-table tbody td.ward-cell {
+    font-size: 0.875rem;
+  }
+
+  .ward-matrix-table .date-sub {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .matrix-filter-actions .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+}
